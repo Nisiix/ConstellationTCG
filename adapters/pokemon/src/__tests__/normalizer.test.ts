@@ -64,7 +64,10 @@ describe('normalizeCard — TCGdex Charizard (Base Set)', () => {
     expect(byRelation('WEAK_TO')).toEqual(['type:water'])
     expect(byRelation('RESISTS')).toEqual(['type:fighting'])
     expect(byRelation('HAS_ABILITY')).toEqual(['ability:energy-burn'])
-    expect(byRelation('HAS_ATTACK')).toEqual(['attack:fire-spin'])
+    // Attacks are card data, never entities (they stay in attributes for display only).
+    expect(byRelation('HAS_ATTACK')).toEqual([])
+    expect(normalized.entities.some((e) => e.key.startsWith('attack:'))).toBe(false)
+    expect(Array.isArray(normalized.attributes.attacks)).toBe(true)
   })
 
   it('names the species from the Pokédex, not from the card name', () => {

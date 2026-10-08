@@ -6,10 +6,10 @@ import { useMemo, useRef } from 'react'
 import type * as THREE from 'three'
 import type { GraphNode, NodeType } from '@constellation/domain'
 import { nodeRadius } from '@/lib/colors'
-import { useTheme } from '@/lib/theme'
+import { useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
-import { animatedPositions } from './animated'
+import { displayScales, drawnPosition } from './animated'
 
 const MAX_LABELS = 48
 
@@ -57,14 +57,19 @@ export function Labels() {
 }
 
 function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: boolean; distance: number }) {
-  const theme = useTheme()
+  const theme = useSceneTheme()
+  const highlight = useUiStore((s) => s.highlight)
   const ref = useRef<THREE.Group>(null)
-  const offset = nodeRadius(node.nodeType, distance, isFocus) + 0.45
+  const fallbackRadius = nodeRadius(node.nodeType, distance, isFocus)
   useFrame(() => {
-    const p = animatedPositions.get(node.id)
-    if (p && ref.current) ref.current.position.set(p[0], p[1] - offset, p[2])
+    const p = drawnPosition(node.id)
+    if (!p || !ref.current) return
+    // Hang the label just under the point as it is drawn now (hover and pulse included).
+    const radius = (displayScales.get(node.id) ?? fallbackRadius) * 1.14
+    ref.current.position.set(p[0], p[1] - radius - 0.4, p[2])
   })
   const size = isFocus ? 0.95 : distance <= 1 ? 0.52 : 0.42
+  const dimmed = highlight !== null && !isFocus && !highlight.has(node.id)
   return (
     <group ref={ref}>
       <Billboard follow>
@@ -77,7 +82,7 @@ function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: bool
           textAlign="center"
           outlineWidth={size * 0.1}
           outlineColor={theme.background}
-          fillOpacity={isFocus ? 1 : 0.85}
+          fillOpacity={dimmed ? 0.3 : isFocus ? 1 : 0.85}
           letterSpacing={0.02}
         >
           {node.label}

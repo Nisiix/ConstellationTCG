@@ -1,0 +1,25 @@
+{
+  "name": "@constellation/resolver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Digital asset → card printing resolver (confidence based). Never auto-matches below the threshold.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@constellation/testing": "workspace:*",
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

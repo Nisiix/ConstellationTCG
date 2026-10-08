@@ -5,9 +5,11 @@ import { NextResponse } from 'next/server'
 /** Short browser cache; CDNs may hold responses longer (data only changes with ingestion). */
 export const CACHE_PUBLIC = 'public, max-age=30, s-maxage=300, stale-while-revalidate=60'
 
-export function json<T>(data: T, init: { status?: number; cache?: string } = {}): NextResponse {
+export function json<T>(data: T, init: { status?: number; cache?: string; startedAt?: number } = {}): NextResponse {
   const response = NextResponse.json(data, { status: init.status ?? 200 })
   if (init.cache) response.headers.set('Cache-Control', init.cache)
+  // Observability: how long the server spent, readable in the browser's network panel.
+  if (init.startedAt !== undefined) response.headers.set('Server-Timing', `app;dur=${(performance.now() - init.startedAt).toFixed(1)}`)
   return response
 }
 
@@ -37,3 +39,4 @@ function safeDetails(details: Record<string, unknown>): Record<string, unknown> 
 }
 
 export { filterParams, intParam, listParam } from '@/lib/params'
+export { rateLimit } from './rate-limit'

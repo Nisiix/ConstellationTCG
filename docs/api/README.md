@@ -5,6 +5,10 @@ the database only; external sources are never called during a request. Responses
 `Cache-Control: public, max-age=30, s-maxage=300, stale-while-revalidate=60` and are also cached
 in-process for a short time (data only changes when ingestion runs).
 
+Every public route is rate limited per client (a token bucket: 60 requests burst, 20 per second
+sustained; `429` with `Retry-After` beyond that) and reports its server time in a `Server-Timing`
+header.
+
 Errors have the shape `{ "error": { "layer": "graph" | "validation" | …, "message": "…", "details": {} } }`
 with a matching status (400 for invalid input, 404 for unknown nodes or games, 500 otherwise).
 
@@ -62,8 +66,8 @@ One node and its relationship summary: `{ node, summary }`.
 
 `{ game, filters: FilterDefinition[] }` — universal filters (series, set, rarity, language, artist,
 variant, finish, card type, relationship, node type, graph depth, ownership) followed by the game's
-own (Pokémon: species, type, HP, evolution stage, ability, attack, retreat cost, weakness,
-resistance, regulation mark). Values and ranges are computed from the catalog and cached.
+own (Pokémon: species, type, evolution stage, ability, weakness, resistance, regulation mark —
+card statistics such as HP, attacks and costs are deliberately not filters). Values and ranges are computed from the catalog and cached.
 
 ## `GET /api/games`
 

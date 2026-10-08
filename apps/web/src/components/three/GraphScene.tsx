@@ -1,6 +1,6 @@
 'use client'
 
-import { useTheme } from '@/lib/theme'
+import { useSceneTheme } from '@/lib/theme'
 import { CameraController } from './CameraController'
 import { EdgeRenderer } from './EdgeRenderer'
 import { EdgeSparks } from './EdgeSparks'
@@ -11,8 +11,9 @@ import { ParticleField } from './ParticleField'
 import { PostFX } from './PostFX'
 import { SelectionEffects } from './SelectionEffects'
 
+/** The constellation. Always on the dark sky: the interface mode changes the panels, not the map. */
 export function GraphScene() {
-  const theme = useTheme()
+  const theme = useSceneTheme()
   return (
     <>
       <color attach="background" args={[theme.background]} />

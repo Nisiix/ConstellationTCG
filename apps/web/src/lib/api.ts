@@ -24,7 +24,7 @@ export class ApiError extends Error {
   }
 }
 
-async function get<T>(url: string, signal?: AbortSignal): Promise<T> {
+async function request<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal, headers: { accept: 'application/json' } })
   if (!response.ok) {
     let message = `Request failed (${response.status})`
@@ -41,9 +41,83 @@ async function get<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T
 }
 
+/**
+ * Small client-side cache for graph responses (neighborhoods, universe). Data only changes when
+ * ingestion runs, so a short TTL is safe. It lets the explorer prefetch the points around the
+ * focus and whatever is under the pointer, so following a connection is instant, and it dedupes
+ * requests in flight. Aborting one consumer never cancels the shared request.
+ */
+interface CacheEntry<T> {
+  promise: Promise<T>
+  storedAt: number
+}
+
+const GRAPH_CACHE_TTL = 2 * 60_000
+const GRAPH_CACHE_MAX = 80
+const graphCache = new Map<string, CacheEntry<unknown>>()
+
+function abortError(): Error {
+  const error = new Error('The operation was aborted.')
+  error.name = 'AbortError'
+  return error
+}
+
+/** Resolve with the cached response (fetching it once), honoring the caller's abort signal. */
+function cached<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const now = Date.now()
+  let entry = graphCache.get(url) as CacheEntry<T> | undefined
+  if (entry && now - entry.storedAt > GRAPH_CACHE_TTL) {
+    graphCache.delete(url)
+    entry = undefined
+  }
+  if (!entry) {
+    const promise = request<T>(url).catch((error: unknown) => {
+      graphCache.delete(url)
+      throw error
+    })
+    entry = { promise, storedAt: now }
+    graphCache.set(url, entry)
+    if (graphCache.size > GRAPH_CACHE_MAX) {
+      const oldest = graphCache.keys().next().value
+      if (oldest !== undefined) graphCache.delete(oldest)
+    }
+  } else {
+    // refresh recency
+    graphCache.delete(url)
+    graphCache.set(url, entry)
+  }
+  if (!signal) return entry.promise
+  if (signal.aborted) return Promise.reject(abortError())
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortError())
+    signal.addEventListener('abort', onAbort, { once: true })
+    entry!.promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error)
+      },
+    )
+  })
+}
+
+export function clearGraphCache(): void {
+  graphCache.clear()
+}
+
+export function isGraphCached(url: string): boolean {
+  const entry = graphCache.get(url)
+  return Boolean(entry && Date.now() - entry.storedAt <= GRAPH_CACHE_TTL)
+}
+
 export interface FocusRequest {
   depth?: number
   limit?: number
+  /** Max neighbors expanded per node (hubs). */
+  perNode?: number
   relationshipTypes?: string[]
   nodeTypes?: NodeType[]
   /** Raw filter values keyed by filter id (serialized as `f.<id>`). */
@@ -54,6 +128,7 @@ export function focusQuery(options: FocusRequest): string {
   const params = new URLSearchParams()
   if (options.depth !== undefined) params.set('depth', String(options.depth))
   if (options.limit !== undefined) params.set('limit', String(options.limit))
+  if (options.perNode !== undefined) params.set('perNode', String(options.perNode))
   if (options.relationshipTypes?.length) params.set('relationshipTypes', options.relationshipTypes.join(','))
   if (options.nodeTypes?.length) params.set('nodeTypes', options.nodeTypes.join(','))
   for (const [id, value] of Object.entries(options.filters ?? {})) {
@@ -63,16 +138,31 @@ export function focusQuery(options: FocusRequest): string {
   return query ? `?${query}` : ''
 }
 
+export function focusUrl(nodeId: string, options: FocusRequest = {}): string {
+  return `/api/graph/focus/${encodeURIComponent(nodeId)}${focusQuery(options)}`
+}
+
+export function universeUrl(game: string): string {
+  return `/api/graph/universe?game=${encodeURIComponent(game)}`
+}
+
 export function fetchFocus(nodeId: string, options: FocusRequest = {}, signal?: AbortSignal) {
-  return get<FocusResponse>(`/api/graph/focus/${encodeURIComponent(nodeId)}${focusQuery(options)}`, signal)
+  return cached<FocusResponse>(focusUrl(nodeId, options), signal)
+}
+
+/** Warm the cache for a node the visitor may fly to next. Never throws. */
+export function prefetchFocus(nodeId: string, options: FocusRequest = {}): void {
+  const url = focusUrl(nodeId, options)
+  if (isGraphCached(url)) return
+  cached<FocusResponse>(url).catch(() => {})
 }
 
 export function fetchUniverse(game: string, signal?: AbortSignal) {
-  return get<GraphNeighborhood>(`/api/graph/universe?game=${encodeURIComponent(game)}`, signal)
+  return cached<GraphNeighborhood>(universeUrl(game), signal)
 }
 
 export function fetchNode(nodeId: string, signal?: AbortSignal) {
-  return get<{ node: GraphNode; summary: RelationshipSummary[] }>(
+  return request<{ node: GraphNode; summary: RelationshipSummary[] }>(
     `/api/graph/node/${encodeURIComponent(nodeId)}`,
     signal,
   )
@@ -87,11 +177,11 @@ export function fetchSearch(
   if (options.game) params.set('game', options.game)
   if (options.types?.length) params.set('type', options.types.join(','))
   if (options.limit) params.set('limit', String(options.limit))
-  return get<{ results: SearchHit[] }>(`/api/search?${params.toString()}`, signal)
+  return request<{ results: SearchHit[] }>(`/api/search?${params.toString()}`, signal)
 }
 
 export function fetchFilters(game: string, signal?: AbortSignal) {
-  return get<{ game: string; filters: FilterDefinition[] }>(
+  return request<{ game: string; filters: FilterDefinition[] }>(
     `/api/filters?game=${encodeURIComponent(game)}`,
     signal,
   )
@@ -108,5 +198,5 @@ export interface GameSummary {
 }
 
 export function fetchGames(signal?: AbortSignal) {
-  return get<{ games: GameSummary[] }>('/api/games', signal)
+  return request<{ games: GameSummary[] }>('/api/games', signal)
 }

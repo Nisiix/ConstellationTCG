@@ -11,7 +11,7 @@ export function ConstellationCanvas() {
   return (
     <div className="absolute inset-0 z-0" aria-hidden>
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={[1, 2]}
         camera={{ position: [0, 8, 44], fov: 55, near: 0.1, far: 500 }}
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
         onPointerMissed={() => select(null)}

@@ -288,11 +288,13 @@ export async function composeGame(
   const entityById = new Map(entityRows.map((e) => [e.id, e]))
   const entityNodeIdByKey = new Map<string, string>()
   for (const entity of entityRows) {
+    const count = linksByEntity.get(entity.id) ?? 0
+    // An entity no card refers to any more (e.g. attacks from an older ingestion) is not a point.
+    if (count === 0) continue
     const kind = entity.kind as EntityKind
     const id = makeNodeId(kind, entity.id)
     entityNodeIds.set(entity.id, id)
     entityNodeIdByKey.set(`${kind}:${entity.key}`, id)
-    const count = linksByEntity.get(entity.id) ?? 0
     addNode({
       id,
       gameId: game.id,

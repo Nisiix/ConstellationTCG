@@ -1,7 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { isMac } from '@/lib/env'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
@@ -12,28 +10,22 @@ export function TopBar() {
   const navigation = useExploreNavigation()
   const game = useCatalogStore((s) => s.game)
   const games = useCatalogStore((s) => s.games)
-  const togglePalette = useUiStore((s) => s.togglePalette)
   const toggleHelp = useUiStore((s) => s.toggleHelp)
   const current = games.find((g) => g.slug === game)
   const gameLabel = (current?.name ?? 'Pokémon').replace(' Trading Card Game', '')
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-4 px-4 py-3">
-      <div className="pointer-events-auto flex items-center gap-1">
-        <button
-          type="button"
-          onClick={navigation.goUniverse}
-          className="focus-ring flex items-center gap-2.5 rounded-xl px-2 py-1 text-left"
-          aria-label="Show the whole universe"
-          title="Back to the universe (U)"
-        >
-          <span className="brand-orb" aria-hidden />
-          <span className="serif text-[19px] text-ink">Constellation</span>
-        </button>
-        <Link href="/" className="btn btn-quiet pill hidden lg:inline-flex" title="Home page">
-          Home
-        </Link>
-      </div>
+      <button
+        type="button"
+        onClick={navigation.goUniverse}
+        className="focus-ring pointer-events-auto flex items-center gap-2.5 rounded-xl px-2 py-1 text-left"
+        aria-label="Show the whole universe"
+        title="Back to the universe (U)"
+      >
+        <span className="brand-orb" aria-hidden />
+        <span className="serif text-[19px] text-ink">Constellation</span>
+      </button>
 
       <div className="pointer-events-auto mx-auto w-full max-w-xl">
         <SearchBar />
@@ -62,16 +54,6 @@ export function TopBar() {
             {gameLabel}
           </span>
         )}
-        <button
-          type="button"
-          onClick={togglePalette}
-          className="btn btn-ghost pill hidden md:inline-flex"
-          aria-label="Open the command menu"
-          title={`Commands (${isMac() ? '⌘' : 'Ctrl'} K)`}
-        >
-          Commands
-          <kbd>{isMac() ? '⌘K' : 'Ctrl K'}</kbd>
-        </button>
         <button type="button" onClick={toggleHelp} className="btn btn-ghost pill" aria-label="Help and shortcuts" title="Help (?)">
           ?
         </button>

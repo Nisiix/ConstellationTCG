@@ -33,7 +33,7 @@ export function ConstellationArt({ className = '' }: { className?: string }) {
     const anchor = points[1 + ((i * 3) % 7)] as Point
     lines.push([anchor, points[i] as Point])
   }
-  const color = (role: Point['role']) => (role === 'primary' ? 'var(--c-primary)' : role === 'accent' ? 'var(--c-accent)' : 'var(--c-contrast)')
+  const color = (role: Point['role']) => (role === 'primary' ? 'var(--c-brand-ink)' : role === 'accent' ? 'var(--c-accent)' : 'var(--c-contrast)')
 
   return (
     <svg viewBox="0 0 600 420" className={className} role="img" aria-label="A constellation: a focused card connected to its set, Pokémon, artist and evolutions">
@@ -44,7 +44,7 @@ export function ConstellationArt({ className = '' }: { className?: string }) {
         </radialGradient>
       </defs>
       <circle cx="300" cy="210" r="120" fill="url(#halo)" className="drift" />
-      <g stroke="var(--c-primary)" strokeOpacity="0.45" strokeWidth="1">
+      <g stroke="var(--c-brand-ink)" strokeOpacity="0.55" strokeWidth="1">
         {lines.map(([a, b], i) => (
           <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} strokeOpacity={i < 7 ? 0.55 : 0.22} />
         ))}
@@ -59,7 +59,7 @@ export function ConstellationArt({ className = '' }: { className?: string }) {
       </g>
       {/* the focus ring: primary above, contrast below */}
       <g fill="none" strokeWidth="2.5" className="drift">
-        <path d="M 272 210 A 28 28 0 0 1 328 210" stroke="var(--c-primary)" />
+        <path d="M 272 210 A 28 28 0 0 1 328 210" stroke="var(--c-brand-ink)" />
         <path d="M 328 210 A 28 28 0 0 1 272 210" stroke="var(--c-contrast)" />
       </g>
     </svg>

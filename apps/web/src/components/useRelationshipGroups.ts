@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { GraphNode } from '@constellation/domain'
+import { compareCollectorNumbers, type GraphNode } from '@constellation/domain'
 import { RELATIONSHIP_ORDER, relationshipLabel } from '@/lib/colors'
 import { useGraphStore } from '@/state/graph-store'
 
@@ -15,7 +15,40 @@ export interface RelationshipGroup {
   items: Array<{ node: GraphNode; weight: number; metadata: Record<string, unknown> }>
 }
 
-/** Direct relationships of the focus node, grouped by type and direction, best first. */
+type Item = RelationshipGroup['items'][number]
+
+function releaseOf(node: GraphNode): string {
+  const m = node.metadata
+  const value = m.releaseDate ?? m.firstReleaseDate
+  return typeof value === 'string' ? value : ''
+}
+
+/**
+ * How the items of a group are ordered:
+ *  - expansions (sets, series) and printings: most recent first, so the newest set is on top;
+ *  - the cards of a set: by collector number, as in the set list;
+ *  - everything else: strongest relationship first, then by name.
+ */
+export function sortGroupItems(items: Item[], focus: GraphNode | null): Item[] {
+  const sorted = items.slice()
+  const first = sorted[0]?.node
+  if (!first) return sorted
+  const allSame = sorted.every((i) => i.node.nodeType === first.nodeType)
+  if (allSame && (first.nodeType === 'set' || first.nodeType === 'series' || first.nodeType === 'card_printing') && focus?.nodeType !== 'set') {
+    sorted.sort((a, b) => releaseOf(b.node).localeCompare(releaseOf(a.node)) || a.node.label.localeCompare(b.node.label))
+    return sorted
+  }
+  if (allSame && first.nodeType === 'card_printing' && focus?.nodeType === 'set') {
+    sorted.sort((a, b) =>
+      compareCollectorNumbers(String(a.node.metadata.collectorNumber ?? ''), String(b.node.metadata.collectorNumber ?? '')),
+    )
+    return sorted
+  }
+  sorted.sort((a, b) => b.weight - a.weight || a.node.label.localeCompare(b.node.label))
+  return sorted
+}
+
+/** Direct relationships of the focus node, grouped by type and direction. */
 export function useRelationshipGroups(): { focus: GraphNode | null; groups: RelationshipGroup[] } {
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const nodes = useGraphStore((s) => s.nodes)
@@ -71,7 +104,7 @@ export function useRelationshipGroups(): { focus: GraphNode | null; groups: Rela
     const order = new Map(RELATIONSHIP_ORDER.map((t, i) => [t, i]))
     const list = [...groups.values()]
     for (const g of list) {
-      g.items.sort((a, b) => b.weight - a.weight || a.node.label.localeCompare(b.node.label))
+      g.items = sortGroupItems(g.items, focus)
       if (g.total < g.items.length) g.total = g.items.length
     }
     list.sort(

@@ -33,15 +33,20 @@ describe('filter definitions', () => {
     const ids = defs.map((d) => d.id)
     for (const universal of UNIVERSAL_FILTERS) expect(ids).toContain(universal.id)
     expect(ids).toContain('pokemon.type')
-    expect(ids).toContain('pokemon.hp')
+    // Card stats are data, not filters.
+    expect(ids).not.toContain('pokemon.hp')
+    expect(ids).not.toContain('pokemon.attack')
+    expect(ids).not.toContain('pokemon.retreat')
 
     const type = defs.find((d) => d.id === 'pokemon.type')
     expect(type?.values?.some((v) => v.value === 'Fire' && (v.count ?? 0) > 0)).toBe(true)
 
-    const hp = defs.find((d) => d.id === 'pokemon.hp')
-    expect(hp?.min).toBeGreaterThan(0)
-    expect(hp?.max).toBeGreaterThanOrEqual(120)
-    expect(hp?.min).toBeLessThan(hp?.max ?? 0)
+    const stage = defs.find((d) => d.id === 'pokemon.stage')
+    expect(stage?.values?.some((v) => v.value === 'Stage2' && (v.count ?? 0) > 0)).toBe(true)
+
+    const depth = defs.find((d) => d.id === 'graphDepth')
+    expect(depth?.min).toBe(1)
+    expect(depth?.max).toBe(3)
 
     const set = defs.find((d) => d.id === 'set')
     expect(set?.values).toHaveLength(1)
@@ -96,9 +101,9 @@ describe('applying filters', () => {
     })
     expect(charizard?.size).toBe(1)
 
-    const bigHp = await matchingPrintingNodeIds(database.db, gameId, defs, { 'pokemon.hp': [100, 200] })
-    expect(bigHp?.size).toBeGreaterThan(0)
-    expect(bigHp?.size).toBeLessThan(69)
+    const stage2 = await matchingPrintingNodeIds(database.db, gameId, defs, { 'pokemon.stage': ['Stage2'] })
+    expect(stage2?.size).toBeGreaterThan(0)
+    expect(stage2?.size).toBeLessThan(69)
 
     const trainers = await matchingPrintingNodeIds(database.db, gameId, defs, { cardType: ['trainer'] })
     expect(trainers?.size).toBeGreaterThan(10)
@@ -110,14 +115,14 @@ describe('applying filters', () => {
     const defs = await service.definitions('pokemon')
     const selection = parseSelection(defs, {
       'pokemon.type': 'Fire,Water',
-      'pokemon.hp': '50..120',
+      graphDepth: '1..2',
       ownership: 'true',
       set: 'abc',
       unknown: 'x',
     })
     expect(selection).toEqual({
       'pokemon.type': ['Fire', 'Water'],
-      'pokemon.hp': [50, 120],
+      graphDepth: [1, 2],
       ownership: true,
       set: 'abc',
     })

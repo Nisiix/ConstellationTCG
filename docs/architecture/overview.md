@@ -42,6 +42,7 @@
 | `packages/search`       | `search()` — exact / prefix / word / fuzzy (pg_trgm) over `graph_nodes.search_text`                    |
 | `packages/filters`      | Universal + per-game `FilterDefinition`s, value computation, SQL predicates, query parsing              |
 | `packages/ui`           | Theme presets, `resolveTheme`, CSS variable helpers, mode resolution (framework-free)                   |
+| `packages/resolver`     | Digital asset → card printing resolver: candidate lookup, confidence scoring, persisted candidates     |
 | `packages/testing`      | In-memory PGlite seeded with the Base Set fixture                                                       |
 | `adapters/pokemon`      | TCGdex client, price stripping, normalizer, identity resolver, relationships, manifest, fixtures        |
 | `workers/ingestion`     | CLI: `migrate`, `ingest --fixture base1`, `ingest` (live)                                              |
@@ -62,10 +63,17 @@ everything; adapters never import the web app or the graph package.
    (`PART_OF`) come from the core; everything card-specific comes from the adapter's
    `buildRelationships`. Sets and series without an image get the game's placeholder image
    (`TCGDefinition.placeholderImages`), flagged with `metadata.imagePlaceholder`.
-3. **Exploration** (`apps/web`): the browser only talks to `/api/*`. The universe (game → series →
+3. **Exploration** (`apps/web`): the browser only talks to `/api/*` (rate limited, `Server-Timing`). The universe (game → series →
    sets) is shown before any search; a focus request returns a bounded neighborhood (depth ≤ 3,
    node and fan-out caps) plus a relationship summary; schema-driven filters narrow which printings
-   may appear. Nothing calls external sources during user interaction.
+   may appear. Nothing calls external sources during user interaction. The client caches graph
+   responses and preloads the neighborhoods of the strongest connections and of whatever is under
+   the pointer; the server warms the database and the universe view at start-up
+   (`instrumentation.ts`).
+4. **Ownership** (later milestone): `packages/resolver` maps a digital asset's signals (name, set,
+   number, language, external ids…) to a printing with a confidence; below the threshold nothing is
+   auto-matched (`ambiguous` / `unresolved`). Ownership is an overlay on the graph, never a change
+   to it.
 
 ## Visual system
 
@@ -75,9 +83,11 @@ everything; adapters never import the web app or the graph package.
   (`resolveTheme`) and emits CSS variables; the root layout server-renders the neutral platform
   palette for both modes, an inline script picks the mode before the first paint, and the explorer
   overrides the variables with the game's palette while it is mounted.
-- The 3D scene (React Three Fiber) draws every node as a neutral sphere wrapped in a contour shell
-  colored by node type (two instanced meshes), edges as a single line geometry (additive in dark
-  mode, normal blending in light mode), images as discs on the camera-facing side of each node.
+- The 3D scene (React Three Fiber) always keeps its dark sky, whatever the interface mode. Every
+  node is a neutral sphere wrapped in a contour shell colored by node type (two instanced meshes),
+  edges are a single additive line geometry, images are discs on the camera-facing side of each
+  node, drawn at the exact position and size of their sphere and shrunk to cancel perspective.
+  Hovering a group or a row in the focus panel dims everything else in the scene.
 - A 2D list view offers the same exploration when WebGL is unavailable or reduced motion is on.
 
 ## Hard rules

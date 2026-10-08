@@ -56,7 +56,7 @@ export function loadNodeTexture(url: string): Promise<THREE.Texture> {
         url,
         (texture) => {
           texture.colorSpace = THREE.SRGBColorSpace
-          texture.anisotropy = 2
+          texture.anisotropy = 4
           texture.generateMipmaps = true
           texture.minFilter = THREE.LinearMipmapLinearFilter
           const entry = cache.get(url)

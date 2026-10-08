@@ -2,10 +2,14 @@ import { create } from 'zustand'
 import type { ViewMode } from '@/lib/url'
 
 export interface UiStoreState {
-  paletteOpen: boolean
   filtersOpen: boolean
   helpOpen: boolean
   hoveredNodeId: string | null
+  /**
+   * Points singled out from the interface (a group or a row in the focus panel under the
+   * pointer): the scene dims everything else so the relationship stands out. `null` = none.
+   */
+  highlight: Set<string> | null
   /** Preferred view when the URL does not say. */
   view: ViewMode
   reducedMotion: boolean
@@ -16,22 +20,21 @@ export interface UiStoreState {
   welcomeVisible: boolean
 
   setWelcomeVisible(visible: boolean): void
-  setPaletteOpen(open: boolean): void
-  togglePalette(): void
   setFiltersOpen(open: boolean): void
   toggleFilters(): void
   setHelpOpen(open: boolean): void
   toggleHelp(): void
   setHovered(nodeId: string | null, position?: { x: number; y: number }): void
+  setHighlight(nodeIds: Iterable<string> | null): void
   setView(view: ViewMode): void
   setCapabilities(caps: { reducedMotion: boolean; webgl: boolean }): void
 }
 
 export const useUiStore = create<UiStoreState>((set) => ({
-  paletteOpen: false,
   filtersOpen: false,
   helpOpen: false,
   hoveredNodeId: null,
+  highlight: null,
   view: '3d',
   reducedMotion: false,
   webgl: null,
@@ -39,8 +42,6 @@ export const useUiStore = create<UiStoreState>((set) => ({
   welcomeVisible: false,
 
   setWelcomeVisible: (visible) => set({ welcomeVisible: visible }),
-  setPaletteOpen: (open) => set({ paletteOpen: open }),
-  togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
   setFiltersOpen: (open) => set({ filtersOpen: open }),
   toggleFilters: () => set((s) => ({ filtersOpen: !s.filtersOpen })),
   setHelpOpen: (open) => set({ helpOpen: open }),
@@ -50,6 +51,7 @@ export const useUiStore = create<UiStoreState>((set) => ({
       hoveredNodeId: nodeId,
       tooltip: nodeId && position ? { nodeId, x: position.x, y: position.y } : null,
     }),
+  setHighlight: (nodeIds) => set({ highlight: nodeIds ? new Set(nodeIds) : null }),
   setView: (view) => set({ view }),
   setCapabilities: ({ reducedMotion, webgl }) => set({ reducedMotion, webgl, view: webgl ? '3d' : 'list' }),
 }))

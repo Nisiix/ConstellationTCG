@@ -22,6 +22,7 @@ dist/
 coverage/
 playwright-report/
 test-results/
+playwright/.cache/
 
 # os / editors
 .DS_Store

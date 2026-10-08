@@ -72,8 +72,8 @@ Pokémon uses the classic Base Set logo for `game`, `series` and `set`.
 Game filters are declared, not coded:
 
 ```ts
-{ id: 'pokemon.hp', label: 'HP', type: 'range', scope: 'game', appliesTo: ['card_printing'],
-  source: { kind: 'attribute', path: 'hp', numeric: true } }
+{ id: 'pokemon.stage', label: 'Evolution stage', type: 'multi', scope: 'game', appliesTo: ['card_printing'],
+  source: { kind: 'attribute', path: 'stage' } }
 { id: 'pokemon.type', label: 'Type', type: 'multi', scope: 'game', appliesTo: ['card_printing'],
   source: { kind: 'attribute', path: 'types', array: true } }
 { id: 'pokemon.ability', label: 'Ability', type: 'select', scope: 'game', appliesTo: ['card_printing'],
@@ -82,7 +82,9 @@ Game filters are declared, not coded:
 
 `source.kind` is `column` (a `card_printings` column), `attribute` (a key in the printing's JSON
 attributes), `entity` (a linked entity) or `relation` (set / series / artist). The filters package
-computes the available values and the SQL predicates from these declarations.
+computes the available values and the SQL predicates from these declarations. Declare filters for
+relationships and kinds, not for card statistics (HP, attacks, costs): those stay in `attributes`
+as data to display.
 
 ## Steps
 

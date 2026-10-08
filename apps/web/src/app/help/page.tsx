@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 
 const SECTIONS = [
   { id: 'how', label: 'How it works' },
+  { id: 'connections', label: 'Reading the connections' },
   { id: 'views', label: 'Views' },
   { id: 'filters', label: 'Filters and sharing' },
   { id: 'keyboard', label: 'Keyboard' },
@@ -62,6 +63,24 @@ export default function HelpPage() {
             large hubs are capped, so every view stays readable.
           </p>
 
+          <h2 id="connections">Reading the connections</h2>
+          <ul>
+            <li>
+              <strong>Rings.</strong> Every point is outlined in the color of what it is: sets and series in the game&apos;s color,
+              cards, Pokémon and artists in white, types and abilities in grey. The legend at the bottom of the map lists the
+              kinds on screen.
+            </li>
+            <li>
+              <strong>Lines</strong> are relationships and carry the same colors. Hover a point and the tooltip names its connection
+              to the focus (“Set”, “Evolves from”, “Artist”…).
+            </li>
+            <li>
+              <strong>The panel.</strong> Connections are grouped by kind. Hover a group or a row and those points light up in the
+              sky while the rest fades; click to fly there. For a card, “Also printed in” lists the other expansions the same card
+              appeared in, newest first.
+            </li>
+          </ul>
+
           <h2 id="views">Views</h2>
           <ul>
             <li>
@@ -86,8 +105,8 @@ export default function HelpPage() {
               are connected to. <kbd>E</kbd> goes wider, <kbd>C</kbd> back to direct connections.
             </li>
             <li>
-              <strong>Filters</strong> (<kbd>F</kbd>) narrow which cards appear around the focus: set, rarity, type, HP, evolution
-              stage, attack, ability, weakness and more. Filters depend on the game: a game adds its own.
+              <strong>Filters</strong> (<kbd>F</kbd>) narrow which cards appear around the focus: set, rarity, type, evolution stage,
+              ability, weakness, resistance and more. Filters depend on the game: a game adds its own.
             </li>
             <li>
               <strong>Sharing.</strong> Every view has a link. It holds the focus, the depth, the view mode and the filters: paste it

@@ -4,17 +4,16 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { createRandom } from '@/lib/layout'
-import { useTheme } from '@/lib/theme'
+import { useSceneTheme } from '@/lib/theme'
 import { useUiStore } from '@/state/ui-store'
 
 const COUNT = 2200
 
-/** A slowly drifting field of faint stars in the theme's particle tint. */
+/** A slowly drifting field of faint stars in the scene's particle tint. */
 export function ParticleField() {
-  const theme = useTheme()
+  const theme = useSceneTheme()
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const ref = useRef<THREE.Points>(null)
-  const dark = theme.mode === 'dark'
   const positions = useMemo(() => {
     const random = createRandom(1337)
     const arr = new Float32Array(COUNT * 3)
@@ -42,14 +41,13 @@ export function ParticleField() {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        key={theme.mode}
         size={0.42}
         sizeAttenuation
         color={theme.particles}
         transparent
-        opacity={dark ? 0.55 : 0.8}
+        opacity={0.55}
         depthWrite={false}
-        blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending}
+        blending={THREE.AdditiveBlending}
         toneMapped={false}
       />
     </points>

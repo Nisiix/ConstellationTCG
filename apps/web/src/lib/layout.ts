@@ -33,6 +33,16 @@ interface LayoutNode extends SimulationNode {
 
 const DEFAULTS = { shellRadius: 9, iterations: 220 }
 
+/**
+ * Simulation ticks for a neighborhood of `count` nodes: the full budget for small ones, fewer
+ * for crowds (the force layout runs on the main thread before the first frame; big sets settle
+ * well enough with less and the reveal animation hides the rest).
+ */
+export function adaptiveIterations(count: number): number {
+  if (count <= 80) return DEFAULTS.iterations
+  return Math.max(90, Math.round(DEFAULTS.iterations - (count - 80) * 0.5))
+}
+
 /** Shell radius for a neighborhood of `count` nodes: 9 for small ones, up to ~26 for crowds. */
 export function adaptiveShellRadius(count: number): number {
   const extra = Math.sqrt(Math.max(0, count - 12)) * 0.9
@@ -77,7 +87,7 @@ export function computeLayout(
 ): Map<string, Vec3> {
   // Shells grow with the crowd so a set with 200 cards or the whole universe stays readable.
   const shell = options.shellRadius ?? adaptiveShellRadius(nodes.length)
-  const iterations = options.iterations ?? DEFAULTS.iterations
+  const iterations = options.iterations ?? adaptiveIterations(nodes.length)
   const random = createRandom(options.seed ?? hashSeed(focusId))
   const index = new Set(nodes.map((n) => n.id))
   const focusPrev = previous.get(focusId)

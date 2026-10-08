@@ -11,15 +11,20 @@ export const HOW_IT_WORKS: HelpStep[] = [
     title: 'Look around.',
     text: 'The points around the focus are its connections: drag to orbit, scroll to zoom, hover for names.',
   },
-  { title: 'Follow', text: 'any connection by clicking it, in the scene or in the panel on the right.' },
+  {
+    title: 'Read the colors.',
+    text: 'Every point is outlined in the color of what it is (sets and series in the brand color, cards, Pokémon and artists in white, types and attacks in grey); the lines carry the same colors. The legend at the bottom spells it out.',
+  },
+  {
+    title: 'Follow',
+    text: 'any connection by clicking it, in the scene or in the panel on the right. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
+  },
   { title: 'Go wider', text: 'with “Show more” (extended and deep connections) or narrow down with filters.' },
   { title: 'Share', text: 'any view: the link holds the focus, the depth and the filters.' },
 ]
 
-/** `⌘` is replaced by the platform's modifier label when rendered. */
 export const SHORTCUTS: Array<[key: string, label: string]> = [
   ['/', 'Search'],
-  ['⌘K', 'Commands'],
   ['E', 'Show more connections'],
   ['C', 'Direct connections only'],
   ['F', 'Filters'],

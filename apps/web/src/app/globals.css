@@ -17,6 +17,8 @@
   --c-line: color-mix(in oklab, var(--c-text) 11%, transparent);
   --c-line-strong: color-mix(in oklab, var(--c-text) 20%, transparent);
   --c-glow: color-mix(in oklab, var(--c-primary) 40%, transparent);
+  /* The brand color as ink: lifted towards the text color so a deep blue still reads on black. */
+  --c-brand-ink: color-mix(in oklab, var(--c-primary) 62%, var(--c-text));
 }
 
 :root[data-mode='light'] {
@@ -25,6 +27,7 @@
   --c-line: color-mix(in oklab, var(--c-text) 12%, transparent);
   --c-line-strong: color-mix(in oklab, var(--c-text) 24%, transparent);
   --c-glow: color-mix(in oklab, var(--c-primary) 28%, transparent);
+  --c-brand-ink: color-mix(in oklab, var(--c-primary) 85%, var(--c-text));
 }
 
 @theme inline {
@@ -157,20 +160,20 @@ h2.serif,
 /* Primary: a contour in the brand color, a faint tint, never a solid fill. */
 .btn-primary {
   background: color-mix(in oklab, var(--c-primary) 14%, transparent);
-  border-color: color-mix(in oklab, var(--c-primary) 55%, transparent);
-  color: color-mix(in oklab, var(--c-primary) 72%, var(--c-text));
+  border-color: color-mix(in oklab, var(--c-brand-ink) 60%, transparent);
+  color: var(--c-brand-ink);
 }
 
 .btn-primary:hover {
   background: color-mix(in oklab, var(--c-primary) 22%, transparent);
-  border-color: var(--c-primary);
+  border-color: var(--c-brand-ink);
 }
 
 /* Call to action (landing "Explore"): a thicker brand contour with a soft glow. */
 .btn-cta {
   background: color-mix(in oklab, var(--c-primary) 18%, transparent);
-  border: 1.5px solid var(--c-primary);
-  color: color-mix(in oklab, var(--c-primary) 70%, var(--c-text));
+  border: 1.5px solid var(--c-brand-ink);
+  color: var(--c-brand-ink);
   font-weight: 600;
   padding: 9px 16px;
   box-shadow: 0 0 0 0 var(--c-glow);
@@ -203,8 +206,8 @@ h2.serif,
 
 .btn-on {
   background: color-mix(in oklab, var(--c-primary) 18%, transparent);
-  border-color: color-mix(in oklab, var(--c-primary) 60%, transparent);
-  color: color-mix(in oklab, var(--c-primary) 65%, var(--c-text));
+  border-color: color-mix(in oklab, var(--c-brand-ink) 65%, transparent);
+  color: var(--c-brand-ink);
 }
 
 .chip {
@@ -235,9 +238,9 @@ h2.serif,
 }
 
 .chip-on {
-  border-color: color-mix(in oklab, var(--c-primary) 60%, transparent);
+  border-color: color-mix(in oklab, var(--c-brand-ink) 65%, transparent);
   background: color-mix(in oklab, var(--c-primary) 16%, transparent);
-  color: color-mix(in oklab, var(--c-primary) 65%, var(--c-text));
+  color: var(--c-brand-ink);
 }
 
 .field {
@@ -335,7 +338,7 @@ kbd {
   height: 22px;
   border-radius: 999px;
   background: var(--c-node-fill);
-  border: 2px solid var(--c-primary);
+  border: 2px solid var(--c-brand-ink);
   box-shadow: 0 0 16px var(--c-glow);
   position: relative;
   transition: transform 500ms cubic-bezier(0.2, 0.9, 0.2, 1.4);
@@ -393,7 +396,7 @@ button:hover > .brand-orb {
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: var(--c-primary);
+  background: var(--c-brand-ink);
 }
 
 .hero-glow {
@@ -466,7 +469,7 @@ button:hover > .brand-orb {
 }
 
 .prose-help a {
-  color: color-mix(in oklab, var(--c-primary) 70%, var(--c-text));
+  color: var(--c-brand-ink);
   text-decoration: underline;
   text-decoration-color: color-mix(in oklab, var(--c-primary) 50%, transparent);
   text-underline-offset: 3px;

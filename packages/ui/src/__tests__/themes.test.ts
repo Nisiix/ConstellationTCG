@@ -19,6 +19,14 @@ describe('themes', () => {
     expect(ONE_PIECE_THEME.modes.dark.contrast.toLowerCase()).toBe('#f4f5ff')
   })
 
+  it('uses a midnight blue, not a light blue, as the platform brand color', () => {
+    const [r, g, b] = hexToRgb(DEFAULT_THEME.primary)
+    expect(b).toBeGreaterThan(r)
+    expect(b).toBeGreaterThan(g)
+    // dark: well below half brightness on every channel
+    expect(Math.max(r, g, b)).toBeLessThan(0.6)
+  })
+
   it('resolves roles per mode: contrast flips between near-white and near-black', () => {
     const dark = resolveTheme(DEFAULT_THEME, 'dark')
     const light = resolveTheme(DEFAULT_THEME, 'light')

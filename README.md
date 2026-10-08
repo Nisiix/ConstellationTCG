@@ -11,7 +11,7 @@ three-dimensional constellation: every card is a point, every relationship is a 
 
 Pages: `/` (landing — Home · Help · Explore), `/help`, `/explore` (the constellation; every focus,
 depth, view and filter is in the URL). Dark and light modes: each game's brand colors are used for
-contours only, over a dirty black or dirty white background.
+contours only, over a dirty black or dirty white background; the 3D sky itself always stays dark.
 
 First TCG: **Pokémon** (source: [TCGdex](https://tcgdex.dev)). The core is TCG agnostic.
 
@@ -40,7 +40,11 @@ To run against a real PostgreSQL (or Supabase), set `DATABASE_URL` in `.env` (se
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm test:e2e            # Playwright, against the production build and the bundled fixture
 ```
+
+The end-to-end suite starts its own server on port 3101 with a throwaway embedded database under
+`apps/web/.data/e2e`. Set `PLAYWRIGHT_CHROMIUM_PATH` to use a pre-installed Chromium.
 
 ## Documentation
 

@@ -45,7 +45,8 @@ describe('buildRelationships', () => {
     expect(pairs).toContain('SAME_POKEMON card_printing:p1 -> pokemon:6')
     expect(pairs).toContain('HAS_TYPE card_printing:p1 -> attribute:fire')
     expect(pairs).toContain('WEAK_TO card_printing:p1 -> attribute:water')
-    expect(pairs).toContain('HAS_ATTACK card_printing:p1 -> mechanic:fs')
+    // A stale attack link (from an older ingestion) never becomes an edge.
+    expect(pairs.some((p) => p.startsWith('HAS_ATTACK'))).toBe(false)
     expect(pairs).toContain('EVOLVES_FROM card_printing:p1 -> card_identity:charmeleon')
     expect(pairs).toContain('EVOLUTION_OF card_identity:charizard -> card_identity:charmeleon')
     expect(rels.find((r) => r.relationshipType === 'WEAK_TO')?.metadata).toEqual({ value: '×2' })

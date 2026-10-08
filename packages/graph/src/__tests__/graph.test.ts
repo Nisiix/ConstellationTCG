@@ -46,7 +46,9 @@ describe('graph projection', () => {
     expect(stats.byNodeType.artist).toBe(4)
     expect(stats.byNodeType.pokemon).toBeGreaterThan(50)
     expect(stats.byNodeType.attribute).toBeGreaterThan(5)
-    expect(stats.byNodeType.mechanic).toBeGreaterThan(50)
+    // Mechanics are abilities only: attacks are card data, not points.
+    expect(stats.byNodeType.mechanic).toBeGreaterThan(3)
+    expect(stats.byNodeType.mechanic).toBeLessThan(30)
     expect(stats.nodes).toBe(game?.nodes)
     expect(stats.edges).toBe(game?.edges)
   })
@@ -104,7 +106,8 @@ describe('neighborhood', () => {
     expect(labels.has('artist:Mitsuhiro Arita')).toBe(true)
     expect(labels.has('pokemon:Charizard')).toBe(true)
     expect(labels.has('attribute:Fire')).toBe(true)
-    expect(labels.has('mechanic:Fire Spin')).toBe(true)
+    expect(labels.has('mechanic:Energy Burn')).toBe(true)
+    expect(labels.has('mechanic:Fire Spin')).toBe(false)
     const types = new Set(hood.edges.map((e) => e.relationshipType))
     expect(types).toContain('BELONGS_TO')
     expect(types).toContain('PRINTING_OF')
@@ -225,6 +228,12 @@ describe('placeholder images', () => {
     expect(base?.metadata.imagePlaceholder).toBe(false)
     const series = all.find((n) => n.nodeType === 'series')
     expect(series?.metadata.imagePlaceholder).toBe(false)
+  })
+
+  it('lists sets in the universe from the most recent to the oldest', async () => {
+    const universe = await getUniverse(db.db, 'pokemon')
+    const sets = universe?.nodes.filter((n) => n.nodeType === 'set').map((n) => n.label)
+    expect(sets).toEqual(['W Promotional', 'Base Set'])
   })
 
   it('gives the game node the standard logo, flagged as a placeholder', async () => {

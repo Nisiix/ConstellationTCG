@@ -1,5 +1,9 @@
 'use client'
 
+import { useMemo } from 'react'
+import { NODE_TYPES, type NodeType } from '@constellation/domain'
+import { NODE_TYPE_LABELS } from '@/lib/colors'
+import { nodeColor, useSceneTheme } from '@/lib/theme'
 import type { ViewMode } from '@/lib/url'
 import { useCameraStore } from '@/state/camera-store'
 import { useGraphStore } from '@/state/graph-store'
@@ -11,6 +15,35 @@ const DEPTHS: Array<{ value: number; label: string; title: string }> = [
   { value: 2, label: 'Extended', title: 'Also what those connections are connected to' },
   { value: 3, label: 'Deep', title: 'Three hops away from the focus' },
 ]
+
+/** What the ring colors in the sky mean, for the kinds of points on screen right now. */
+function Legend() {
+  const theme = useSceneTheme()
+  const nodes = useGraphStore((s) => s.nodes)
+  const entries = useMemo(() => {
+    const present = new Set(nodes.map((n) => n.nodeType))
+    const byColor = new Map<string, NodeType[]>()
+    for (const type of NODE_TYPES) {
+      if (!present.has(type) || type === 'game') continue
+      const color = nodeColor(theme, type)
+      byColor.set(color, [...(byColor.get(color) ?? []), type])
+    }
+    return [...byColor.entries()].map(([color, types]) => ({ color, label: types.map((t) => NODE_TYPE_LABELS[t]).join(' · ') }))
+  }, [nodes, theme])
+  if (entries.length === 0) return null
+  return (
+    <div className="panel pill pointer-events-auto hidden items-center gap-3 px-3 py-2 text-[12px] text-ink-dim lg:flex" aria-label="Legend">
+      <span className="eyebrow">Rings</span>
+      {entries.map((e) => (
+        <span key={e.color} className="flex items-center gap-1.5">
+          <span className="dot" style={{ color: e.color, background: theme.nodeFill }} aria-hidden />
+          {e.label}
+        </span>
+      ))}
+      <span className="hidden xl:inline">· lines = relationships</span>
+    </div>
+  )
+}
 
 export function GraphHUD({ view }: { view: ViewMode }) {
   const navigation = useExploreNavigation()
@@ -28,22 +61,25 @@ export function GraphHUD({ view }: { view: ViewMode }) {
 
   return (
     <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-4 px-4 py-3">
-      <div className="panel pill pointer-events-auto flex items-center gap-3 px-4 py-2 text-[13px]">
-        <span
-          className={`dot ${transition === 'moving' ? 'dot-ping' : ''}`}
-          style={{ color: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
-          aria-hidden
-          title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
-        />
-        <span className="max-w-[18rem] truncate text-ink" key={focus?.id}>
-          {focus?.label ?? '—'}
-        </span>
-        <span className="text-ink-dim">
-          {isUniverse
-            ? `${nodes.length} points`
-            : `${relationships} connection${relationships === 1 ? '' : 's'} · ${nodes.length} point${nodes.length === 1 ? '' : 's'} shown`}
-        </span>
-        <span className="hidden text-ink-dim/70 lg:inline">· {edges.length} links</span>
+      <div className="flex items-end gap-2">
+        <div className="panel pill pointer-events-auto flex items-center gap-3 px-4 py-2 text-[13px]">
+          <span
+            className={`dot ${transition === 'moving' ? 'dot-ping' : ''}`}
+            style={{ color: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
+            aria-hidden
+            title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
+          />
+          <span className="max-w-[18rem] truncate text-ink" key={focus?.id}>
+            {focus?.label ?? '—'}
+          </span>
+          <span className="text-ink-dim">
+            {isUniverse
+              ? `${nodes.length} points`
+              : `${relationships} connection${relationships === 1 ? '' : 's'} · ${nodes.length} point${nodes.length === 1 ? '' : 's'} shown`}
+          </span>
+          <span className="hidden text-ink-dim/70 lg:inline">· {edges.length} links</span>
+        </div>
+        {view === '3d' ? <Legend /> : null}
       </div>
 
       <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">

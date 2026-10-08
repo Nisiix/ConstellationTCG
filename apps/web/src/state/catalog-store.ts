@@ -13,8 +13,10 @@ export interface CatalogStoreState {
   theme: TCGTheme
   /** Dark or light. Set from the visitor's preference on the client. */
   mode: ThemeMode
-  /** `theme` flattened for `mode`: what every component actually paints with. */
+  /** `theme` flattened for `mode`: what the interface paints with. */
   resolved: ResolvedTheme
+  /** The same theme always in dark mode: the 3D map keeps its dark sky whatever the mode. */
+  scene: ResolvedTheme
   /** Stand-in images per node type for the selected game (e.g. the classic Pokémon logo). */
   placeholders: PlaceholderImages
   filters: FilterDefinition[]
@@ -39,7 +41,12 @@ function summaryFor(games: GameSummary[], game: string): GameSummary | undefined
 function derive(games: GameSummary[], game: string, mode: ThemeMode) {
   const summary = summaryFor(games, game)
   const theme = summary?.theme ?? DEFAULT_THEME
-  return { theme, resolved: resolveTheme(theme, mode), placeholders: summary?.placeholderImages ?? {} }
+  return {
+    theme,
+    resolved: resolveTheme(theme, mode),
+    scene: resolveTheme(theme, 'dark'),
+    placeholders: summary?.placeholderImages ?? {},
+  }
 }
 
 export const useCatalogStore = create<CatalogStoreState>((set) => ({
@@ -48,6 +55,7 @@ export const useCatalogStore = create<CatalogStoreState>((set) => ({
   theme: DEFAULT_THEME,
   mode: 'dark',
   resolved: resolveTheme(DEFAULT_THEME, 'dark'),
+  scene: resolveTheme(DEFAULT_THEME, 'dark'),
   placeholders: {},
   filters: [],
   filtersStatus: 'idle',

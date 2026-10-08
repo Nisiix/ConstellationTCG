@@ -2,12 +2,15 @@ import { getNode, getRelationshipSummary } from '@constellation/graph'
 import { GraphError, parseNodeId } from '@constellation/domain'
 import type { NextRequest } from 'next/server'
 import { getDatabase } from '@/server/db'
-import { CACHE_PUBLIC, errorResponse, json } from '@/server/http'
+import { CACHE_PUBLIC, errorResponse, json, rateLimit } from '@/server/http'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request: NextRequest, context: { params: Promise<{ nodeId: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ nodeId: string }> }) {
+  const limited = rateLimit(request)
+  if (limited) return limited
+  const startedAt = performance.now()
   try {
     const { nodeId: rawId } = await context.params
     const nodeId = decodeURIComponent(rawId)
@@ -18,7 +21,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ no
       getRelationshipSummary(database.db, nodeId),
     ])
     if (!node) throw new GraphError(`Node not found: ${nodeId}`, { status: 404, nodeId })
-    return json({ node, summary }, { cache: CACHE_PUBLIC })
+    return json({ node, summary }, { cache: CACHE_PUBLIC, startedAt })
   } catch (error) {
     return errorResponse(error)
   }

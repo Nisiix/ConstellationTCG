@@ -34,8 +34,11 @@ export function RelationshipList() {
 
   const universe = useMemo(() => {
     if (!isUniverse) return null
-    const series = nodes.filter((n) => n.nodeType === 'series')
-    const sets = nodes.filter((n) => n.nodeType === 'set')
+    const byRelease = (a: GraphNode, b: GraphNode) =>
+      String(b.metadata.releaseDate ?? '').localeCompare(String(a.metadata.releaseDate ?? '')) || a.label.localeCompare(b.label)
+    // Expansions from the most recent to the oldest.
+    const series = nodes.filter((n) => n.nodeType === 'series').sort(byRelease)
+    const sets = nodes.filter((n) => n.nodeType === 'set').sort(byRelease)
     const seriesOfSet = new Map<string, string>()
     for (const e of edges) if (e.relationshipType === 'PART_OF') seriesOfSet.set(e.sourceNodeId, e.targetNodeId)
     const bySeries = new Map<string, GraphNode[]>()
@@ -331,7 +334,6 @@ function detailRows(node: GraphNode): Array<[string, string]> {
         ['Rarity', m.rarity],
         ['Finish', m.finish],
         ['Artist', m.artist],
-        ['HP', m.hp],
         ['Type', Array.isArray(m.types) ? m.types.join(' / ') : null],
         ['Stage', m.stage],
         ['Regulation mark', m.regulationMark],

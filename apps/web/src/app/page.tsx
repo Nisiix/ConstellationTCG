@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ONE_PIECE_THEME } from '@constellation/ui'
+import { universeUrl } from '@/lib/api'
 import { ConstellationArt } from '@/components/site/ConstellationArt'
 import { SiteFooter } from '@/components/site/SiteFooter'
 import { SiteHeader } from '@/components/site/SiteHeader'
@@ -30,7 +31,7 @@ const STEPS = [
   },
 ] as const
 
-const CONNECTIONS = ['Set', 'Series', 'Pokémon', 'Artist', 'Evolves from', 'Printings', 'Type', 'Weakness', 'Attack', 'Ability']
+const CONNECTIONS = ['Set', 'Series', 'Pokémon', 'Artist', 'Evolves from', 'Printings', 'Type', 'Weakness', 'Resistance', 'Ability']
 
 const PRINCIPLES = [
   { title: 'Exploration first', text: 'Not “what is this card worth?” but “what is this card connected to?”.' },
@@ -50,6 +51,10 @@ export default function HomePage() {
 
   return (
     <>
+      {/* Warm the explorer's first requests while the visitor reads: the map opens faster. */}
+      <link rel="prefetch" href={universeUrl('pokemon')} as="fetch" crossOrigin="anonymous" />
+      <link rel="prefetch" href="/api/games" as="fetch" crossOrigin="anonymous" />
+      <link rel="prefetch" href="/api/filters?game=pokemon" as="fetch" crossOrigin="anonymous" />
       <SiteHeader active="home" />
       <main id="main">
         {/* ── hero ── */}
@@ -57,7 +62,7 @@ export default function HomePage() {
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-14 md:grid-cols-[1.1fr_1fr] md:px-6 md:pb-24 md:pt-20">
             <div className="fade-up">
               <p className="eyebrow mb-3 flex items-center gap-2">
-                <span className="dot" style={{ color: 'var(--c-primary)' }} aria-hidden />
+                <span className="dot" style={{ color: 'var(--c-brand-ink)' }} aria-hidden />
                 Pokémon TCG today · more games to come
               </p>
               <h1 className="text-[40px] leading-[1.05] md:text-[56px]">
@@ -65,7 +70,7 @@ export default function HomePage() {
                 <br />
                 Follow relationships.
                 <br />
-                <span style={{ color: 'color-mix(in oklab, var(--c-primary) 70%, var(--c-text))' }}>Build your constellation.</span>
+                <span style={{ color: 'var(--c-brand-ink)' }}>Build your constellation.</span>
               </h1>
               <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-ink/85">
                 Every card is a point, every relationship a line. Search a card, fly to it in a three-dimensional sky, and follow what
@@ -94,7 +99,7 @@ export default function HomePage() {
               <ConstellationArt className="h-auto w-full" />
               <div className="flex items-center justify-between px-2 pb-1 pt-2 text-[12.5px] text-ink-dim">
                 <span className="flex items-center gap-2">
-                  <span className="dot" style={{ color: 'var(--c-primary)' }} /> Charizard · Base Set
+                  <span className="dot" style={{ color: 'var(--c-brand-ink)' }} /> Charizard · Base Set
                 </span>
                 <span>14 connections</span>
               </div>
@@ -113,7 +118,7 @@ export default function HomePage() {
               <li key={step.title} className="feature pop-in" style={{ ['--i' as string]: i }}>
                 <span
                   className="feature-mark mb-4"
-                  style={{ color: step.role === 'primary' ? 'var(--c-primary)' : step.role === 'accent' ? 'var(--c-accent)' : 'var(--c-contrast)' }}
+                  style={{ color: step.role === 'primary' ? 'var(--c-brand-ink)' : step.role === 'accent' ? 'var(--c-accent)' : 'var(--c-contrast)' }}
                   aria-hidden
                 />
                 <h3 className="serif text-[22px]">
@@ -145,7 +150,7 @@ export default function HomePage() {
                   <li key={label} className="chip pop-in text-[13.5px]" style={{ ['--i' as string]: i }}>
                     <span
                       className="dot"
-                      style={{ color: i % 3 === 0 ? 'var(--c-primary)' : i % 3 === 1 ? 'var(--c-contrast)' : 'var(--c-accent)' }}
+                      style={{ color: i % 3 === 0 ? 'var(--c-brand-ink)' : i % 3 === 1 ? 'var(--c-contrast)' : 'var(--c-accent)' }}
                       aria-hidden
                     />
                     {label}
@@ -178,7 +183,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <p className="mt-1 text-[14px] text-ink-dim">
-                    {game.publisher ?? ''} · data from TCGdex · sets, cards, Pokémon, artists, evolutions, attacks and abilities.
+                    {game.publisher ?? ''} · data from TCGdex · sets, cards, Pokémon, artists, evolutions, types and abilities.
                   </p>
                   <Link href={`/explore?game=${encodeURIComponent(game.slug)}`} className="btn btn-primary pill mt-4" style={{ ['--c-primary' as string]: 'var(--brand)' }}>
                     Explore {game.name.replace(' Trading Card Game', '')}

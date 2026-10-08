@@ -183,16 +183,8 @@ export function extractEntities(raw: TCGdexCard, cardName: string): NormalizedEn
       metadata: compact({ abilityType: ability.type }),
     })
   }
-  for (const attack of raw.attacks ?? []) {
-    if (!attack || typeof attack.name !== 'string') continue
-    push({
-      kind: 'mechanic',
-      key: `attack:${slugify(attack.name)}`,
-      name: attack.name,
-      relation: 'HAS_ATTACK',
-      metadata: compact({ cost: attack.cost, damage: attack.damage }),
-    })
-  }
+  // Attacks, HP and costs are card data, not relationships: they stay in `attributes` but never
+  // become entities or filters (the product explores connections, not stats).
   if (typeof raw.trainerType === 'string') {
     push({
       kind: 'attribute',

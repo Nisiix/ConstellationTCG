@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse } from '@/lib/api'
+import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse, prefetchFocus } from '@/lib/api'
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
 import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
 import { filtersKey } from '@/lib/url'
@@ -12,7 +12,6 @@ import { useUiStore } from '@/state/ui-store'
 import { RelationshipList } from './fallback/RelationshipList'
 import { setNavigator, useExploreNavigation } from './navigation'
 import { ConstellationCanvas } from './three/ConstellationCanvas'
-import { CommandPalette } from './ui/CommandPalette'
 import { ErrorState } from './ui/ErrorState'
 import { FilterPanel } from './ui/FilterPanel'
 import { FocusPanel } from './ui/FocusPanel'
@@ -39,8 +38,8 @@ export function Explorer() {
   const webgl = useUiStore((s) => s.webgl)
   const uiView = useUiStore((s) => s.view)
   const setCapabilities = useUiStore((s) => s.setCapabilities)
-  const togglePalette = useUiStore((s) => s.togglePalette)
-  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
+  const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
+  const setHighlight = useUiStore((s) => s.setHighlight)
   const toggleFilters = useUiStore((s) => s.toggleFilters)
   const setFiltersOpen = useUiStore((s) => s.setFiltersOpen)
   const toggleHelp = useUiStore((s) => s.toggleHelp)
@@ -123,8 +122,35 @@ export function Explorer() {
   useEffect(() => {
     if (revision === 0 || !focusNodeId) return
     flyTo(focusNodeId, cameraMode === 'follow' ? 'follow' : 'focus')
+    setHighlight(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revision])
+
+  // Preloading: once a neighborhood is on screen, warm the neighborhoods of its strongest direct
+  // connections, so following one of them is instant. The focus flight hides the delay.
+  useEffect(() => {
+    if (status !== 'ready' || !focusNodeId) return
+    const timer = setTimeout(() => {
+      const { edges } = useGraphStore.getState()
+      const best = new Map<string, number>()
+      for (const e of edges) {
+        const other = e.sourceNodeId === focusNodeId ? e.targetNodeId : e.targetNodeId === focusNodeId ? e.sourceNodeId : null
+        if (other) best.set(other, Math.max(best.get(other) ?? 0, e.weight))
+      }
+      const ids = [...best.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+      for (const [id] of ids) prefetchFocus(id, { depth: 1, filters })
+    }, 450)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, revision, filterKey])
+
+  // Whatever is under the pointer for a moment is probably the next focus: preload it.
+  useEffect(() => {
+    if (!hoveredNodeId || hoveredNodeId === focusNodeId) return
+    const timer = setTimeout(() => prefetchFocus(hoveredNodeId, { depth: 1, filters }), 120)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoveredNodeId, filterKey])
 
   const effectiveView = useMemo(() => {
     if (webgl === false) return 'list'
@@ -137,16 +163,11 @@ export function Explorer() {
       const target = event.target as HTMLElement | null
       const typing =
         target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault()
-        togglePalette()
-        return
-      }
       if (event.key === 'Escape') {
-        setPaletteOpen(false)
         setFiltersOpen(false)
         setHelpOpen(false)
         setHovered(null)
+        setHighlight(null)
         return
       }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return
@@ -194,7 +215,6 @@ export function Explorer() {
       {!listMode ? <WelcomeCard /> : null}
       <GraphHUD view={effectiveView} />
       {!listMode ? <NodeTooltip /> : null}
-      <CommandPalette view={effectiveView} />
       <HelpOverlay />
       {status === 'loading' ? <LoadingState overlay label="Charting connections" /> : null}
       {status === 'error' ? <ErrorState message={error ?? 'Something went wrong'} /> : null}

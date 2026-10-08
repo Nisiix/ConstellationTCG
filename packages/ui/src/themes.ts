@@ -9,10 +9,14 @@ import {
   type ThemeModePreference,
 } from '@constellation/domain'
 
-/** Neutral theme used before a game is selected or when an adapter declares none. */
+/**
+ * The platform theme (landing, help, explorer before a game is known): a midnight blue for
+ * contours, a soft violet accent. The web app lifts the blue towards the text color where it is
+ * used as ink, so it stays readable on the dark background too.
+ */
 export const DEFAULT_THEME: TCGTheme = {
   id: 'default',
-  primary: '#38c6e0',
+  primary: '#1e3a8a',
   accent: '#9b8cf5',
   ownership: '#e0b25a',
   nodes: {

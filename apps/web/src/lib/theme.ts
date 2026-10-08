@@ -15,6 +15,17 @@ export function useThemeMode(): ThemeMode {
   return useCatalogStore((s) => s.mode)
 }
 
+/** The palette of the 3D scene: the game's theme always in dark mode (the sky stays dark). */
+export function useSceneTheme(): ResolvedTheme {
+  return useCatalogStore((s) => s.scene)
+}
+
+/** Node color helper bound to the scene palette. */
+export function useSceneNodeColor(): (type: NodeType) => string {
+  const theme = useSceneTheme()
+  return (type) => nodeColor(theme, type)
+}
+
 /** Names of the variables `applyThemeToDocument` writes (so they can be removed again). */
 const APPLIED_VARS = Object.keys(themeCssVariables(resolveTheme(DEFAULT_THEME, 'dark')))
 

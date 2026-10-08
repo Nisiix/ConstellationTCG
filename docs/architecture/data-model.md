@@ -26,7 +26,7 @@ tcg_games ──< tcg_sources
 | `card_printings`     | One concrete printing: set, `collector_number`, `printed_number`, language, rarity, variant, finish, images, `attributes` (JSON, adapter-specific), provenance |
 | `artists`            | Illustrators, deduplicated by `normalized_name`                                                            |
 | `entities`           | Non-card semantic entities per game: `kind` (`pokemon`, `attribute`, `mechanic`) + stable `key`           |
-| `printing_entities`  | Printing ↔ entity links with the `relation` (`SAME_POKEMON`, `HAS_TYPE`, `WEAK_TO`, `HAS_ATTACK`, …)       |
+| `printing_entities`  | Printing ↔ entity links with the `relation` (`SAME_POKEMON`, `HAS_TYPE`, `WEAK_TO`, `HAS_ABILITY`, …)      |
 | `external_ids`       | Source ids per entity (`TCGdex → base1-4`), never a single universal id                                    |
 
 ### Identity vs printing
@@ -53,8 +53,12 @@ Node types: `game`, `series`, `set`, `card_identity`, `card_printing`, `pokemon`
 `mechanic`, `attribute`, `digital_asset`.
 
 Universal relationships are listed in `packages/domain/src/graph.ts`; adapters add their own
-(Pokémon: `EVOLVES_FROM`, `HAS_TYPE`, `HAS_ATTACK`, `HAS_ABILITY`, `WEAK_TO`, `RESISTS`,
+(Pokémon: `EVOLVES_FROM`, `HAS_TYPE`, `HAS_ABILITY`, `WEAK_TO`, `RESISTS`,
 `SAME_POKEMON`, …). The core treats relationship types as opaque strings.
+
+Card statistics (HP, attacks, retreat cost) are data on the printing (`attributes`), never
+entities, edges or filters: the product explores relationships, not stats. Entities no card refers
+to any more are not projected as nodes.
 
 `metadata` on nodes holds what the UI shows without another query: set name and number on a
 printing, printing counts, release dates, a representative image for artists and species, and

@@ -16,13 +16,13 @@ export const RELATIONSHIP_WEIGHTS: Record<string, number> = {
   RESISTS: 0.3,
 }
 
+/** Entity links that become edges. Stale links of other kinds (e.g. attacks) are ignored. */
 const ENTITY_RELATIONS = new Set([
   'SAME_POKEMON',
   'HAS_TYPE',
   'WEAK_TO',
   'RESISTS',
   'HAS_ABILITY',
-  'HAS_ATTACK',
   'HAS_ATTRIBUTE',
 ])
 
@@ -35,7 +35,7 @@ const ENTITY_RELATIONS = new Set([
  *   printing → artist         ILLUSTRATED_BY
  *   printing → pokemon        SAME_POKEMON
  *   printing → attribute      HAS_TYPE / WEAK_TO / RESISTS / HAS_ATTRIBUTE
- *   printing → mechanic       HAS_ABILITY / HAS_ATTACK
+ *   printing → mechanic       HAS_ABILITY
  *   printing → identity       EVOLVES_FROM   (the pre-evolution's identity)
  *   identity → identity       EVOLUTION_OF   (identity-level evolution line)
  */

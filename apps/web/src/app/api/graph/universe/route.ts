@@ -3,13 +3,16 @@ import { GraphError, type GraphNeighborhood } from '@constellation/domain'
 import type { NextRequest } from 'next/server'
 import { getCache } from '@/server/cache'
 import { getDatabase } from '@/server/db'
-import { CACHE_PUBLIC, errorResponse, json } from '@/server/http'
+import { CACHE_PUBLIC, errorResponse, json, rateLimit } from '@/server/http'
 import { DEFAULT_GAME } from '@/server/registry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
+  const limited = rateLimit(request)
+  if (limited) return limited
+  const startedAt = performance.now()
   try {
     const game = request.nextUrl.searchParams.get('game') ?? DEFAULT_GAME
     const cache = getCache<GraphNeighborhood | null>('universe', 120_000, 20)
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
         game,
       })
     }
-    return json(universe, { cache: CACHE_PUBLIC })
+    return json(universe, { cache: CACHE_PUBLIC, startedAt })
   } catch (error) {
     return errorResponse(error)
   }

@@ -13,7 +13,7 @@ import {
 import type { NextRequest } from 'next/server'
 import { getCache } from '@/server/cache'
 import { getDatabase } from '@/server/db'
-import { CACHE_PUBLIC, errorResponse, filterParams, intParam, json, listParam } from '@/server/http'
+import { CACHE_PUBLIC, errorResponse, filterParams, intParam, json, listParam, rateLimit } from '@/server/http'
 import { getFilterService } from '@/server/registry'
 
 export const runtime = 'nodejs'
@@ -25,6 +25,9 @@ export interface FocusResponse extends GraphNeighborhood {
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ nodeId: string }> }) {
+  const limited = rateLimit(request)
+  if (limited) return limited
+  const startedAt = performance.now()
   try {
     const { nodeId: rawId } = await context.params
     const nodeId = decodeURIComponent(rawId)
@@ -90,7 +93,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ nod
       ])
       return { ...neighborhood, summary, filtered: allowedPrintingNodeIds !== null }
     })
-    return json(response, { cache: CACHE_PUBLIC })
+    return json(response, { cache: CACHE_PUBLIC, startedAt })
   } catch (error) {
     return errorResponse(error)
   }

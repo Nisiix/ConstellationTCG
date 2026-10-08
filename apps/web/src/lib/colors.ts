@@ -24,7 +24,6 @@ export const RELATIONSHIP_LABELS: Record<string, string> = {
   HAS_TYPE: 'Type',
   WEAK_TO: 'Weak to',
   RESISTS: 'Resists',
-  HAS_ATTACK: 'Attack',
   HAS_ABILITY: 'Ability',
   HAS_ATTRIBUTE: 'Attribute',
   SAME_IDENTITY: 'Same card',
@@ -59,8 +58,6 @@ export function relationshipLabel(type: string, direction: 'out' | 'in'): string
         return 'Weak to this'
       case 'RESISTS':
         return 'Resist this'
-      case 'HAS_ATTACK':
-        return 'Cards with this attack'
       case 'HAS_ABILITY':
         return 'Cards with this ability'
       case 'HAS_ATTRIBUTE':
@@ -107,6 +104,5 @@ export const RELATIONSHIP_ORDER = [
   'WEAK_TO',
   'RESISTS',
   'HAS_ABILITY',
-  'HAS_ATTACK',
   'HAS_ATTRIBUTE',
 ]

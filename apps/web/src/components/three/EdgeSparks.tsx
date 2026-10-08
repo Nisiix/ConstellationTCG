@@ -3,10 +3,10 @@
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { useTheme } from '@/lib/theme'
+import { useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
-import { animatedPositions, revealClock } from './animated'
+import { drawnPosition, revealClock } from './animated'
 
 const MAX_SPARKS = 96
 
@@ -15,13 +15,12 @@ const MAX_SPARKS = 96
  * alive, and the eye is pulled from the focus towards what it is connected to.
  */
 export function EdgeSparks() {
-  const theme = useTheme()
+  const theme = useSceneTheme()
   const edges = useGraphStore((s) => s.edges)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const revision = useGraphStore((s) => s.revision)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const ref = useRef<THREE.Points>(null)
-  const dark = theme.mode === 'dark'
 
   const focusEdges = useMemo(
     () => edges.filter((e) => e.sourceNodeId === focusNodeId || e.targetNodeId === focusNodeId).slice(0, MAX_SPARKS),
@@ -42,18 +41,18 @@ export function EdgeSparks() {
     const elapsed = (performance.now() - revealClock.startedAt) / 1000
     const material = points.material as THREE.PointsMaterial
     material.opacity = Math.min(1, Math.max(0, (elapsed - 0.6) / 0.6)) * 0.95
+    const from = focusNodeId ? drawnPosition(focusNodeId) : undefined
     for (let i = 0; i < MAX_SPARKS; i += 1) {
       const edge = focusEdges[i]
       const o = i * 3
-      if (!edge) {
+      if (!edge || !from) {
         positions[o] = positions[o + 1] = positions[o + 2] = 1e4
         continue
       }
       // Sparks always flow outwards from the focus.
-      const from = animatedPositions.get(focusNodeId as string)
       const toId = edge.sourceNodeId === focusNodeId ? edge.targetNodeId : edge.sourceNodeId
-      const to = animatedPositions.get(toId)
-      if (!from || !to) {
+      const to = drawnPosition(toId)
+      if (!to) {
         positions[o] = positions[o + 1] = positions[o + 2] = 1e4
         continue
       }
@@ -67,7 +66,7 @@ export function EdgeSparks() {
   })
 
   return (
-    <points ref={ref} key={`${revision}-${theme.id}-${theme.mode}`} frustumCulled={false} visible={false}>
+    <points ref={ref} key={`${revision}-${theme.id}`} frustumCulled={false} visible={false}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -78,7 +77,7 @@ export function EdgeSparks() {
         transparent
         opacity={0}
         depthWrite={false}
-        blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending}
+        blending={THREE.AdditiveBlending}
         toneMapped={false}
       />
     </points>

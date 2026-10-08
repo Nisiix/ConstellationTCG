@@ -1,6 +1,16 @@
 import type { GraphEdge, GraphNode } from '@constellation/domain'
 import { describe, expect, it } from 'vitest'
-import { adaptiveShellRadius, computeLayout, createRandom, layoutRadius, type Vec3 } from '../layout'
+import { adaptiveIterations, adaptiveShellRadius, computeLayout, createRandom, layoutRadius, type Vec3 } from '../layout'
+
+describe('adaptiveIterations', () => {
+  it('spends the full budget on small neighborhoods and less on crowds, never below a floor', () => {
+    expect(adaptiveIterations(10)).toBe(220)
+    expect(adaptiveIterations(80)).toBe(220)
+    expect(adaptiveIterations(200)).toBeLessThan(220)
+    expect(adaptiveIterations(200)).toBeGreaterThan(adaptiveIterations(400))
+    expect(adaptiveIterations(5000)).toBe(90)
+  })
+})
 
 describe('adaptiveShellRadius', () => {
   it('keeps small neighborhoods tight and spreads crowds out, with a ceiling', () => {

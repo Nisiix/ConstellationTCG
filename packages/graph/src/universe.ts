@@ -1,6 +1,6 @@
 /**
- * Universe view: what a visitor sees before searching — the game, its series and its sets.
- * Never the cards (progressive disclosure).
+ * Universe view: what a visitor sees before searching — the game, its series and its sets,
+ * most recent first. Never the cards (progressive disclosure).
  */
 import { sql, type Db } from '@constellation/database'
 import type { GraphNeighborhood } from '@constellation/domain'
@@ -14,7 +14,7 @@ export async function getUniverse(db: Db, gameSlug: string): Promise<GraphNeighb
       join tcg_games g on g.id = n.game_id
       where g.slug = ${gameSlug} and n.node_type in ('game', 'series', 'set')
       order by case n.node_type when 'game' then 0 when 'series' then 1 else 2 end,
-        coalesce(n.metadata->>'releaseDate', '9999') asc, n.label asc
+        coalesce(n.metadata->>'releaseDate', '') desc, n.label asc
     `),
   )
   const nodes = nodeRows.map(toGraphNode)

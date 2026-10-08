@@ -5,30 +5,29 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { GraphNode } from '@constellation/domain'
-import { nodeRadius } from '@/lib/colors'
 import { fallbackImageUrl } from '@/lib/images'
-import { useThemeMode } from '@/lib/theme'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useGraphStore } from '@/state/graph-store'
-import { useUiStore } from '@/state/ui-store'
-import { animatedPositions, revealClock } from './animated'
+import { displayScales, drawnPosition } from './animated'
 import { isLogoNode, nodeDiscImageUrl, useNodeTexture } from './textures'
 
 const MAX_IMAGES = 320
+/** How far in front of the sphere's center the disc sits (sphere radius = 1). */
+const DISC_OFFSET = 1.02
+/** Disc radius relative to the sphere: leaves a rim of the neutral fill before the contour. */
+const DISC_RADIUS = 0.94
 
-function easeOutBack(t: number): number {
-  const c = Math.min(1, Math.max(0, t))
-  const s = 1.4
-  return 1 + (s + 1) * Math.pow(c - 1, 3) + s * Math.pow(c - 1, 2)
-}
+const tmpVec = new THREE.Vector3()
 
 /**
  * The picture of each point, filling its disc edge to edge:
  *  - cards: the artwork area cropped to a centered square ("cover");
  *  - logos (sets, series): a zoomed, dimmed copy of the logo fills the disc and the readable
  *    logo sits on top, so nothing is left empty.
- * Discs are drawn on the camera-facing side of the sphere; the colored contour stays visible
- * around them. A set whose logo is missing or fails to load shows the game's standard logo.
+ * The disc is drawn on the camera-facing side of the sphere, at exactly the size and position the
+ * sphere was drawn with this frame (drift, hover and focus pulse included) and shrunk to cancel
+ * the perspective magnification of sitting closer to the camera, so it never leaves the point.
+ * A set whose logo is missing or fails to load shows the game's standard logo.
  */
 export function NodeImages() {
   const nodes = useGraphStore((s) => s.nodes)
@@ -45,7 +44,7 @@ export function NodeImages() {
   return (
     <>
       {candidates.map((node) => (
-        <NodeImage key={node.id} node={node} distance={distances[node.id] ?? 1} isFocus={node.id === focusNodeId} />
+        <NodeImage key={node.id} node={node} />
       ))}
     </>
   )
@@ -72,15 +71,12 @@ function coverCrop(texture: THREE.Texture, width: number, height: number, center
   return t
 }
 
-function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: number; isFocus: boolean }) {
+function NodeImage({ node }: { node: GraphNode }) {
   const placeholders = useCatalogStore((s) => s.placeholders)
-  const mode = useThemeMode()
   const texture = useNodeTexture(nodeDiscImageUrl(node), fallbackImageUrl(node, placeholders))
-  const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
-  const reducedMotion = useUiStore((s) => s.reducedMotion)
   const group = useRef<THREE.Group>(null)
+  const disc = useRef<THREE.Group>(null)
   const logo = isLogoNode(node)
-  const baseRadius = nodeRadius(node.nodeType, distance, isFocus)
 
   const layers = useMemo(() => {
     if (!texture) return null
@@ -90,7 +86,7 @@ function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: num
     if (logo) {
       const aspect = width / height
       // Fit the readable logo inside the disc (inscribed square, with a little margin).
-      const fit = 1.3
+      const fit = 1.26
       const scale: [number, number] = aspect >= 1 ? [fit, fit / aspect] : [fit * aspect, fit]
       return { fill: coverCrop(texture, width, height, 0.5, 1.6), front: texture, frontScale: scale }
     }
@@ -98,37 +94,37 @@ function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: num
     return { fill: coverCrop(texture, width, height, 0.64), front: null, frontScale: [1, 1] as [number, number] }
   }, [texture, logo])
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const g = group.current
     if (!g) return
-    const p = animatedPositions.get(node.id)
-    if (!p) {
+    const p = drawnPosition(node.id)
+    const scale = displayScales.get(node.id)
+    if (!p || scale === undefined) {
       g.visible = false
       return
     }
     g.visible = true
-    const elapsed = (performance.now() - revealClock.startedAt) / 1000
-    const reveal = reducedMotion ? 1 : easeOutBack((elapsed - distance * 0.12) / 0.7)
-    const hover = node.id === hoveredNodeId ? 1.3 : 1
-    const scale = Math.max(0.0001, baseRadius * reveal * hover)
     g.position.set(p[0], p[1], p[2])
     g.scale.setScalar(scale)
+    if (disc.current) {
+      // The disc is DISC_OFFSET * scale closer to the camera than the sphere's center: shrink it by
+      // the same ratio so its projected size never exceeds the sphere's.
+      const d = tmpVec.set(p[0], p[1], p[2]).distanceTo(camera.position)
+      const ratio = Math.max(0.5, (d - DISC_OFFSET * scale) / Math.max(d, 0.001))
+      disc.current.scale.setScalar(ratio)
+    }
   })
 
   if (!layers) return null
 
-  // The zoomed logo copy behind the readable logo is dimmed: towards black on dark, towards
-  // white on light backgrounds.
-  const fillTint = logo ? (mode === 'dark' ? '#777777' : '#d9d9d9') : '#ffffff'
-
   return (
     <group ref={group} visible={false}>
       <Billboard follow>
-        {/* pushed slightly towards the camera so the disc sits on the front of the sphere */}
-        <group position={[0, 0, 1.02]}>
+        {/* pushed towards the camera so the disc sits on the front of the sphere */}
+        <group ref={disc} position={[0, 0, DISC_OFFSET]}>
           <mesh raycast={() => null}>
-            <circleGeometry args={[0.96, 48]} />
-            <meshBasicMaterial map={layers.fill} color={fillTint} toneMapped={false} />
+            <circleGeometry args={[DISC_RADIUS, 48]} />
+            <meshBasicMaterial map={layers.fill} color={logo ? '#777777' : '#ffffff'} toneMapped={false} />
           </mesh>
           {layers.front ? (
             <mesh position={[0, 0, 0.01]} scale={[layers.frontScale[0], layers.frontScale[1], 1]} raycast={() => null}>

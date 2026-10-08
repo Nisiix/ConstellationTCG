@@ -69,7 +69,6 @@ export const POKEMON_RELATIONSHIPS = [
   'EVOLVES_TO',
   'HAS_TYPE',
   'HAS_ABILITY',
-  'HAS_ATTACK',
   'WEAK_TO',
   'RESISTS',
   'SAME_POKEMON',
@@ -78,6 +77,7 @@ export const POKEMON_RELATIONSHIPS = [
 
 export type PokemonRelationship = (typeof POKEMON_RELATIONSHIPS)[number]
 
+/** Game filters. Card stats (HP, attacks, costs) are deliberately not filters: they are data, not relationships. */
 export const POKEMON_FILTERS: FilterDefinition[] = [
   {
     id: 'pokemon.species',
@@ -96,14 +96,6 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
     source: { kind: 'attribute', path: 'types', array: true },
   },
   {
-    id: 'pokemon.hp',
-    label: 'HP',
-    type: 'range',
-    scope: 'game',
-    appliesTo: ['card_printing'],
-    source: { kind: 'attribute', path: 'hp', numeric: true },
-  },
-  {
     id: 'pokemon.stage',
     label: 'Evolution stage',
     type: 'multi',
@@ -118,22 +110,6 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
     scope: 'game',
     appliesTo: ['card_printing'],
     source: { kind: 'entity', entityKind: 'mechanic', relation: 'HAS_ABILITY' },
-  },
-  {
-    id: 'pokemon.attack',
-    label: 'Attack',
-    type: 'select',
-    scope: 'game',
-    appliesTo: ['card_printing'],
-    source: { kind: 'entity', entityKind: 'mechanic', relation: 'HAS_ATTACK' },
-  },
-  {
-    id: 'pokemon.retreat',
-    label: 'Retreat cost',
-    type: 'range',
-    scope: 'game',
-    appliesTo: ['card_printing'],
-    source: { kind: 'attribute', path: 'retreat', numeric: true },
   },
   {
     id: 'pokemon.weakness',

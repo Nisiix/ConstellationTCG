@@ -25,6 +25,9 @@ projection; the 3D scene is a visualization of the graph — never the other way
   lines and borders; backgrounds are a dirty black (dark mode) or a dirty white (light mode).
 - **Images always resolve.** A set or series without an image, or whose image fails to load,
   shows the game's placeholder image (`TCGDefinition.placeholderImages`; Pokémon: the Base Set logo).
+- **Relationships, not stats.** Card statistics (HP, attacks, costs) stay in `attributes` as data;
+  they are never entities, edges or filters. The 3D sky stays dark in both interface modes.
+- **Expansions newest first** wherever sets or series are listed.
 
 ## Repository layout
 
@@ -65,6 +68,7 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm test:e2e              # Playwright against the production build (run pnpm build first)
 pnpm db:migrate            # apply SQL migrations to the configured database
 pnpm ingest:fixture        # ingest the bundled Base Set fixture (offline)
 pnpm ingest                # ingest the full Pokémon catalog from TCGdex (network)
