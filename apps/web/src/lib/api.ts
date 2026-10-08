@@ -102,6 +102,8 @@ export interface GameSummary {
   name: string
   publisher: string | null
   theme: TCGTheme
+  /** Stand-in images per node type (e.g. the classic Pokémon logo for sets without one). */
+  placeholderImages: Partial<Record<NodeType, string>>
   available: boolean
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse } from '@/lib/api'
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
-import { applyThemeToDocument } from '@/lib/theme'
+import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
 import { filtersKey } from '@/lib/url'
 import { useCameraStore } from '@/state/camera-store'
 import { useCatalogStore } from '@/state/catalog-store'
@@ -49,7 +49,7 @@ export function Explorer() {
 
   const setGame = useCatalogStore((s) => s.setGame)
   const setGames = useCatalogStore((s) => s.setGames)
-  const theme = useCatalogStore((s) => s.theme)
+  const theme = useCatalogStore((s) => s.resolved)
   const setFilters = useCatalogStore((s) => s.setFilters)
   const setFiltersStatus = useCatalogStore((s) => s.setFiltersStatus)
   const setSelection = useCatalogStore((s) => s.setSelection)
@@ -77,10 +77,12 @@ export function Explorer() {
     return () => controller.abort()
   }, [setGames])
 
-  // The palette follows the selected game.
+  // The palette follows the selected game (and the mode) while the explorer is on screen; the
+  // platform palette from the stylesheet returns when it leaves.
   useEffect(() => {
     applyThemeToDocument(theme)
   }, [theme])
+  useEffect(() => () => clearThemeFromDocument(), [])
 
   // Filter definitions per game.
   useEffect(() => {
@@ -183,7 +185,7 @@ export function Explorer() {
   const listMode = effectiveView === 'list'
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-void" data-theme={theme.id}>
+    <div id="main" className="explorer-shell relative w-full bg-void" data-theme={theme.id} data-mode={theme.mode}>
       {!listMode && webgl ? <ConstellationCanvas /> : null}
       {listMode ? <RelationshipList /> : null}
       <TopBar />

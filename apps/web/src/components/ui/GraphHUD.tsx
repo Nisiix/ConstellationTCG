@@ -31,7 +31,7 @@ export function GraphHUD({ view }: { view: ViewMode }) {
       <div className="panel pill pointer-events-auto flex items-center gap-3 px-4 py-2 text-[13px]">
         <span
           className={`dot ${transition === 'moving' ? 'dot-ping' : ''}`}
-          style={{ background: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
+          style={{ color: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
           aria-hidden
           title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
         />

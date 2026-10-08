@@ -1,10 +1,12 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NodeType } from '@constellation/domain'
 import type { SearchHit } from '@constellation/search'
 import { fetchSearch } from '@/lib/api'
 import { NODE_TYPE_LABELS } from '@/lib/colors'
+import { applyModeToDocument, writeModePreference } from '@/lib/mode'
 import { useNodeColor } from '@/lib/theme'
 import type { ViewMode } from '@/lib/url'
 import { useCatalogStore } from '@/state/catalog-store'
@@ -28,7 +30,10 @@ export function CommandPalette({ view }: { view: ViewMode }) {
   const toggleFilters = useUiStore((s) => s.toggleFilters)
   const setHelpOpen = useUiStore((s) => s.setHelpOpen)
   const navigation = useExploreNavigation()
+  const router = useRouter()
   const game = useCatalogStore((s) => s.game)
+  const mode = useCatalogStore((s) => s.mode)
+  const setMode = useCatalogStore((s) => s.setMode)
   const colorOf = useNodeColor()
   const depth = useGraphStore((s) => s.depth)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
@@ -126,6 +131,17 @@ export function CommandPalette({ view }: { view: ViewMode }) {
         },
       },
       {
+        id: 'mode',
+        label: mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+        run: () => {
+          const next = mode === 'dark' ? 'light' : 'dark'
+          writeModePreference(next)
+          applyModeToDocument(next)
+          setMode(next)
+          close()
+        },
+      },
+      {
         id: 'help',
         label: 'Help and keyboard shortcuts',
         hint: '?',
@@ -134,9 +150,17 @@ export function CommandPalette({ view }: { view: ViewMode }) {
           setHelpOpen(true)
         },
       },
+      {
+        id: 'home',
+        label: 'Go to the home page',
+        run: () => {
+          close()
+          router.push('/')
+        },
+      },
       { id: 'mine', label: 'My Constellation', hint: 'coming soon', disabled: true, run: () => {} },
     ],
-    [canExpand, depth, navigation, setHelpOpen, toggleFilters, view],
+    [canExpand, depth, mode, navigation, router, setHelpOpen, setMode, toggleFilters, view],
   )
 
   const filteredCommands = useMemo(() => {
@@ -226,7 +250,7 @@ export function CommandPalette({ view }: { view: ViewMode }) {
                   onClick={() => run(index)}
                   className={`row-link pop-in cursor-pointer ${isActive ? 'bg-primary/15' : ''}`}
                 >
-                  <span className="dot" style={{ background: colorOf(item.hit.type) }} aria-hidden />
+                  <span className="dot" style={{ color: colorOf(item.hit.type) }} aria-hidden />
                   <span className="min-w-0 flex-1 truncate">
                     {item.hit.title}
                     {item.hit.subtitle ? <span className="ml-2 text-[12.5px] text-ink-dim">{item.hit.subtitle}</span> : null}

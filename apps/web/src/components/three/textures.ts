@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
 import type { GraphNode } from '@constellation/domain'
+import { isLogoType, thumbnailUrl } from '@/lib/images'
 
 /**
  * Small texture manager for node images: limited concurrency, an LRU with disposal, and
@@ -18,6 +19,8 @@ interface Entry {
 }
 
 const cache = new Map<string, Entry>()
+/** URLs that failed once: never retried in this session, so fallbacks kick in immediately. */
+const failed = new Set<string>()
 const loader = new THREE.TextureLoader()
 loader.setCrossOrigin('anonymous')
 let inFlight = 0
@@ -45,6 +48,7 @@ export function loadNodeTexture(url: string): Promise<THREE.Texture> {
     existing.lastUsed = performance.now()
     return existing.promise
   }
+  if (failed.has(url)) return Promise.reject(new Error(`image failed earlier: ${url}`))
   const promise = new Promise<THREE.Texture>((resolve, reject) => {
     queue.push(() => {
       inFlight += 1
@@ -64,6 +68,7 @@ export function loadNodeTexture(url: string): Promise<THREE.Texture> {
         undefined,
         (error) => {
           cache.delete(url)
+          failed.add(url)
           inFlight -= 1
           pump()
           reject(error)
@@ -81,11 +86,14 @@ export function loadNodeTexture(url: string): Promise<THREE.Texture> {
 export function nodeDiscImageUrl(node: GraphNode): string | null {
   const url = node.imageUrl
   if (!url) return null
-  if (url.endsWith('/high.webp')) return url.replace(/\/high\.webp$/, '/low.webp')
-  return url
+  return thumbnailUrl(url)
 }
 
-export function useNodeTexture(url: string | null): THREE.Texture | null {
+/**
+ * Texture for a node image. When the image cannot be loaded (missing file, blocked host), the
+ * fallback — the game's standard image for that node type — is loaded instead.
+ */
+export function useNodeTexture(url: string | null, fallbackUrl: string | null = null): THREE.Texture | null {
   const [texture, setTexture] = useState<THREE.Texture | null>(() => (url ? (cache.get(url)?.texture ?? null) : null))
   useEffect(() => {
     if (!url) {
@@ -98,7 +106,9 @@ export function useNodeTexture(url: string | null): THREE.Texture | null {
       setTexture(cached)
       return
     }
+    const fallback = fallbackUrl && fallbackUrl !== url ? fallbackUrl : null
     loadNodeTexture(url)
+      .catch(() => (fallback ? loadNodeTexture(fallback) : Promise.reject(new Error('no fallback'))))
       .then((t) => {
         if (!cancelled) setTexture(t)
       })
@@ -108,11 +118,11 @@ export function useNodeTexture(url: string | null): THREE.Texture | null {
     return () => {
       cancelled = true
     }
-  }, [url])
+  }, [url, fallbackUrl])
   return texture
 }
 
 /** Is this a wide logo (sets, series) rather than a portrait card? */
 export function isLogoNode(node: GraphNode): boolean {
-  return node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
+  return isLogoType(node.nodeType)
 }

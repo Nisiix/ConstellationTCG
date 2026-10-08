@@ -1,0 +1,91 @@
+# Architecture overview
+
+> The relational database is the source of truth; the graph is a derived projection; the 3D scene
+> is a visualization of the graph — never the other way around.
+
+## Layers
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ apps/web — Next.js                                           │
+│   /            landing (Home · Help · Explore)               │
+│   /help        how it works, shortcuts, principles           │
+│   /explore     the constellation: search, 3D scene, focus    │
+│                panel, filters, list fallback                 │
+│   /api/*       search, graph, filters, games, health         │
+├──────────────────────────────────────────────────────────────┤
+│ packages/graph · packages/search · packages/filters          │
+│   neighborhood queries, universe view, ranking, SQL filters  │
+├──────────────────────────────────────────────────────────────┤
+│ graph_nodes / graph_edges            (derived projection)    │
+│   rebuilt by workers/graph-builder from the catalog          │
+├──────────────────────────────────────────────────────────────┤
+│ canonical catalog                    (source of truth)       │
+│   games · sources · series · sets · identities · printings   │
+│   artists · entities · provenance                            │
+├──────────────────────────────────────────────────────────────┤
+│ packages/ingestion + adapters/<game>                         │
+│   fetch → raw snapshot → normalize → validate → resolve →    │
+│   upsert, errors to ingestion_errors                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Packages
+
+| Package                 | Role                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `packages/domain`       | Pure TypeScript: catalog/graph/search/filter/theme types, typed errors, normalization, adapter contract |
+| `packages/database`     | Drizzle schema (mirror of `supabase/migrations`), SQL migrator, PGlite / PostgreSQL client              |
+| `packages/adapters`     | `AdapterRegistry`, content hashing, concurrency and retry helpers                                       |
+| `packages/ingestion`    | The pipeline (`runIngestion`), bootstrap of game/source rows, zod validation                           |
+| `packages/graph`        | `buildGraphProjection`, `getNeighborhood`, `getUniverse`, `getRelationshipSummary`, stats              |
+| `packages/search`       | `search()` — exact / prefix / word / fuzzy (pg_trgm) over `graph_nodes.search_text`                    |
+| `packages/filters`      | Universal + per-game `FilterDefinition`s, value computation, SQL predicates, query parsing              |
+| `packages/ui`           | Theme presets, `resolveTheme`, CSS variable helpers, mode resolution (framework-free)                   |
+| `packages/testing`      | In-memory PGlite seeded with the Base Set fixture                                                       |
+| `adapters/pokemon`      | TCGdex client, price stripping, normalizer, identity resolver, relationships, manifest, fixtures        |
+| `workers/ingestion`     | CLI: `migrate`, `ingest --fixture base1`, `ingest` (live)                                              |
+| `workers/graph-builder` | CLI: rebuild `graph_nodes` / `graph_edges`                                                             |
+
+Dependency direction is strictly downward: `domain` imports nothing; the web app imports
+everything; adapters never import the web app or the graph package.
+
+## Data flow
+
+1. **Ingestion** (`workers/ingestion`): the adapter lists series, sets and cards from its source;
+   each raw record is snapshotted (`source_snapshots`), normalized (`NormalizedCard`), validated,
+   resolved to a `card_identity` (by normalized name + kind) and upserted as a `card_printing`.
+   Unchanged records (same content hash) are skipped, which makes full and incremental imports the
+   same code path. Any failure is recorded in `ingestion_errors` and never aborts the run.
+2. **Projection** (`workers/graph-builder`): the catalog becomes `graph_nodes` (one per game,
+   series, set, identity, printing, artist, entity) and `graph_edges`. Universal edges
+   (`PART_OF`) come from the core; everything card-specific comes from the adapter's
+   `buildRelationships`. Sets and series without an image get the game's placeholder image
+   (`TCGDefinition.placeholderImages`), flagged with `metadata.imagePlaceholder`.
+3. **Exploration** (`apps/web`): the browser only talks to `/api/*`. The universe (game → series →
+   sets) is shown before any search; a focus request returns a bounded neighborhood (depth ≤ 3,
+   node and fan-out caps) plus a relationship summary; schema-driven filters narrow which printings
+   may appear. Nothing calls external sources during user interaction.
+
+## Visual system
+
+- Colors come from the selected game's adapter (`TCGDefinition.theme`): brand colors are used for
+  **contours only** (rings around points, lines, borders, active states); backgrounds are a dirty
+  black (dark mode) or a dirty white (light mode). `packages/ui` flattens a theme for one mode
+  (`resolveTheme`) and emits CSS variables; the root layout server-renders the neutral platform
+  palette for both modes, an inline script picks the mode before the first paint, and the explorer
+  overrides the variables with the game's palette while it is mounted.
+- The 3D scene (React Three Fiber) draws every node as a neutral sphere wrapped in a contour shell
+  colored by node type (two instanced meshes), edges as a single line geometry (additive in dark
+  mode, normal blending in light mode), images as discs on the camera-facing side of each node.
+- A 2D list view offers the same exploration when WebGL is unavailable or reduced motion is on.
+
+## Hard rules
+
+- No prices, no marketplace, no binder, no "portfolio". `pricing` and `variants_detailed` are
+  stripped at the source and the normalizer refuses records that still contain them.
+- Progressive disclosure: never thousands of nodes at once; depth ≤ 3; hubs capped.
+- TCG agnostic core: adding a game is an adapter under `adapters/<game>/` plus one registration
+  (see [Adding a TCG adapter](../adapters/README.md)). The graph, search, filters, camera and
+  database never change for a new game.
+- Search works without an account or wallet.

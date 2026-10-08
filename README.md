@@ -9,6 +9,10 @@ three-dimensional constellation: every card is a point, every relationship is a 
 - Traverse sets, Pokémon, artists, series, evolutions and alternate printings.
 - No account, no wallet, no prices, no marketplace.
 
+Pages: `/` (landing — Home · Help · Explore), `/help`, `/explore` (the constellation; every focus,
+depth, view and filter is in the URL). Dark and light modes: each game's brand colors are used for
+contours only, over a dirty black or dirty white background.
+
 First TCG: **Pokémon** (source: [TCGdex](https://tcgdex.dev)). The core is TCG agnostic.
 
 ## Quick start

@@ -1,5 +1,5 @@
 import { sql } from '@constellation/database'
-import type { TCGTheme } from '@constellation/domain'
+import type { NodeType, TCGTheme } from '@constellation/domain'
 import { DEFAULT_THEME } from '@constellation/ui'
 import { getDatabase } from '@/server/db'
 import { CACHE_PUBLIC, errorResponse, json } from '@/server/http'
@@ -13,6 +13,8 @@ export interface GameSummary {
   name: string
   publisher: string | null
   theme: TCGTheme
+  /** Stand-in images per node type (e.g. the classic Pokémon logo for sets without one). */
+  placeholderImages: Partial<Record<NodeType, string>>
   /** Whether the catalog has been ingested for this game. */
   available: boolean
 }
@@ -42,6 +44,7 @@ export async function GET() {
         name: def.name,
         publisher: def.publisher,
         theme: def.theme ?? DEFAULT_THEME,
+        placeholderImages: def.placeholderImages ?? {},
         available: ingested.has(def.slug),
       }
     })

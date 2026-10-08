@@ -8,6 +8,7 @@ import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { NodeBadge } from './NodeBadge'
+import { NodeImage } from './NodeImage'
 
 const DEPTH_LABEL: Record<number, string> = { 1: 'direct connections', 2: 'extended connections', 3: 'deep connections' }
 
@@ -63,26 +64,11 @@ export function FocusPanel() {
 
       {focus.imageUrl && isCard ? (
         <div className="flex justify-center bg-void/40 px-5 py-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={focus.imageUrl}
-            alt={`${focus.label} card`}
-            className="fade-up w-48 rounded-lg shadow-[0_0_0_1.5px_var(--c-outline),0_18px_40px_rgba(0,0,0,0.5)]"
-            loading="eager"
-          />
+          <NodeImage node={focus} variant="card" className="img-frame fade-up w-48 rounded-lg" loading="eager" />
         </div>
       ) : focus.imageUrl && focus.nodeType !== 'game' ? (
         <div className="flex justify-center bg-void/40 px-5 py-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={focus.imageUrl}
-            alt={`${focus.label} logo`}
-            className="max-h-16 object-contain"
-            loading="eager"
-            onError={(e) => {
-              ;(e.currentTarget.parentElement as HTMLElement | null)?.setAttribute('hidden', '')
-            }}
-          />
+          <NodeImage node={focus} variant="logo" className="max-h-16 object-contain" loading="eager" placeholder={null} />
         </div>
       ) : null}
 
@@ -152,7 +138,7 @@ function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; 
         {items.map(({ node, metadata }) => (
           <li key={node.id}>
             <button type="button" onClick={() => onSelect(node.id)} className="row-link" title={`Fly to ${node.label}`}>
-              <span className="dot" style={{ background: colorOf(node.nodeType) }} aria-hidden />
+              <span className="dot" style={{ color: colorOf(node.nodeType) }} aria-hidden />
               <span className="min-w-0 flex-1 truncate">{node.label}</span>
               {typeof metadata.value === 'string' ? (
                 <span className="text-[12px] text-ink-dim">{metadata.value}</span>

@@ -1,24 +1,11 @@
 import 'server-only'
-import { createPokemonAdapter } from '@constellation/adapter-pokemon'
-import { AdapterRegistry } from '@constellation/adapters'
 import { FilterService } from '@constellation/filters'
+import { getRegistry } from './adapters'
 import { getDatabase } from './db'
 
-const globalRef = globalThis as unknown as {
-  __constellationRegistry?: AdapterRegistry
-  __constellationFilters?: Promise<FilterService>
-}
+export { DEFAULT_GAME, getRegistry } from './adapters'
 
-/**
- * Adapters known to the web app. Only their definitions and relationship rules are used here;
- * the app never calls external sources during user interaction.
- */
-export function getRegistry(): AdapterRegistry {
-  if (!globalRef.__constellationRegistry) {
-    globalRef.__constellationRegistry = new AdapterRegistry().register(createPokemonAdapter())
-  }
-  return globalRef.__constellationRegistry
-}
+const globalRef = globalThis as unknown as { __constellationFilters?: Promise<FilterService> }
 
 export function getFilterService(): Promise<FilterService> {
   if (!globalRef.__constellationFilters) {
@@ -28,5 +15,3 @@ export function getFilterService(): Promise<FilterService> {
   }
   return globalRef.__constellationFilters
 }
-
-export const DEFAULT_GAME = 'pokemon'

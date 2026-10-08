@@ -9,6 +9,7 @@ import { useGraphStore } from '@/state/graph-store'
 import { useExploreNavigation } from '../navigation'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { NodeBadge } from '../ui/NodeBadge'
+import { NodeImage } from '../ui/NodeImage'
 
 const DEPTH_LABEL: Record<number, string> = { 1: 'Direct connections', 2: 'Extended connections', 3: 'Deep connections' }
 
@@ -124,15 +125,11 @@ export function RelationshipList() {
             <div className="space-y-4">
               {focus.imageUrl ? (
                 <section className="panel fade-up flex justify-center p-5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={focus.imageUrl}
-                    alt={`${focus.label} ${isCard ? 'card' : 'image'}`}
-                    className={isCard ? 'w-full max-w-[16rem] rounded-xl shadow-[0_0_0_1.5px_var(--c-outline),0_18px_40px_rgba(0,0,0,0.5)]' : 'max-h-28 object-contain'}
+                  <NodeImage
+                    node={focus}
+                    className={isCard ? 'img-frame w-full max-w-[16rem] rounded-xl' : 'max-h-28 object-contain'}
                     loading="eager"
-                    onError={(e) => {
-                      ;(e.currentTarget.parentElement as HTMLElement | null)?.setAttribute('hidden', '')
-                    }}
+                    placeholder={null}
                   />
                 </section>
               ) : null}
@@ -191,22 +188,20 @@ export function RelationshipList() {
 
 function Thumb({ node }: { node: GraphNode }) {
   const colorOf = useNodeColor()
-  if (node.imageUrl) {
-    const logo = node.nodeType === 'set' || node.nodeType === 'series'
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={node.imageUrl.replace(/\/high\.webp$/, '/low.webp')}
-        alt=""
-        loading="lazy"
-        className={logo ? 'h-10 w-14 flex-none rounded-md bg-void/60 object-contain p-1' : 'h-12 w-9 flex-none rounded-md object-cover shadow-[0_0_0_1px_var(--c-outline)]'}
-      />
-    )
-  }
+  const logo = node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
   return (
-    <span className="flex h-12 w-9 flex-none items-center justify-center rounded-md" style={{ background: `${colorOf(node.nodeType)}22` }} aria-hidden>
-      <span className="dot" style={{ background: colorOf(node.nodeType) }} />
-    </span>
+    <NodeImage
+      node={node}
+      small
+      alt=""
+      loading="lazy"
+      className={logo ? 'h-10 w-14 flex-none rounded-md bg-node object-contain p-1' : 'img-frame h-12 w-9 flex-none rounded-md object-cover'}
+      placeholder={
+        <span className="flex h-12 w-9 flex-none items-center justify-center rounded-md" style={{ background: `color-mix(in oklab, ${colorOf(node.nodeType)} 14%, transparent)` }} aria-hidden>
+          <span className="dot" style={{ color: colorOf(node.nodeType) }} />
+        </span>
+      }
+    />
   )
 }
 

@@ -21,8 +21,13 @@ export interface TCGDefinition {
   nodeTypes: NodeType[]
   /** Game-scoped filter definitions (values are computed by the filters package). */
   filters: FilterDefinition[]
-  /** Visual theme: the palette that makes this game recognizable in the dark UI. */
+  /** Visual theme: brand colors for contours, neutral backgrounds per mode. */
   theme: TCGTheme
+  /**
+   * Fallback image per node type, used when the source has no image for a node (a set without a
+   * logo) or the image fails to load. Pokémon: the classic Base Set logo.
+   */
+  placeholderImages?: Partial<Record<NodeType, string>>
 }
 
 export interface SourceSeries {

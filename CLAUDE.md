@@ -21,11 +21,15 @@ projection; the 3D scene is a visualization of the graph — never the other way
 - **TCG agnostic core.** Adding a TCG means adding an adapter under `adapters/<game>/` — the core
   (graph, search, filters, camera, database) must not need changes.
 - **Search works without an account or wallet.**
+- **Brand colors are contours only.** A game's theme (declared by its adapter) colors rings,
+  lines and borders; backgrounds are a dirty black (dark mode) or a dirty white (light mode).
+- **Images always resolve.** A set or series without an image, or whose image fails to load,
+  shows the game's placeholder image (`TCGDefinition.placeholderImages`; Pokémon: the Base Set logo).
 
 ## Repository layout
 
 ```
-apps/web                 Next.js app (UI, API routes, 3D scene)
+apps/web                 Next.js app: landing (/), help (/help), explorer (/explore), API routes, 3D scene
 packages/domain          Pure TypeScript domain types, errors, normalization helpers (no React/Three/Next)
 packages/database        Drizzle schema, SQL migrator, client (PGlite embedded or PostgreSQL via DATABASE_URL)
 packages/adapters        TCGAdapter contract + adapter registry

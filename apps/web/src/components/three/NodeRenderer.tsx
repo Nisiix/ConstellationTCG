@@ -13,6 +13,8 @@ import { animatedPositions, revealClock, smoothing } from './animated'
 
 const tmpObject = new THREE.Object3D()
 const tmpColor = new THREE.Color()
+const fillColor = new THREE.Color()
+const contrastColor = new THREE.Color()
 
 /** Playful reveal: overshoots slightly before settling (ease-out-back). */
 function easeOutBack(t: number): number {
@@ -22,8 +24,9 @@ function easeOutBack(t: number): number {
 }
 
 /**
- * All nodes as one instanced mesh (one draw call) plus a second, slightly larger back-face
- * instanced mesh in the theme's outline color: a toon contour around every node.
+ * Every point is a neutral sphere (the theme's node fill: dirty black or dirty white) wrapped in
+ * a contour shell colored by node type (red for sets, white for cards in the Pokémon theme).
+ * Two instanced meshes, two draw calls, whatever the size of the neighborhood.
  */
 export function NodeRenderer() {
   const theme = useTheme()
@@ -37,22 +40,31 @@ export function NodeRenderer() {
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const owned = useOwnershipStore((s) => s.ownedNodeIds)
   const meshRef = useRef<THREE.InstancedMesh>(null)
-  const outlineRef = useRef<THREE.InstancedMesh>(null)
+  const contourRef = useRef<THREE.InstancedMesh>(null)
   const count = nodes.length
 
   useEffect(() => {
     const mesh = meshRef.current
-    if (!mesh) return
+    const contour = contourRef.current
+    if (!mesh || !contour) return
     revealClock.startedAt = performance.now()
     revealClock.revision = revision
     const focusPos = focusNodeId ? positions.get(focusNodeId) : undefined
     const ids = new Set<string>()
+    fillColor.set(theme.nodeFill)
+    contrastColor.set(theme.contrast)
     for (let i = 0; i < count; i += 1) {
       const node = nodes[i]
       if (!node) continue
       ids.add(node.id)
+      const isFocus = node.id === focusNodeId
+      // Contour: the node type's color (ownership accent wins), brighter on the focus.
       tmpColor.set(owned.has(node.id) ? theme.ownership : nodeColor(theme, node.nodeType))
-      if (node.id === focusNodeId) tmpColor.multiplyScalar(1.35)
+      if (isFocus) tmpColor.lerp(contrastColor, 0.25)
+      contour.setColorAt(i, tmpColor)
+      // Fill: neutral; the focus lifts a touch towards the contrast color.
+      tmpColor.copy(fillColor)
+      if (isFocus) tmpColor.lerp(contrastColor, 0.12)
       mesh.setColorAt(i, tmpColor)
       if (!animatedPositions.has(node.id)) {
         const target = positions.get(node.id)
@@ -63,11 +75,12 @@ export function NodeRenderer() {
     }
     for (const id of [...animatedPositions.keys()]) if (!ids.has(id)) animatedPositions.delete(id)
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    if (contour.instanceColor) contour.instanceColor.needsUpdate = true
   }, [nodes, revision, focusNodeId, owned, positions, count, theme])
 
   useFrame((state, delta) => {
     const mesh = meshRef.current
-    const outline = outlineRef.current
+    const contour = contourRef.current
     if (!mesh) return
     const k = reducedMotion ? 1 : smoothing(delta, 5.5)
     const elapsed = (performance.now() - revealClock.startedAt) / 1000
@@ -90,7 +103,8 @@ export function NodeRenderer() {
       const isFocus = node.id === focusNodeId
       const base = nodeRadius(node.nodeType, distance, isFocus)
       const reveal = reducedMotion ? 1 : easeOutBack((elapsed - distance * 0.12) / 0.7)
-      const hover = node.id === hoveredNodeId ? 1.3 : 1
+      const hovered = node.id === hoveredNodeId
+      const hover = hovered ? 1.3 : 1
       const ownership = owned.has(node.id) ? 1.25 : 1
       const scale = Math.max(0.0001, base * reveal * hover * ownership * (isFocus ? pulse : 1))
       // Gentle idle drift keeps the constellation alive without moving it anywhere.
@@ -101,14 +115,15 @@ export function NodeRenderer() {
       tmpObject.scale.setScalar(scale)
       tmpObject.updateMatrix()
       mesh.setMatrixAt(i, tmpObject.matrix)
-      if (outline) {
-        tmpObject.scale.setScalar(scale * 1.16)
+      if (contour) {
+        // The contour thickens on the focus and under the pointer.
+        tmpObject.scale.setScalar(scale * (isFocus ? 1.2 : hovered ? 1.19 : 1.14))
         tmpObject.updateMatrix()
-        outline.setMatrixAt(i, tmpObject.matrix)
+        contour.setMatrixAt(i, tmpObject.matrix)
       }
     }
     mesh.instanceMatrix.needsUpdate = true
-    if (outline) outline.instanceMatrix.needsUpdate = true
+    if (contour) contour.instanceMatrix.needsUpdate = true
   })
 
   const nodeAt = (event: ThreeEvent<PointerEvent | MouseEvent>) =>
@@ -116,9 +131,9 @@ export function NodeRenderer() {
 
   return (
     <group key={`${revision}-${count}`}>
-      <instancedMesh ref={outlineRef} args={[undefined, undefined, Math.max(count, 1)]} frustumCulled={false} raycast={() => null}>
+      <instancedMesh ref={contourRef} args={[undefined, undefined, Math.max(count, 1)]} frustumCulled={false} raycast={() => null}>
         <sphereGeometry args={[1, 18, 18]} />
-        <meshBasicMaterial color={theme.outline} side={THREE.BackSide} toneMapped={false} />
+        <meshBasicMaterial side={THREE.BackSide} toneMapped={false} />
       </instancedMesh>
       <instancedMesh
         ref={meshRef}

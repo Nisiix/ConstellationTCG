@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_THEME, ONE_PIECE_THEME, edgeColor, hexToRgb, nodeColor, resolveTheme, themeCssVariables } from '../themes'
+import {
+  DEFAULT_THEME,
+  ONE_PIECE_THEME,
+  edgeColor,
+  hexToRgb,
+  isThemeModePreference,
+  nodeColor,
+  resolveTheme,
+  resolveThemeMode,
+  themeCssText,
+  themeCssVariables,
+} from '../themes'
 
 describe('themes', () => {
   it('One Piece preset uses deep blue and violet for contours', () => {
@@ -34,6 +45,30 @@ describe('themes', () => {
     expect(vars['--c-bg']).toBe(DEFAULT_THEME.modes.dark.background)
     expect(vars['--c-node-fill']).toBe(DEFAULT_THEME.modes.dark.nodeFill)
     expect(Object.keys(vars)).toHaveLength(10)
+  })
+
+  it('resolves the rendering mode from a preference and the system setting', () => {
+    expect(resolveThemeMode('dark', false)).toBe('dark')
+    expect(resolveThemeMode('light', true)).toBe('light')
+    expect(resolveThemeMode('system', true)).toBe('dark')
+    expect(resolveThemeMode('system', false)).toBe('light')
+    // Unknown or stale stored values never break rendering.
+    expect(resolveThemeMode(null, true)).toBe('dark')
+    expect(resolveThemeMode('neon', false)).toBe('light')
+    expect(isThemeModePreference('system')).toBe(true)
+    expect(isThemeModePreference('dark')).toBe(true)
+    expect(isThemeModePreference('blue')).toBe(false)
+  })
+
+  it('emits a stylesheet with both modes so the first paint is already themed', () => {
+    const css = themeCssText(DEFAULT_THEME)
+    expect(css.startsWith(':root{')).toBe(true)
+    expect(css).toContain(`--c-bg:${DEFAULT_THEME.modes.dark.background};`)
+    expect(css).toContain(':root[data-mode="light"]{')
+    expect(css).toContain(`--c-bg:${DEFAULT_THEME.modes.light.background};`)
+    expect(css).toContain('color-scheme:dark;')
+    expect(css).toContain('color-scheme:light;')
+    expect(themeCssText(ONE_PIECE_THEME, '.landing')).toContain('.landing[data-mode="light"]{')
   })
 
   it('parses hex colors', () => {

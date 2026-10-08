@@ -1,20 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { isMac } from '@/lib/env'
+import { HOW_IT_WORKS, SHORTCUTS } from '@/lib/help-content'
 import { useUiStore } from '@/state/ui-store'
-
-const SHORTCUTS: Array<[string, string]> = [
-  ['/', 'Search'],
-  ['⌘K', 'Commands'],
-  ['E', 'Show more connections'],
-  ['C', 'Direct connections only'],
-  ['F', 'Filters'],
-  ['L', 'Switch 3D / list'],
-  ['U', 'Back to the universe'],
-  ['⌫', 'Go back'],
-  ['Esc', 'Close panels'],
-  ['?', 'This help'],
-]
 
 export function HelpOverlay() {
   const open = useUiStore((s) => s.helpOpen)
@@ -34,21 +23,11 @@ export function HelpOverlay() {
           </button>
         </div>
         <ol className="space-y-2 text-[14px] text-ink/90">
-          <li>
-            <strong className="font-semibold">Search</strong> a card, a set, a Pokémon or an artist. The camera flies there.
-          </li>
-          <li>
-            <strong className="font-semibold">Look around.</strong> The points around the focus are its connections: drag to orbit, scroll to zoom, hover for names.
-          </li>
-          <li>
-            <strong className="font-semibold">Follow</strong> any connection by clicking it, in the scene or in the panel on the right.
-          </li>
-          <li>
-            <strong className="font-semibold">Go wider</strong> with “Show more” (extended and deep connections) or narrow down with filters.
-          </li>
-          <li>
-            <strong className="font-semibold">Share</strong> any view: the link holds the focus, the depth and the filters.
-          </li>
+          {HOW_IT_WORKS.map((step) => (
+            <li key={step.title}>
+              <strong className="font-semibold">{step.title}</strong> {step.text}
+            </li>
+          ))}
         </ol>
         <h3 className="eyebrow mb-2 mt-5">Keyboard</h3>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">
@@ -61,6 +40,13 @@ export function HelpOverlay() {
             </div>
           ))}
         </dl>
+        <p className="mt-5 text-[13px] text-ink-dim">
+          More in the{' '}
+          <Link href="/help" className="text-ink underline decoration-ink/30 underline-offset-2 hover:decoration-ink">
+            help page
+          </Link>
+          .
+        </p>
       </div>
     </div>
   )

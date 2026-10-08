@@ -10,7 +10,11 @@ import { animatedPositions, easeOutCubic, revealClock } from './animated'
 
 const tmpColor = new THREE.Color()
 
-/** Every edge as one additive line-segments geometry, animated to "grow" from source to target. */
+/**
+ * Every edge as one line-segments geometry, animated to "grow" from source to target. Lines are
+ * contours too: in dark mode they add light (additive blending), in light mode they are drawn
+ * normally and fade towards the background instead of towards black.
+ */
 export function EdgeRenderer() {
   const theme = useTheme()
   const edges = useGraphStore((s) => s.edges)
@@ -21,6 +25,7 @@ export function EdgeRenderer() {
   const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const geometryRef = useRef<THREE.BufferGeometry>(null)
+  const dark = theme.mode === 'dark'
 
   const buffers = useMemo(() => {
     const n = edges.length
@@ -33,15 +38,18 @@ export function EdgeRenderer() {
       base[i * 3 + 1] = tmpColor.g
       base[i * 3 + 2] = tmpColor.b
     })
-    return { position, color, base }
-  }, [edges, theme])
+    // What a faded line tends to: black when adding light, the background otherwise.
+    tmpColor.set(dark ? '#000000' : theme.background)
+    const dim: [number, number, number] = [tmpColor.r, tmpColor.g, tmpColor.b]
+    return { position, color, base, dim }
+  }, [edges, theme, dark])
 
   useFrame((state) => {
     const geometry = geometryRef.current
     if (!geometry) return
     const elapsed = (performance.now() - revealClock.startedAt) / 1000
     const breathe = reducedMotion ? 1 : 0.9 + Math.sin(state.clock.elapsedTime * 1.8) * 0.1
-    const { position, color, base } = buffers
+    const { position, color, base, dim } = buffers
     for (let i = 0; i < edges.length; i += 1) {
       const edge = edges[i]
       if (!edge) continue
@@ -65,17 +73,18 @@ export function EdgeRenderer() {
       const touchesFocus = edge.sourceNodeId === focusNodeId || edge.targetNodeId === focusNodeId
       const touchesHover =
         hoveredNodeId !== null && (edge.sourceNodeId === hoveredNodeId || edge.targetNodeId === hoveredNodeId)
-      const intensity =
-        (touchesHover ? 1.15 : touchesFocus ? 0.85 * breathe : d >= 2 ? 0.18 : 0.42) * progress
+      const intensity = Math.min(1, (touchesHover ? 1.15 : touchesFocus ? 0.85 * breathe : d >= 2 ? 0.18 : 0.42) * progress)
       const r = base[i * 3] ?? 0
       const g = base[i * 3 + 1] ?? 0
       const b = base[i * 3 + 2] ?? 0
-      color[o] = r * intensity
-      color[o + 1] = g * intensity
-      color[o + 2] = b * intensity
-      color[o + 3] = r * intensity * 0.55
-      color[o + 4] = g * intensity * 0.55
-      color[o + 5] = b * intensity * 0.55
+      // Source end: full intensity; target end: a little fainter, so lines read as rays.
+      const tail = intensity * 0.55
+      color[o] = dim[0] + (r - dim[0]) * intensity
+      color[o + 1] = dim[1] + (g - dim[1]) * intensity
+      color[o + 2] = dim[2] + (b - dim[2]) * intensity
+      color[o + 3] = dim[0] + (r - dim[0]) * tail
+      color[o + 4] = dim[1] + (g - dim[1]) * tail
+      color[o + 5] = dim[2] + (b - dim[2]) * tail
     }
     const pos = geometry.getAttribute('position') as THREE.BufferAttribute | undefined
     const col = geometry.getAttribute('color') as THREE.BufferAttribute | undefined
@@ -86,12 +95,19 @@ export function EdgeRenderer() {
   if (edges.length === 0) return null
 
   return (
-    <lineSegments key={`${revision}-${theme.id}`} frustumCulled={false}>
+    <lineSegments key={`${revision}-${theme.id}-${theme.mode}`} frustumCulled={false}>
       <bufferGeometry ref={geometryRef}>
         <bufferAttribute attach="attributes-position" args={[buffers.position, 3]} />
         <bufferAttribute attach="attributes-color" args={[buffers.color, 3]} />
       </bufferGeometry>
-      <lineBasicMaterial vertexColors transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      <lineBasicMaterial
+        vertexColors
+        transparent
+        opacity={dark ? 0.95 : 0.9}
+        blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
     </lineSegments>
   )
 }

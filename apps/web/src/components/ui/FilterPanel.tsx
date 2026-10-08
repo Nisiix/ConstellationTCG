@@ -68,7 +68,7 @@ export function FilterPanel() {
         </div>
         <p className="mb-4 text-[12.5px] text-ink-dim">Filters narrow which cards appear around the focus. They stay in the link you share.</p>
         {status === 'loading' ? <p className="text-sm text-ink-dim">Loading filters…</p> : null}
-        {status === 'error' ? <p className="text-sm text-red-300">Filters are unavailable right now.</p> : null}
+        {status === 'error' ? <p className="text-sm text-rose-500">Filters are unavailable right now.</p> : null}
         <div className="space-y-5">
           {visible.map((filter, i) => (
             <div key={filter.id} className="pop-in" style={{ '--i': i } as React.CSSProperties}>

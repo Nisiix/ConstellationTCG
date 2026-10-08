@@ -6,6 +6,9 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { GraphNode } from '@constellation/domain'
 import { nodeRadius } from '@/lib/colors'
+import { fallbackImageUrl } from '@/lib/images'
+import { useThemeMode } from '@/lib/theme'
+import { useCatalogStore } from '@/state/catalog-store'
 import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
 import { animatedPositions, revealClock } from './animated'
@@ -24,8 +27,8 @@ function easeOutBack(t: number): number {
  *  - cards: the artwork area cropped to a centered square ("cover");
  *  - logos (sets, series): a zoomed, dimmed copy of the logo fills the disc and the readable
  *    logo sits on top, so nothing is left empty.
- * Discs are drawn on the camera-facing side of the sphere; the colored rim and the dark contour
- * stay visible around them.
+ * Discs are drawn on the camera-facing side of the sphere; the colored contour stays visible
+ * around them. A set whose logo is missing or fails to load shows the game's standard logo.
  */
 export function NodeImages() {
   const nodes = useGraphStore((s) => s.nodes)
@@ -70,7 +73,9 @@ function coverCrop(texture: THREE.Texture, width: number, height: number, center
 }
 
 function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: number; isFocus: boolean }) {
-  const texture = useNodeTexture(nodeDiscImageUrl(node))
+  const placeholders = useCatalogStore((s) => s.placeholders)
+  const mode = useThemeMode()
+  const texture = useNodeTexture(nodeDiscImageUrl(node), fallbackImageUrl(node, placeholders))
   const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const group = useRef<THREE.Group>(null)
@@ -112,6 +117,10 @@ function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: num
 
   if (!layers) return null
 
+  // The zoomed logo copy behind the readable logo is dimmed: towards black on dark, towards
+  // white on light backgrounds.
+  const fillTint = logo ? (mode === 'dark' ? '#777777' : '#d9d9d9') : '#ffffff'
+
   return (
     <group ref={group} visible={false}>
       <Billboard follow>
@@ -119,7 +128,7 @@ function NodeImage({ node, distance, isFocus }: { node: GraphNode; distance: num
         <group position={[0, 0, 1.02]}>
           <mesh raycast={() => null}>
             <circleGeometry args={[0.96, 48]} />
-            <meshBasicMaterial map={layers.fill} color={logo ? '#777777' : '#ffffff'} toneMapped={false} />
+            <meshBasicMaterial map={layers.fill} color={fillTint} toneMapped={false} />
           </mesh>
           {layers.front ? (
             <mesh position={[0, 0, 0.01]} scale={[layers.frontScale[0], layers.frontScale[1], 1]} raycast={() => null}>

@@ -1,0 +1,70 @@
+# Data model
+
+Migrations live in `supabase/migrations/*.sql` (plain SQL, Supabase CLI compatible) and are mirrored
+by the Drizzle schema in `packages/database/src/schema.ts`. A test applies the migrations to an
+embedded database and fails on any drift between the two.
+
+## Catalog (source of truth)
+
+```text
+tcg_games ──< tcg_sources
+    │
+    ├──< tcg_series ──< tcg_sets ──< card_printings >── artists
+    │                                      │
+    ├──< card_identities ──────────────────┘
+    │
+    └──< entities ──< printing_entities >── card_printings
+```
+
+| Table                | Purpose                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| `tcg_games`          | One row per trading card game (`slug`, `name`, `publisher`, `adapter_key`)                                |
+| `tcg_sources`        | Where a game's data comes from (`tcgdex`), with priority and `last_sync_at`                               |
+| `tcg_series`         | Series / blocks (`external_id`, `slug`, `name`, `release_date`, `logo_url`, provenance)                    |
+| `tcg_sets`           | Sets (`symbol_url`, `logo_url`, `card_count_total`, `card_count_official`, provenance)                    |
+| `card_identities`    | The concept of a card: `canonical_name`, `normalized_name`, `entity_type` (character, trainer, energy, …) |
+| `card_printings`     | One concrete printing: set, `collector_number`, `printed_number`, language, rarity, variant, finish, images, `attributes` (JSON, adapter-specific), provenance |
+| `artists`            | Illustrators, deduplicated by `normalized_name`                                                            |
+| `entities`           | Non-card semantic entities per game: `kind` (`pokemon`, `attribute`, `mechanic`) + stable `key`           |
+| `printing_entities`  | Printing ↔ entity links with the `relation` (`SAME_POKEMON`, `HAS_TYPE`, `WEAK_TO`, `HAS_ATTACK`, …)       |
+| `external_ids`       | Source ids per entity (`TCGdex → base1-4`), never a single universal id                                    |
+
+### Identity vs printing
+
+"Charizard" is one `card_identity`; Base Set 4/102, Base Set 2, Evolutions… are `card_printings`
+of it. Identity resolution normalizes names (case, accents, whitespace) so `CHARIZARD` and
+`charizard` never create duplicates, while `Charizard ex` is a distinct identity. The species link
+("this card shows Charizard, dex #6") is an `entities` row of kind `pokemon`, not the identity.
+
+### Provenance
+
+Every imported row carries `source_id` and a content hash (`raw_hash` / `raw_data_hash`) of the
+stripped source record. `source_snapshots` keeps the last raw payload per record for debugging and
+re-normalization; `ingestion_runs` and `ingestion_errors` record every run and every failed record.
+
+## Graph projection (derived)
+
+| Table         | Purpose                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| `graph_nodes` | `id` = `<node_type>:<entity_id>` (URL-addressable), `label`, `subtitle`, `image_url`, `search_text`, `metadata` |
+| `graph_edges` | `id` = `<source>|<RELATIONSHIP>|<target>`, `weight` (layout proximity, neighbor ranking), `direction`, `metadata` |
+
+Node types: `game`, `series`, `set`, `card_identity`, `card_printing`, `pokemon`, `artist`,
+`mechanic`, `attribute`, `digital_asset`.
+
+Universal relationships are listed in `packages/domain/src/graph.ts`; adapters add their own
+(Pokémon: `EVOLVES_FROM`, `HAS_TYPE`, `HAS_ATTACK`, `HAS_ABILITY`, `WEAK_TO`, `RESISTS`,
+`SAME_POKEMON`, …). The core treats relationship types as opaque strings.
+
+`metadata` on nodes holds what the UI shows without another query: set name and number on a
+printing, printing counts, release dates, a representative image for artists and species, and
+`imagePlaceholder: true` when `image_url` is the game's stand-in image rather than the node's own.
+
+The projection is dropped and rebuilt per game by `pnpm graph:build`; it is deterministic for the
+same catalog.
+
+## Digital assets (later milestone)
+
+`digital_assets`, `digital_ownership` and `asset_resolution_candidates` are in place for the
+"My Constellation" overlay: an asset is resolved to a `card_printing` with a confidence score, and
+ownership never changes the graph — owned nodes are only rendered differently.

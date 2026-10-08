@@ -70,13 +70,13 @@ function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: bool
       <Billboard follow>
         <Text
           fontSize={size}
-          color={isFocus ? theme.secondary : theme.text}
+          color={isFocus ? theme.primary : theme.text}
           anchorX="center"
           anchorY="top"
           maxWidth={14}
           textAlign="center"
           outlineWidth={size * 0.1}
-          outlineColor={theme.outline}
+          outlineColor={theme.background}
           fillOpacity={isFocus ? 1 : 0.85}
           letterSpacing={0.02}
         >

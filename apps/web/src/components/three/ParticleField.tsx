@@ -9,11 +9,12 @@ import { useUiStore } from '@/state/ui-store'
 
 const COUNT = 2200
 
-/** A slowly drifting field of faint stars, tinted by the game's palette. */
+/** A slowly drifting field of faint stars in the theme's particle tint. */
 export function ParticleField() {
   const theme = useTheme()
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const ref = useRef<THREE.Points>(null)
+  const dark = theme.mode === 'dark'
   const positions = useMemo(() => {
     const random = createRandom(1337)
     const arr = new Float32Array(COUNT * 3)
@@ -41,13 +42,14 @@ export function ParticleField() {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
+        key={theme.mode}
         size={0.42}
         sizeAttenuation
         color={theme.particles}
         transparent
-        opacity={0.55}
+        opacity={dark ? 0.55 : 0.8}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending}
         toneMapped={false}
       />
     </points>

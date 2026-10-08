@@ -1,6 +1,15 @@
 import type { NodeType } from './graph'
 
-export type ThemeMode = 'dark' | 'light'
+export const THEME_MODES = ['dark', 'light'] as const
+
+export type ThemeMode = (typeof THEME_MODES)[number]
+
+/** What a visitor asked for: a fixed mode, or whatever the operating system prefers. */
+export type ThemeModePreference = ThemeMode | 'system'
+
+export function isThemeMode(value: unknown): value is ThemeMode {
+  return typeof value === 'string' && (THEME_MODES as readonly string[]).includes(value)
+}
 
 /**
  * Color roles. A game's brand colors are used only for contours — rings around nodes, borders,

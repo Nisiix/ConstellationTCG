@@ -1,4 +1,4 @@
-import { graphEdges, graphNodes, type Database } from '@constellation/database'
+import { eq, graphEdges, graphNodes, tcgSets, type Database } from '@constellation/database'
 import { GraphError } from '@constellation/domain'
 import { createSeededDatabase } from '@constellation/testing'
 import type { AdapterRegistry } from '@constellation/adapters'
@@ -173,5 +173,64 @@ describe('universe', () => {
     expect(universe?.nodes.map((n) => n.nodeType).sort()).toEqual(['game', 'series', 'set'])
     expect(universe?.edges.map((e) => e.relationshipType)).toEqual(['PART_OF', 'PART_OF'])
     expect(await getUniverse(database.db, 'unknown')).toBeNull()
+  })
+})
+
+describe('placeholder images', () => {
+  let db: Database
+  let reg: AdapterRegistry
+  let placeholder: string
+
+  beforeAll(async () => {
+    const seeded = await createSeededDatabase()
+    db = seeded.database
+    reg = seeded.registry
+    placeholder = reg.bySlug('pokemon')?.definition().placeholderImages?.set ?? ''
+    // A set the source knows but has no artwork for (like "W Promotional" in the Base series).
+    const [base] = await db.db.select().from(tcgSets).where(eq(tcgSets.externalId, 'base1'))
+    if (!base) throw new Error('fixture set missing')
+    await db.db.insert(tcgSets).values({
+      gameId: base.gameId,
+      seriesId: base.seriesId,
+      sourceId: base.sourceId,
+      externalId: 'wp',
+      slug: 'w-promotional',
+      name: 'W Promotional',
+      releaseDate: '1999-07-01',
+      symbolUrl: null,
+      logoUrl: null,
+      cardCountTotal: 7,
+      cardCountOfficial: 7,
+      rawHash: 'test',
+    })
+    await buildGraphProjection({ database: db, registry: reg })
+  })
+
+  afterAll(async () => {
+    await db.close()
+  })
+
+  it('shows the standard Pokémon logo for a set without an image of its own', async () => {
+    expect(placeholder).toMatch(/logo\.webp$/)
+    const all = await db.db.select().from(graphNodes)
+    const promo = all.find((n) => n.nodeType === 'set' && n.label === 'W Promotional')
+    expect(promo?.imageUrl).toBe(placeholder)
+    expect(promo?.metadata.imagePlaceholder).toBe(true)
+  })
+
+  it('keeps a set\'s own logo when it has one', async () => {
+    const all = await db.db.select().from(graphNodes)
+    const base = all.find((n) => n.nodeType === 'set' && n.label === 'Base Set')
+    expect(base?.imageUrl).toBe('https://assets.tcgdex.net/en/base/base1/logo.webp')
+    expect(base?.metadata.imagePlaceholder).toBe(false)
+    const series = all.find((n) => n.nodeType === 'series')
+    expect(series?.metadata.imagePlaceholder).toBe(false)
+  })
+
+  it('gives the game node the standard logo, flagged as a placeholder', async () => {
+    const all = await db.db.select().from(graphNodes)
+    const game = all.find((n) => n.nodeType === 'game')
+    expect(game?.imageUrl).toBe(placeholder)
+    expect(game?.metadata.imagePlaceholder).toBe(true)
   })
 })

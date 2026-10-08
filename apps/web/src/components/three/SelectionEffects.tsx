@@ -9,7 +9,8 @@ import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
 import { animatedPositions, easeOutCubic, revealClock } from './animated'
 
-function useHaloTexture(color: string): THREE.Texture | null {
+/** A soft radial halo. Dark mode: bright core adding light. Light mode: a tinted, fading disc. */
+function useHaloTexture(color: string, dark: boolean): THREE.Texture | null {
   return useMemo(() => {
     if (typeof document === 'undefined') return null
     const size = 128
@@ -21,26 +22,33 @@ function useHaloTexture(color: string): THREE.Texture | null {
     const c = new THREE.Color(color)
     const rgb = `${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)}`
     const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-    gradient.addColorStop(0, 'rgba(255,255,255,0.95)')
-    gradient.addColorStop(0.18, `rgba(${rgb},0.6)`)
-    gradient.addColorStop(0.45, `rgba(${rgb},0.2)`)
+    if (dark) {
+      gradient.addColorStop(0, 'rgba(255,255,255,0.95)')
+      gradient.addColorStop(0.18, `rgba(${rgb},0.6)`)
+      gradient.addColorStop(0.45, `rgba(${rgb},0.2)`)
+    } else {
+      gradient.addColorStop(0, `rgba(${rgb},0.55)`)
+      gradient.addColorStop(0.3, `rgba(${rgb},0.22)`)
+      gradient.addColorStop(0.6, `rgba(${rgb},0.06)`)
+    }
     gradient.addColorStop(1, `rgba(${rgb},0)`)
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, size, size)
     const texture = new THREE.CanvasTexture(canvas)
     texture.colorSpace = THREE.SRGBColorSpace
     return texture
-  }, [color])
+  }, [color, dark])
 }
 
 /**
- * Focus effects: a soft halo, and a slowly spinning two-tone orbit ring with a contour
- * (primary on top, secondary below — a Pokéball seen from above in the Pokémon theme).
- * Hovered nodes get a smaller halo.
+ * Focus effects: a soft halo, and a slowly spinning two-tone orbit ring — primary color on top,
+ * contrast color below, separated by thin gaps in the background color (a Pokéball seen from
+ * above in the Pokémon theme, in contours only). Hovered nodes get a smaller halo.
  */
 export function SelectionEffects() {
   const theme = useTheme()
-  const texture = useHaloTexture(theme.primary)
+  const dark = theme.mode === 'dark'
+  const texture = useHaloTexture(theme.primary, dark)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const distances = useGraphStore((s) => s.distances)
   const nodes = useGraphStore((s) => s.nodes)
@@ -51,6 +59,7 @@ export function SelectionEffects() {
   const hoverHalo = useRef<THREE.Sprite>(null)
   const ring = useRef<THREE.Group>(null)
   const pulseRing = useRef<THREE.Mesh>(null)
+  const blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
@@ -98,51 +107,47 @@ export function SelectionEffects() {
   if (!texture) return null
 
   return (
-    <>
+    <group key={`${theme.id}-${theme.mode}`}>
       <sprite ref={focusHalo} visible={false}>
-        <spriteMaterial map={texture} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0.8} toneMapped={false} />
+        <spriteMaterial map={texture} transparent depthWrite={false} blending={blending} opacity={dark ? 0.8 : 0.9} toneMapped={false} />
       </sprite>
       <group ref={ring} visible={false}>
-        {/* contour */}
+        {/* gap between the ring and the scene, in the background color */}
         <mesh position={[0, 0, -0.01]}>
           <ringGeometry args={[2.15, 2.85, 72]} />
-          <meshBasicMaterial color={theme.outline} transparent opacity={0.9} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={theme.background} transparent opacity={0.9} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         {/* upper half: primary */}
         <mesh>
           <ringGeometry args={[2.3, 2.7, 48, 1, 0, Math.PI]} />
           <meshBasicMaterial color={theme.primary} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
-        {/* lower half: secondary */}
+        {/* lower half: contrast */}
         <mesh>
           <ringGeometry args={[2.3, 2.7, 48, 1, Math.PI, Math.PI]} />
-          <meshBasicMaterial color={theme.secondary} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={theme.contrast} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
-        {/* the two "buttons" where the halves meet */}
-        <mesh position={[2.5, 0, 0.01]}>
-          <circleGeometry args={[0.28, 24]} />
-          <meshBasicMaterial color={theme.outline} depthWrite={false} toneMapped={false} />
-        </mesh>
-        <mesh position={[2.5, 0, 0.02]}>
-          <circleGeometry args={[0.16, 24]} />
-          <meshBasicMaterial color={theme.secondary} depthWrite={false} toneMapped={false} />
-        </mesh>
-        <mesh position={[-2.5, 0, 0.01]}>
-          <circleGeometry args={[0.28, 24]} />
-          <meshBasicMaterial color={theme.outline} depthWrite={false} toneMapped={false} />
-        </mesh>
-        <mesh position={[-2.5, 0, 0.02]}>
-          <circleGeometry args={[0.16, 24]} />
-          <meshBasicMaterial color={theme.secondary} depthWrite={false} toneMapped={false} />
-        </mesh>
+        {/* the two "buttons" where the halves meet: background gap, contrast contour */}
+        {[2.5, -2.5].map((x) => (
+          <group key={x}>
+            <mesh position={[x, 0, 0.01]}>
+              <circleGeometry args={[0.3, 24]} />
+              <meshBasicMaterial color={theme.background} depthWrite={false} toneMapped={false} />
+            </mesh>
+            <mesh position={[x, 0, 0.02]}>
+              <ringGeometry args={[0.13, 0.2, 24]} />
+              <meshBasicMaterial color={theme.contrast} depthWrite={false} toneMapped={false} />
+            </mesh>
+          </group>
+        ))}
       </group>
       <mesh ref={pulseRing} visible={false}>
         <ringGeometry args={[2.6, 2.72, 72]} />
         <meshBasicMaterial color={theme.primary} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
       </mesh>
       <sprite ref={hoverHalo} visible={false}>
-        <spriteMaterial map={texture} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0.6} toneMapped={false} />
+        <spriteMaterial map={texture} transparent depthWrite={false} blending={blending} opacity={dark ? 0.6 : 0.75} toneMapped={false} />
       </sprite>
-    </>
+    </group>
   )
 }

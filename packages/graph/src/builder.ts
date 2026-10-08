@@ -118,10 +118,20 @@ export async function composeGame(
   const printings = printingRows.map((r) => r.printing)
   const links = linkRows.map((r) => r.link)
 
+  // Sets and series without an image of their own show the game's standard image instead
+  // (Pokémon: the classic Base Set logo). `imagePlaceholder` tells the UI it is a stand-in.
+  const placeholders = adapter.definition().placeholderImages ?? {}
+  const pickImage = (own: string | null | undefined, type: NodeType): { imageUrl: string | null; imagePlaceholder: boolean } => {
+    if (own) return { imageUrl: own, imagePlaceholder: false }
+    const fallback = placeholders[type]
+    return fallback ? { imageUrl: fallback, imagePlaceholder: true } : { imageUrl: null, imagePlaceholder: false }
+  }
+
   const nodes = new Map<string, GraphNode>()
   const addNode = (node: GraphNode) => nodes.set(node.id, node)
 
   const gameNodeId = makeNodeId('game', game.id)
+  const gameImage = pickImage(null, 'game')
   addNode({
     id: gameNodeId,
     gameId: game.id,
@@ -129,8 +139,13 @@ export async function composeGame(
     entityId: game.id,
     label: game.name,
     subtitle: game.publisher,
-    imageUrl: null,
-    metadata: { slug: game.slug, seriesCount: seriesRows.length, setCount: setRows.length },
+    imageUrl: gameImage.imageUrl,
+    metadata: {
+      slug: game.slug,
+      seriesCount: seriesRows.length,
+      setCount: setRows.length,
+      imagePlaceholder: gameImage.imagePlaceholder,
+    },
   })
 
   const setsBySeries = new Map<string, typeof setRows>()
@@ -145,6 +160,7 @@ export async function composeGame(
     const id = makeNodeId('series', series.id)
     seriesNodeIds.set(series.id, id)
     const count = setsBySeries.get(series.id)?.length ?? 0
+    const image = pickImage(series.logoUrl, 'series')
     addNode({
       id,
       gameId: game.id,
@@ -152,8 +168,13 @@ export async function composeGame(
       entityId: series.id,
       label: series.name,
       subtitle: `${count} ${count === 1 ? 'set' : 'sets'}`,
-      imageUrl: series.logoUrl,
-      metadata: { slug: series.slug, releaseDate: series.releaseDate, setCount: count },
+      imageUrl: image.imageUrl,
+      metadata: {
+        slug: series.slug,
+        releaseDate: series.releaseDate,
+        setCount: count,
+        imagePlaceholder: image.imagePlaceholder,
+      },
     })
   }
 
@@ -165,6 +186,7 @@ export async function composeGame(
     const id = makeNodeId('set', set.id)
     setNodeIds.set(set.id, id)
     const series = seriesById.get(set.seriesId)
+    const image = pickImage(set.logoUrl ?? set.symbolUrl, 'set')
     addNode({
       id,
       gameId: game.id,
@@ -172,7 +194,7 @@ export async function composeGame(
       entityId: set.id,
       label: set.name,
       subtitle: series?.name ?? null,
-      imageUrl: set.logoUrl ?? set.symbolUrl,
+      imageUrl: image.imageUrl,
       metadata: {
         slug: set.slug,
         releaseDate: set.releaseDate,
@@ -182,6 +204,7 @@ export async function composeGame(
         cardCountTotal: set.cardCountTotal,
         cardCountOfficial: set.cardCountOfficial,
         printingCount: printingsBySet.get(set.id) ?? 0,
+        imagePlaceholder: image.imagePlaceholder,
       },
     })
   }

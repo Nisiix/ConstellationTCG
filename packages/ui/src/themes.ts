@@ -1,4 +1,13 @@
-import { NODE_TYPES, type ColorRole, type NodeType, type ResolvedTheme, type TCGTheme, type ThemeMode } from '@constellation/domain'
+import {
+  NODE_TYPES,
+  isThemeMode,
+  type ColorRole,
+  type NodeType,
+  type ResolvedTheme,
+  type TCGTheme,
+  type ThemeMode,
+  type ThemeModePreference,
+} from '@constellation/domain'
 
 /** Neutral theme used before a game is selected or when an adapter declares none. */
 export const DEFAULT_THEME: TCGTheme = {
@@ -169,4 +178,31 @@ export function hexToRgb(hex: string): [number, number, number] {
   if (!m || !m[1]) return [1, 1, 1]
   const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
   return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255]
+}
+
+/**
+ * The mode to render: an explicit preference wins, `system` (or anything unknown, e.g. a stale
+ * value in storage) follows the operating system.
+ */
+export function resolveThemeMode(preference: unknown, systemPrefersDark: boolean): ThemeMode {
+  if (isThemeMode(preference)) return preference
+  return systemPrefersDark ? 'dark' : 'light'
+}
+
+export function isThemeModePreference(value: unknown): value is ThemeModePreference {
+  return value === 'system' || isThemeMode(value)
+}
+
+/**
+ * A stylesheet declaring a theme's palette for both modes: the dark values on `selector`, the
+ * light values when the root carries `data-mode="light"`. Server-rendered so the first paint of
+ * any page already has the right colors; the explorer then overrides the variables at runtime
+ * with the selected game's palette.
+ */
+export function themeCssText(theme: TCGTheme, selector = ':root'): string {
+  const block = (mode: ThemeMode) =>
+    Object.entries(themeCssVariables(resolveTheme(theme, mode)))
+      .map(([name, value]) => `${name}:${value};`)
+      .join('')
+  return `${selector}{${block('dark')}color-scheme:dark;}${selector}[data-mode="light"]{${block('light')}color-scheme:light;}`
 }

@@ -7,6 +7,7 @@ import { NODE_TYPE_LABELS } from '@/lib/colors'
 import { useNodeColor } from '@/lib/theme'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useExploreNavigation } from '../navigation'
+import { NodeImage } from './NodeImage'
 
 export function SearchBar() {
   const navigation = useExploreNavigation()
@@ -136,19 +137,27 @@ export function SearchBar() {
               onClick={() => choose(hit)}
               className={`row-link pop-in cursor-pointer ${index === active ? 'bg-primary/15' : ''}`}
             >
-              {hit.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={hit.image} alt="" loading="lazy" className="h-11 w-8 flex-none rounded-md object-cover shadow-[0_0_0_1px_var(--c-outline)]" />
-              ) : (
-                <span className="flex h-11 w-8 flex-none items-center justify-center rounded-md" style={{ background: `${colorOf(hit.type)}22` }} aria-hidden>
-                  <span className="dot" style={{ background: colorOf(hit.type) }} />
-                </span>
-              )}
+              <NodeImage
+                node={{ id: hit.nodeId, nodeType: hit.type, label: hit.title, imageUrl: hit.image ?? null }}
+                small
+                alt=""
+                loading="lazy"
+                className={
+                  hit.type === 'set' || hit.type === 'series' || hit.type === 'game'
+                    ? 'h-11 w-8 flex-none rounded-md bg-node object-contain p-0.5'
+                    : 'img-frame h-11 w-8 flex-none rounded-md object-cover'
+                }
+                placeholder={
+                  <span className="flex h-11 w-8 flex-none items-center justify-center rounded-md" style={{ background: `color-mix(in oklab, ${colorOf(hit.type)} 14%, transparent)` }} aria-hidden>
+                    <span className="dot" style={{ color: colorOf(hit.type) }} />
+                  </span>
+                }
+              />
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{hit.title}</span>
                 {hit.subtitle ? <span className="block truncate text-[12.5px] text-ink-dim">{hit.subtitle}</span> : null}
               </span>
-              <span className="chip text-[11.5px]" style={{ color: colorOf(hit.type), borderColor: `${colorOf(hit.type)}55` }}>
+              <span className="chip text-[11.5px]" style={{ color: colorOf(hit.type), borderColor: `color-mix(in oklab, ${colorOf(hit.type)} 55%, transparent)` }}>
                 {NODE_TYPE_LABELS[hit.type]}
               </span>
             </li>

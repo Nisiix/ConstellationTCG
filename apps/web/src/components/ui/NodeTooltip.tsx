@@ -11,12 +11,13 @@ export function NodeTooltip() {
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const colorOf = useNodeColor()
   if (!tooltip || !node) return null
+  const color = colorOf(node.nodeType)
   return (
     <div role="tooltip" className="panel fade-up pointer-events-none fixed z-40 max-w-xs px-3 py-2 text-[13px]" style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}>
       <div className="flex items-center gap-2">
-        <span className="dot" style={{ background: colorOf(node.nodeType) }} aria-hidden />
+        <span className="dot" style={{ color }} aria-hidden />
         <span className="text-ink">{node.label}</span>
-        <span className="text-[12px]" style={{ color: colorOf(node.nodeType) }}>
+        <span className="text-[12px]" style={{ color }}>
           {NODE_TYPE_LABELS[node.nodeType]}
         </span>
       </div>

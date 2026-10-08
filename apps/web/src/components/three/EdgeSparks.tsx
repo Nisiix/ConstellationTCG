@@ -21,6 +21,7 @@ export function EdgeSparks() {
   const revision = useGraphStore((s) => s.revision)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const ref = useRef<THREE.Points>(null)
+  const dark = theme.mode === 'dark'
 
   const focusEdges = useMemo(
     () => edges.filter((e) => e.sourceNodeId === focusNodeId || e.targetNodeId === focusNodeId).slice(0, MAX_SPARKS),
@@ -66,18 +67,18 @@ export function EdgeSparks() {
   })
 
   return (
-    <points ref={ref} key={`${revision}-${theme.id}`} frustumCulled={false} visible={false}>
+    <points ref={ref} key={`${revision}-${theme.id}-${theme.mode}`} frustumCulled={false} visible={false}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
         size={0.55}
         sizeAttenuation
-        color={theme.secondary}
+        color={theme.primary}
         transparent
         opacity={0}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending}
         toneMapped={false}
       />
     </points>

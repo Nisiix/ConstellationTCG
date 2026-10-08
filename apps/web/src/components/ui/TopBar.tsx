@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { isMac } from '@/lib/env'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 import { SearchBar } from './SearchBar'
+import { ThemeToggle } from './ThemeToggle'
 
 export function TopBar() {
   const navigation = useExploreNavigation()
@@ -17,16 +19,21 @@ export function TopBar() {
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-4 px-4 py-3">
-      <button
-        type="button"
-        onClick={navigation.goUniverse}
-        className="focus-ring pointer-events-auto flex items-center gap-2.5 rounded-xl px-2 py-1 text-left"
-        aria-label="Constellation home — show the whole universe"
-        title="Back to the universe (U)"
-      >
-        <span className="brand-orb" aria-hidden />
-        <span className="serif text-[19px] text-ink">Constellation</span>
-      </button>
+      <div className="pointer-events-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={navigation.goUniverse}
+          className="focus-ring flex items-center gap-2.5 rounded-xl px-2 py-1 text-left"
+          aria-label="Show the whole universe"
+          title="Back to the universe (U)"
+        >
+          <span className="brand-orb" aria-hidden />
+          <span className="serif text-[19px] text-ink">Constellation</span>
+        </button>
+        <Link href="/" className="btn btn-quiet pill hidden lg:inline-flex" title="Home page">
+          Home
+        </Link>
+      </div>
 
       <div className="pointer-events-auto mx-auto w-full max-w-xl">
         <SearchBar />
@@ -35,7 +42,7 @@ export function TopBar() {
       <div className="pointer-events-auto flex items-center gap-2">
         {games.length > 1 ? (
           <label className="panel pill hidden items-center gap-2 px-3 py-1.5 text-[13px] text-ink-dim md:flex">
-            <span className="dot" style={{ background: 'var(--c-primary)' }} aria-hidden />
+            <span className="dot" style={{ color: 'var(--c-primary)' }} aria-hidden />
             <select
               aria-label="Trading card game"
               value={game}
@@ -51,7 +58,7 @@ export function TopBar() {
           </label>
         ) : (
           <span className="panel pill hidden items-center gap-2 px-3 py-1.5 text-[13px] text-ink-dim md:flex" title="Active game">
-            <span className="dot" style={{ background: 'var(--c-primary)' }} aria-hidden />
+            <span className="dot" style={{ color: 'var(--c-primary)' }} aria-hidden />
             {gameLabel}
           </span>
         )}
@@ -68,9 +75,10 @@ export function TopBar() {
         <button type="button" onClick={toggleHelp} className="btn btn-ghost pill" aria-label="Help and shortcuts" title="Help (?)">
           ?
         </button>
+        <ThemeToggle />
         <button
           type="button"
-          className="btn btn-ghost pill hidden whitespace-nowrap lg:inline-flex"
+          className="btn btn-ghost pill hidden whitespace-nowrap xl:inline-flex"
           title="My Constellation — connecting your digital cards arrives in a later milestone"
           aria-disabled="true"
         >
