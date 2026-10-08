@@ -1,0 +1,24 @@
+{
+  "name": "@constellation/worker-ingestion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI worker: apply migrations and ingest a TCG catalog (fixture or live source).",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/main.ts ingest",
+    "migrate": "tsx src/main.ts migrate"
+  },
+  "dependencies": {
+    "@constellation/adapter-pokemon": "workspace:*",
+    "@constellation/adapters": "workspace:*",
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "@constellation/ingestion": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

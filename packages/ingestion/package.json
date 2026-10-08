@@ -1,0 +1,27 @@
+{
+  "name": "@constellation/ingestion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ingestion pipeline: fetch → raw snapshot → normalize → validate → identity/printing resolution → upsert.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@constellation/adapters": "workspace:*",
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@constellation/adapter-pokemon": "workspace:*",
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

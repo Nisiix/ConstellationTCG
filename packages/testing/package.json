@@ -1,0 +1,24 @@
+{
+  "name": "@constellation/testing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Test helpers: in-memory database with migrations and the Base Set fixture ingested.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@constellation/adapter-pokemon": "workspace:*",
+    "@constellation/adapters": "workspace:*",
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "@constellation/ingestion": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3"
+  }
+}
