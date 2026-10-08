@@ -2,7 +2,8 @@ import 'server-only'
 import { isConstellationError } from '@constellation/domain'
 import { NextResponse } from 'next/server'
 
-export const CACHE_PUBLIC = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+/** Short browser cache; CDNs may hold responses longer (data only changes with ingestion). */
+export const CACHE_PUBLIC = 'public, max-age=30, s-maxage=300, stale-while-revalidate=60'
 
 export function json<T>(data: T, init: { status?: number; cache?: string } = {}): NextResponse {
   const response = NextResponse.json(data, { status: init.status ?? 200 })

@@ -11,6 +11,7 @@ export function TopBar() {
   const game = useCatalogStore((s) => s.game)
   const games = useCatalogStore((s) => s.games)
   const togglePalette = useUiStore((s) => s.togglePalette)
+  const toggleHelp = useUiStore((s) => s.toggleHelp)
   const current = games.find((g) => g.slug === game)
   const gameLabel = (current?.name ?? 'Pokémon').replace(' Trading Card Game', '')
 
@@ -19,11 +20,12 @@ export function TopBar() {
       <button
         type="button"
         onClick={navigation.goUniverse}
-        className="focus-ring pointer-events-auto flex items-center gap-2.5 rounded-md px-2 py-1 text-left"
-        aria-label="Constellation home — show the universe"
+        className="focus-ring pointer-events-auto flex items-center gap-2.5 rounded-xl px-2 py-1 text-left"
+        aria-label="Constellation home — show the whole universe"
+        title="Back to the universe (U)"
       >
         <span className="brand-orb" aria-hidden />
-        <span className="text-[13px] font-semibold tracking-[0.32em] text-ink">CONSTELLATION</span>
+        <span className="serif text-[19px] text-ink">Constellation</span>
       </button>
 
       <div className="pointer-events-auto mx-auto w-full max-w-xl">
@@ -32,8 +34,8 @@ export function TopBar() {
 
       <div className="pointer-events-auto flex items-center gap-2">
         {games.length > 1 ? (
-          <label className="glass hidden items-center gap-2 rounded-full px-3 py-1 text-xs text-ink-dim md:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+          <label className="panel pill hidden items-center gap-2 px-3 py-1.5 text-[13px] text-ink-dim md:flex">
+            <span className="dot" style={{ background: 'var(--c-primary)' }} aria-hidden />
             <select
               aria-label="Trading card game"
               value={game}
@@ -48,26 +50,32 @@ export function TopBar() {
             </select>
           </label>
         ) : (
-          <span className="glass hidden items-center gap-2 rounded-full px-3 py-1 text-xs text-ink-dim md:flex" title="Active TCG">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+          <span className="panel pill hidden items-center gap-2 px-3 py-1.5 text-[13px] text-ink-dim md:flex" title="Active game">
+            <span className="dot" style={{ background: 'var(--c-primary)' }} aria-hidden />
             {gameLabel}
           </span>
         )}
         <button
           type="button"
           onClick={togglePalette}
-          className="glass chip focus-ring hidden rounded-full px-3 py-1 font-mono text-[11px] text-ink-dim hover:text-ink md:block"
-          aria-label="Open command palette"
+          className="btn btn-ghost pill hidden md:inline-flex"
+          aria-label="Open the command menu"
+          title={`Commands (${isMac() ? '⌘' : 'Ctrl'} K)`}
         >
-          {isMac() ? '⌘' : 'Ctrl'} K
+          Commands
+          <kbd>{isMac() ? '⌘K' : 'Ctrl K'}</kbd>
+        </button>
+        <button type="button" onClick={toggleHelp} className="btn btn-ghost pill" aria-label="Help and shortcuts" title="Help (?)">
+          ?
         </button>
         <button
           type="button"
-          className="glass chip focus-ring rounded-full px-3 py-1 text-xs text-ink-dim/70"
-          title="My Constellation — connecting digital assets arrives in a later milestone"
+          className="btn btn-ghost pill hidden whitespace-nowrap lg:inline-flex"
+          title="My Constellation — connecting your digital cards arrives in a later milestone"
           aria-disabled="true"
         >
-          ◉ Connect
+          My Constellation
+          <span className="text-[11px] text-ink-dim">soon</span>
         </button>
       </div>
     </header>

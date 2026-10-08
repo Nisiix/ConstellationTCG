@@ -2,12 +2,12 @@
 
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
 
-/** Bloom gives nodes and edges their glow; a soft vignette keeps the eye on the constellation. */
+/** A soft glow on nodes and edges (no neon), and a gentle vignette that keeps the eye centered. */
 export function PostFX() {
   return (
     <EffectComposer multisampling={0}>
-      <Bloom intensity={1.1} luminanceThreshold={0.3} luminanceSmoothing={0.55} mipmapBlur radius={0.55} />
-      <Vignette eskil={false} offset={0.22} darkness={0.7} />
+      <Bloom intensity={0.75} luminanceThreshold={0.42} luminanceSmoothing={0.6} mipmapBlur radius={0.5} />
+      <Vignette eskil={false} offset={0.2} darkness={0.6} />
     </EffectComposer>
   )
 }

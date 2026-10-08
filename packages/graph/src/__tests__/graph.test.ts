@@ -67,6 +67,16 @@ describe('graph projection', () => {
     expect(after.map((n) => n.id).sort()).toEqual(before.map((n) => n.id).sort())
   })
 
+  it('gives artists and Pokémon a representative card image', async () => {
+    const all = await database.db.select().from(graphNodes)
+    const arita = all.find((n) => n.nodeType === 'artist' && n.label === 'Mitsuhiro Arita')
+    expect(arita?.imageUrl).toMatch(/\/high\.webp$/)
+    const charizard = all.find((n) => n.nodeType === 'pokemon' && n.label === 'Charizard')
+    expect(charizard?.imageUrl).toContain('/base1/4/')
+    const fire = all.find((n) => n.nodeType === 'attribute' && n.label === 'Fire')
+    expect(fire?.imageUrl).toBeNull()
+  })
+
   it('gives card nodes image, set, number and rarity', async () => {
     const charizard = (await database.db.select().from(graphNodes)).find(
       (n) => n.nodeType === 'card_printing' && n.label === 'Charizard',

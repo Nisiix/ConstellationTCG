@@ -17,9 +17,11 @@ import { ErrorState } from './ui/ErrorState'
 import { FilterPanel } from './ui/FilterPanel'
 import { FocusPanel } from './ui/FocusPanel'
 import { GraphHUD } from './ui/GraphHUD'
+import { HelpOverlay } from './ui/HelpOverlay'
 import { LoadingState } from './ui/LoadingState'
 import { NodeTooltip } from './ui/NodeTooltip'
 import { TopBar } from './ui/TopBar'
+import { WelcomeCard } from './ui/WelcomeCard'
 
 export function Explorer() {
   const navigation = useExploreNavigation()
@@ -41,6 +43,8 @@ export function Explorer() {
   const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
   const toggleFilters = useUiStore((s) => s.toggleFilters)
   const setFiltersOpen = useUiStore((s) => s.setFiltersOpen)
+  const toggleHelp = useUiStore((s) => s.toggleHelp)
+  const setHelpOpen = useUiStore((s) => s.setHelpOpen)
   const setHovered = useUiStore((s) => s.setHovered)
 
   const setGame = useCatalogStore((s) => s.setGame)
@@ -102,9 +106,7 @@ export function Explorer() {
     const controller = new AbortController()
     setLoading()
     const request = node
-      ? fetchFocus(node, { depth, filters }, controller.signal).then((res) =>
-          setNeighborhood(res, { summary: res.summary, filtered: res.filtered }),
-        )
+      ? fetchFocus(node, { depth, filters }, controller.signal).then((res) => setNeighborhood(res, { summary: res.summary, filtered: res.filtered }))
       : fetchUniverse(game, controller.signal).then((res) => setNeighborhood(res, { isUniverse: true }))
     request.catch((err: unknown) => {
       if ((err as Error).name === 'AbortError') return
@@ -141,10 +143,16 @@ export function Explorer() {
       if (event.key === 'Escape') {
         setPaletteOpen(false)
         setFiltersOpen(false)
+        setHelpOpen(false)
         setHovered(null)
         return
       }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.key === '?') {
+        event.preventDefault()
+        toggleHelp()
+        return
+      }
       switch (event.key.toLowerCase()) {
         case 'f':
           event.preventDefault()
@@ -172,17 +180,21 @@ export function Explorer() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  const listMode = effectiveView === 'list'
+
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-void" data-theme={theme.id}>
-      {effectiveView === '3d' && webgl ? <ConstellationCanvas /> : null}
-      {effectiveView === 'list' ? <RelationshipList /> : null}
+      {!listMode && webgl ? <ConstellationCanvas /> : null}
+      {listMode ? <RelationshipList /> : null}
       <TopBar />
       <FilterPanel />
-      <FocusPanel />
+      {!listMode ? <FocusPanel /> : null}
+      {!listMode ? <WelcomeCard /> : null}
       <GraphHUD view={effectiveView} />
-      <NodeTooltip />
+      {!listMode ? <NodeTooltip /> : null}
       <CommandPalette view={effectiveView} />
-      {status === 'loading' ? <LoadingState overlay label="Charting relationships" /> : null}
+      <HelpOverlay />
+      {status === 'loading' ? <LoadingState overlay label="Charting connections" /> : null}
       {status === 'error' ? <ErrorState message={error ?? 'Something went wrong'} /> : null}
     </div>
   )

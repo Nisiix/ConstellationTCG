@@ -26,11 +26,13 @@ export function CommandPalette({ view }: { view: ViewMode }) {
   const open = useUiStore((s) => s.paletteOpen)
   const setOpen = useUiStore((s) => s.setPaletteOpen)
   const toggleFilters = useUiStore((s) => s.toggleFilters)
+  const setHelpOpen = useUiStore((s) => s.setHelpOpen)
   const navigation = useExploreNavigation()
   const game = useCatalogStore((s) => s.game)
   const colorOf = useNodeColor()
   const depth = useGraphStore((s) => s.depth)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
+  const isUniverse = useGraphStore((s) => s.isUniverse)
 
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<Scope>(null)
@@ -69,22 +71,18 @@ export function CommandPalette({ view }: { view: ViewMode }) {
   }, [query, scope, game, open])
 
   const close = () => setOpen(false)
+  const canExpand = Boolean(focusNodeId) && !isUniverse
 
   const commands = useMemo<Command[]>(
     () => [
-      { id: 'search', label: 'Search', hint: 'cards, sets, Pokémon, artists', run: () => setScope(null) },
-      { id: 'go-set', label: 'Go to set…', run: () => setScope({ label: 'Set', types: ['set'] }) },
-      {
-        id: 'go-card',
-        label: 'Go to card…',
-        run: () => setScope({ label: 'Card', types: ['card_identity', 'card_printing'] }),
-      },
-      { id: 'go-artist', label: 'Go to artist…', run: () => setScope({ label: 'Artist', types: ['artist'] }) },
+      { id: 'go-card', label: 'Go to a card…', run: () => setScope({ label: 'Cards', types: ['card_identity', 'card_printing'] }) },
+      { id: 'go-set', label: 'Go to a set…', run: () => setScope({ label: 'Sets', types: ['set'] }) },
+      { id: 'go-artist', label: 'Go to an artist…', run: () => setScope({ label: 'Artists', types: ['artist'] }) },
       {
         id: 'expand',
-        label: 'Expand relationships',
-        hint: `depth ${Math.min(3, depth + 1)} · E`,
-        disabled: !focusNodeId || depth >= 3,
+        label: 'Show more connections',
+        hint: depth >= 3 ? 'at maximum' : `${depth === 1 ? 'extended' : 'deep'} · E`,
+        disabled: !canExpand || depth >= 3,
         run: () => {
           navigation.expand()
           close()
@@ -92,9 +90,9 @@ export function CommandPalette({ view }: { view: ViewMode }) {
       },
       {
         id: 'collapse',
-        label: 'Collapse',
-        hint: 'depth 1 · C',
-        disabled: !focusNodeId || depth <= 1,
+        label: 'Show direct connections only',
+        hint: 'C',
+        disabled: !canExpand || depth <= 1,
         run: () => {
           navigation.collapse()
           close()
@@ -102,8 +100,8 @@ export function CommandPalette({ view }: { view: ViewMode }) {
       },
       {
         id: 'reset',
-        label: 'Reset view',
-        hint: 'universe · U',
+        label: 'Back to the universe',
+        hint: 'U',
         run: () => {
           navigation.goUniverse()
           close()
@@ -111,7 +109,7 @@ export function CommandPalette({ view }: { view: ViewMode }) {
       },
       {
         id: 'filters',
-        label: 'Toggle filters',
+        label: 'Open filters',
         hint: 'F',
         run: () => {
           toggleFilters()
@@ -120,17 +118,25 @@ export function CommandPalette({ view }: { view: ViewMode }) {
       },
       {
         id: 'view',
-        label: view === 'list' ? 'Switch to 3D view' : 'Switch to list view',
+        label: view === 'list' ? 'Switch to the 3D view' : 'Switch to the list view',
         hint: 'L',
         run: () => {
           navigation.setView(view === 'list' ? '3d' : 'list')
           close()
         },
       },
+      {
+        id: 'help',
+        label: 'Help and keyboard shortcuts',
+        hint: '?',
+        run: () => {
+          close()
+          setHelpOpen(true)
+        },
+      },
       { id: 'mine', label: 'My Constellation', hint: 'coming soon', disabled: true, run: () => {} },
-      { id: 'connect', label: 'Connect wallet', hint: 'coming soon', disabled: true, run: () => {} },
     ],
-    [depth, focusNodeId, navigation, toggleFilters, view],
+    [canExpand, depth, navigation, setHelpOpen, toggleFilters, view],
   )
 
   const filteredCommands = useMemo(() => {
@@ -153,7 +159,7 @@ export function CommandPalette({ view }: { view: ViewMode }) {
       navigation.goTo(item.hit.nodeId)
     } else if (!item.command.disabled) {
       item.command.run()
-      if (item.command.id.startsWith('go-') || item.command.id === 'search') {
+      if (item.command.id.startsWith('go-')) {
         setQuery('')
         inputRef.current?.focus()
       }
@@ -178,42 +184,34 @@ export function CommandPalette({ view }: { view: ViewMode }) {
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-void/60 p-4 pt-[12vh] backdrop-blur-sm"
-      onMouseDown={close}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-void/60 p-4 pt-[12vh] backdrop-blur-sm" onMouseDown={close} role="presentation">
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
-        className="glass glass-strong fade-up w-full max-w-xl overflow-hidden rounded-2xl"
+        aria-label="Command menu"
+        className="panel panel-strong fade-up w-full max-w-xl overflow-hidden"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        <div className="flex items-center gap-2 border-b border-ink-dim/15 px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-ink/10 px-4 py-3">
           {scope ? (
-            <span className="rounded-full border border-primary/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-primary">
-              {scope.label}
-            </span>
-          ) : (
-            <span className="text-ink-dim" aria-hidden>
-              ⌘
-            </span>
-          )}
+            <button type="button" className="chip chip-on" onClick={() => setScope(null)} title="Back to all commands">
+              {scope.label} ×
+            </button>
+          ) : null}
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={scope ? `Search ${scope.label.toLowerCase()}s…` : 'Type a command or search…'}
+            placeholder={scope ? `Search ${scope.label.toLowerCase()}…` : 'Search anything, or type a command…'}
             aria-label="Command or search"
-            className="w-full bg-transparent text-sm text-ink placeholder:text-ink-dim/70 focus:outline-none"
+            className="w-full bg-transparent text-[14.5px] text-ink placeholder:text-ink-dim/80 focus:outline-none"
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="rounded border border-ink-dim/30 px-1.5 font-mono text-[10px] text-ink-dim">esc</kbd>
+          <kbd>esc</kbd>
         </div>
-        <ul role="listbox" className="scroll-thin max-h-[52vh] overflow-y-auto p-1" aria-label="Results">
+        <ul role="listbox" className="scroll-thin max-h-[52vh] overflow-y-auto p-1.5" aria-label="Results">
           {items.length === 0 ? <li className="px-3 py-6 text-center text-sm text-ink-dim">No matches</li> : null}
           {items.map((item, index) => {
             const isActive = index === active
@@ -226,16 +224,14 @@ export function CommandPalette({ view }: { view: ViewMode }) {
                   style={{ '--i': index } as React.CSSProperties}
                   onMouseEnter={() => setActive(index)}
                   onClick={() => run(index)}
-                  className={`pop-in lift flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm ${
-                    isActive ? 'bg-primary/15 text-ink' : 'text-ink/85'
-                  }`}
+                  className={`row-link pop-in cursor-pointer ${isActive ? 'bg-primary/15' : ''}`}
                 >
-                  <span className="h-2 w-2 rounded-full" style={{ background: colorOf(item.hit.type), boxShadow: '0 0 0 1px var(--c-outline)' }} aria-hidden />
+                  <span className="dot" style={{ background: colorOf(item.hit.type) }} aria-hidden />
                   <span className="min-w-0 flex-1 truncate">
                     {item.hit.title}
-                    {item.hit.subtitle ? <span className="ml-2 text-xs text-ink-dim">{item.hit.subtitle}</span> : null}
+                    {item.hit.subtitle ? <span className="ml-2 text-[12.5px] text-ink-dim">{item.hit.subtitle}</span> : null}
                   </span>
-                  <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: colorOf(item.hit.type) }}>
+                  <span className="text-[12px]" style={{ color: colorOf(item.hit.type) }}>
                     {NODE_TYPE_LABELS[item.hit.type]}
                   </span>
                 </li>
@@ -250,12 +246,10 @@ export function CommandPalette({ view }: { view: ViewMode }) {
                 style={{ '--i': index } as React.CSSProperties}
                 onMouseEnter={() => setActive(index)}
                 onClick={() => run(index)}
-                className={`pop-in lift flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                  item.command.disabled ? 'opacity-40' : ''
-                } ${isActive ? 'bg-primary/15 text-ink' : 'text-ink/85'}`}
+                className={`row-link pop-in cursor-pointer justify-between ${item.command.disabled ? 'opacity-45' : ''} ${isActive ? 'bg-primary/15' : ''}`}
               >
                 <span>{item.command.label}</span>
-                {item.command.hint ? <span className="font-mono text-[11px] text-ink-dim">{item.command.hint}</span> : null}
+                {item.command.hint ? <span className="text-[12px] text-ink-dim">{item.command.hint}</span> : null}
               </li>
             )
           })}

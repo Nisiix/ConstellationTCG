@@ -221,10 +221,18 @@ export async function composeGame(
     })
   }
 
+  // A representative image for people and species: the earliest printing that shows them.
+  const printingById = new Map(printings.map((p) => [p.id, p]))
+  const pickEarlier = (current: typeof printings[number] | undefined, candidate: typeof printings[number]) =>
+    !current || byRelease(candidate, current) < 0 ? candidate : current
+
   const usedArtistIds = new Set(printings.map((p) => p.artistId).filter(Boolean) as string[])
   const printingsByArtist = new Map<string, number>()
+  const representativeByArtist = new Map<string, typeof printings[number]>()
   for (const p of printings) {
-    if (p.artistId) printingsByArtist.set(p.artistId, (printingsByArtist.get(p.artistId) ?? 0) + 1)
+    if (!p.artistId) continue
+    printingsByArtist.set(p.artistId, (printingsByArtist.get(p.artistId) ?? 0) + 1)
+    if (p.imageFront) representativeByArtist.set(p.artistId, pickEarlier(representativeByArtist.get(p.artistId), p))
   }
   const artistNodeIds = new Map<string, string>()
   for (const artist of artistRows) {
@@ -239,13 +247,20 @@ export async function composeGame(
       entityId: artist.id,
       label: artist.name,
       subtitle: `${count} ${count === 1 ? 'illustration' : 'illustrations'}`,
-      imageUrl: null,
+      imageUrl: representativeByArtist.get(artist.id)?.imageFront ?? null,
       metadata: { illustrationCount: count },
     })
   }
 
   const linksByEntity = new Map<string, number>()
-  for (const link of links) linksByEntity.set(link.entityId, (linksByEntity.get(link.entityId) ?? 0) + 1)
+  const representativeByEntity = new Map<string, typeof printings[number]>()
+  for (const link of links) {
+    linksByEntity.set(link.entityId, (linksByEntity.get(link.entityId) ?? 0) + 1)
+    if (link.relation === 'SAME_POKEMON') {
+      const p = printingById.get(link.printingId)
+      if (p?.imageFront) representativeByEntity.set(link.entityId, pickEarlier(representativeByEntity.get(link.entityId), p))
+    }
+  }
   const entityNodeIds = new Map<string, string>()
   const entityById = new Map(entityRows.map((e) => [e.id, e]))
   const entityNodeIdByKey = new Map<string, string>()
@@ -262,7 +277,7 @@ export async function composeGame(
       entityId: entity.id,
       label: entity.name,
       subtitle: entitySubtitle(kind, entity.key, entity.metadata, count),
-      imageUrl: null,
+      imageUrl: kind === 'pokemon' ? (representativeByEntity.get(entity.id)?.imageFront ?? null) : null,
       metadata: { key: entity.key, kind, cardCount: count, ...entity.metadata },
     })
   }

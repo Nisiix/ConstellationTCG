@@ -6,6 +6,12 @@ import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 
+const DEPTHS: Array<{ value: number; label: string; title: string }> = [
+  { value: 1, label: 'Direct', title: 'Only what is directly connected to the focus' },
+  { value: 2, label: 'Extended', title: 'Also what those connections are connected to' },
+  { value: 3, label: 'Deep', title: 'Three hops away from the focus' },
+]
+
 export function GraphHUD({ view }: { view: ViewMode }) {
   const navigation = useExploreNavigation()
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
@@ -22,71 +28,53 @@ export function GraphHUD({ view }: { view: ViewMode }) {
 
   return (
     <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-4 px-4 py-3">
-      <div className="glass pointer-events-auto flex items-center gap-4 rounded-full px-4 py-2 text-xs">
-        <span className="hud-label">Focus</span>
-        <span className="max-w-[16rem] truncate text-ink" key={focus?.id}>
+      <div className="panel pill pointer-events-auto flex items-center gap-3 px-4 py-2 text-[13px]">
+        <span
+          className={`dot ${transition === 'moving' ? 'dot-ping' : ''}`}
+          style={{ background: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
+          aria-hidden
+          title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
+        />
+        <span className="max-w-[18rem] truncate text-ink" key={focus?.id}>
           {focus?.label ?? '—'}
         </span>
-        {!isUniverse ? (
-          <span className="text-ink-dim">
-            {relationships} relationship{relationships === 1 ? '' : 's'}
-          </span>
-        ) : (
-          <span className="text-ink-dim">universe</span>
-        )}
-        <span className="font-mono text-[10px] text-ink-dim">
-          {nodes.length}n · {edges.length}e
+        <span className="text-ink-dim">
+          {isUniverse
+            ? `${nodes.length} points`
+            : `${relationships} connection${relationships === 1 ? '' : 's'} · ${nodes.length} point${nodes.length === 1 ? '' : 's'} shown`}
         </span>
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${transition === 'moving' ? 'dot-ping bg-primary' : 'bg-ink-dim/40'}`}
-          aria-hidden
-          title="camera"
-        />
+        <span className="hidden text-ink-dim/70 lg:inline">· {edges.length} links</span>
       </div>
 
-      <div className="glass pointer-events-auto flex items-center gap-1 rounded-full p-1 text-xs">
+      <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">
         {!isUniverse ? (
-          <div className="flex items-center gap-1 px-2" role="group" aria-label="Graph depth">
-            <span className="hud-label">Depth</span>
-            {[1, 2, 3].map((d) => (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={depth === d}
-                onClick={() => navigation.setDepth(d)}
-                className={`chip focus-ring h-6 w-6 rounded-full font-mono text-[11px] ${
-                  depth === d ? 'bg-primary/25 text-primary shadow-[0_0_0_1px_var(--c-outline)]' : 'text-ink-dim hover:text-ink'
-                }`}
-              >
-                {d}
+          <div className="flex items-center gap-1 pl-2 pr-1" role="group" aria-label="How far to explore">
+            <span className="eyebrow mr-1">Connections</span>
+            {DEPTHS.map((d) => (
+              <button key={d.value} type="button" aria-pressed={depth === d.value} onClick={() => navigation.setDepth(d.value)} className={`btn pill ${depth === d.value ? 'btn-on' : 'btn-quiet'}`} title={d.title}>
+                {d.label}
               </button>
             ))}
           </div>
         ) : null}
-        <div className="flex items-center gap-1 border-l border-ink-dim/20 pl-2" role="group" aria-label="View mode">
+        <div className="flex items-center gap-1 border-l border-ink/10 pl-2" role="group" aria-label="View mode">
           <button
             type="button"
             aria-pressed={view === '3d'}
             disabled={webgl === false}
             onClick={() => navigation.setView('3d')}
-            className={`chip focus-ring rounded-full px-2.5 py-1 disabled:opacity-40 ${view === '3d' ? 'bg-primary/25 text-primary' : 'text-ink-dim hover:text-ink'}`}
-            title={webgl === false ? 'WebGL is not available in this browser' : '3D constellation (L)'}
+            className={`btn pill ${view === '3d' ? 'btn-on' : 'btn-quiet'}`}
+            title={webgl === false ? 'WebGL is not available in this browser' : 'Constellation view (L)'}
           >
             3D
           </button>
-          <button
-            type="button"
-            aria-pressed={view === 'list'}
-            onClick={() => navigation.setView('list')}
-            className={`chip focus-ring rounded-full px-2.5 py-1 ${view === 'list' ? 'bg-primary/25 text-primary' : 'text-ink-dim hover:text-ink'}`}
-            title="Semantic list view (L)"
-          >
+          <button type="button" aria-pressed={view === 'list'} onClick={() => navigation.setView('list')} className={`btn pill ${view === 'list' ? 'btn-on' : 'btn-quiet'}`} title="List view (L)">
             List
           </button>
         </div>
         {reducedMotion ? (
-          <span className="px-2 text-[10px] text-ink-dim" title="Reduced motion is on">
-            RM
+          <span className="px-2 text-[12px] text-ink-dim" title="Reduced motion is on: flights and reveals are instant">
+            Reduced motion
           </span>
         ) : null}
       </div>

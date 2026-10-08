@@ -3,13 +3,10 @@
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import { useGraphStore } from '@/state/graph-store'
-import { useUiStore } from '@/state/ui-store'
 import { GraphScene } from './GraphScene'
 
 export function ConstellationCanvas() {
   const select = useGraphStore((s) => s.select)
-  const setCapabilities = useUiStore((s) => s.setCapabilities)
-  const reducedMotion = useUiStore((s) => s.reducedMotion)
 
   return (
     <div className="absolute inset-0 z-0" aria-hidden>
@@ -19,10 +16,9 @@ export function ConstellationCanvas() {
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
         onPointerMissed={() => select(null)}
         onCreated={({ gl }) => {
-          gl.domElement.addEventListener('webglcontextlost', (event) => {
-            event.preventDefault()
-            setCapabilities({ reducedMotion, webgl: false })
-          })
+          // Prevent the default so the browser restores the context after a transient loss
+          // (switching views unmounts the canvas and fires this event too).
+          gl.domElement.addEventListener('webglcontextlost', (event) => event.preventDefault())
         }}
         frameloop="always"
       >

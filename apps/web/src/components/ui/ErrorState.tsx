@@ -6,26 +6,17 @@ export function ErrorState({ message }: { message: string }) {
   const navigation = useExploreNavigation()
   return (
     <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center p-4">
-      <div className="glass glass-strong fade-up max-w-md rounded-xl p-5 text-sm">
-        <p className="hud-label mb-2">Signal lost</p>
+      <div className="panel panel-strong fade-up max-w-md p-6 text-[14px]">
+        <h2 className="serif mb-2 text-[20px]">We lost the signal</h2>
         <p className="text-ink">{message}</p>
-        <p className="mt-2 text-xs text-ink-dim">
-          If the database is empty, run <code className="font-mono">pnpm ingest:fixture</code> and{' '}
-          <code className="font-mono">pnpm graph:build</code>, then reload.
+        <p className="mt-2 text-[13px] text-ink-dim">
+          If the database is empty, run <code>pnpm ingest:fixture</code> and <code>pnpm graph:build</code>, then reload.
         </p>
         <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            onClick={navigation.goUniverse}
-            className="chip focus-ring rounded-md border border-primary/50 px-3 py-1 text-xs text-primary hover:bg-primary/15"
-          >
-            Back to universe
+          <button type="button" onClick={navigation.goUniverse} className="btn btn-primary">
+            Back to the universe
           </button>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="chip focus-ring rounded-md border border-ink-dim/30 px-3 py-1 text-xs text-ink-dim hover:text-ink"
-          >
+          <button type="button" onClick={() => window.location.reload()} className="btn btn-ghost">
             Reload
           </button>
         </div>

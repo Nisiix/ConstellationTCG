@@ -1,33 +1,54 @@
 import type { NodeType } from './graph'
 
+export type ThemeMode = 'dark' | 'light'
+
 /**
- * Visual theme declared by a TCG adapter. The UI stays dark and spatial; the palette is what makes
- * a game recognizable (Pokémon: red and white with black contours; One Piece: deep blue, violet
- * and white). Everything is plain data so the core never hardcodes a game.
+ * Color roles. A game's brand colors are used only for contours — rings around nodes, borders,
+ * edges, active states — never as large fills. Backgrounds are a dirty black (dark mode) or a
+ * dirty white (light mode).
  */
+export type ColorRole = 'primary' | 'contrast' | 'accent' | 'muted'
+
+export interface TCGThemeMode {
+  /** Page and scene background. */
+  background: string
+  /** Translucent panel surface (any CSS color). */
+  surface: string
+  text: string
+  textDim: string
+  /** Neutral fill of node spheres and image discs. */
+  nodeFill: string
+  /** The "contrast" role: near-white in dark mode, near-black in light mode. */
+  contrast: string
+  /** Contour color for generic nodes and edges (mechanics, attributes). */
+  muted: string
+  /** Faint star-field color. */
+  particles: string
+}
+
 export interface TCGTheme {
   /** Stable id (usually the game slug). */
   id: string
-  /** Page background — near-black, possibly tinted. */
-  background: string
-  /** Glass surface tint (any CSS color, usually rgba). */
-  surface: string
-  /** Main brand color. */
+  /** Main brand color for contours (Pokémon: red). */
   primary: string
-  /** Secondary brand color. */
-  secondary: string
-  /** Accent for highlights, labels and hover states. */
+  /** Secondary brand color for contours (One Piece: violet). */
   accent: string
-  /** Contour / outline color (UI borders and 3D node outlines). */
-  outline: string
-  text: string
-  textDim: string
-  /** Faint star-field color. */
-  particles: string
-  /** Node colors per node type; missing types fall back to `secondary`. */
-  nodes: Partial<Record<NodeType, string>>
-  /** Edge colors per relationship type; missing types fall back to `primary`. */
-  edges: Record<string, string>
   /** Ownership accent (My Constellation overlay). */
   ownership: string
+  /** Contour role per node type; missing types use `muted`. */
+  nodes: Partial<Record<NodeType, ColorRole>>
+  /** Contour role per relationship type; missing types use `muted`. */
+  edges: Record<string, ColorRole>
+  modes: Record<ThemeMode, TCGThemeMode>
+}
+
+/** A theme flattened for one mode: every color is a concrete CSS value. */
+export interface ResolvedTheme extends TCGThemeMode {
+  id: string
+  mode: ThemeMode
+  primary: string
+  accent: string
+  ownership: string
+  nodes: Record<NodeType, string>
+  edges: Record<string, string>
 }

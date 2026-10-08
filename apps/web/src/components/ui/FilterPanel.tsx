@@ -34,33 +34,42 @@ export function FilterPanel() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="glass chip focus-ring absolute left-4 top-16 z-30 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-ink-dim hover:text-ink"
+        className={`btn pill absolute left-4 top-16 z-30 ${open || count > 0 ? 'btn-on' : 'btn-ghost'}`}
         aria-expanded={open}
         aria-controls="filter-panel"
+        title="Filters (F)"
       >
-        <span aria-hidden>⚙</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+          <path d="M4 6h16M7 12h10M10 18h4" />
+        </svg>
         Filters
-        {count > 0 ? <span className="rounded-full bg-primary/20 px-1.5 text-[10px] text-primary">{count}</span> : null}
+        {count > 0 ? <span className="rounded-full bg-primary/25 px-1.5 text-[11px]">{count}</span> : null}
       </button>
       <aside
         id="filter-panel"
         aria-label="Filters"
-        className={`glass scroll-thin absolute left-4 top-28 z-30 max-h-[calc(100vh-11rem)] w-72 overflow-y-auto rounded-xl p-4 ${
+        className={`panel scroll-thin absolute left-4 top-28 z-30 max-h-[calc(100vh-11rem)] w-80 overflow-y-auto p-4 ${
           open ? 'fade-up' : 'pointer-events-none opacity-0'
         }`}
         hidden={!open}
       >
         <div className="mb-3 flex items-center justify-between">
-          <span className="hud-label">Filters</span>
-          {count > 0 ? (
-            <button type="button" onClick={() => navigation.setFilters({})} className="focus-ring text-[11px] text-primary hover:underline">
-              Clear all
+          <h2 className="serif text-[17px]">Filters</h2>
+          <div className="flex items-center gap-1">
+            {count > 0 ? (
+              <button type="button" onClick={() => navigation.setFilters({})} className="btn btn-quiet text-[12.5px]">
+                Clear all
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setOpen(false)} className="btn btn-quiet" aria-label="Close filters">
+              ×
             </button>
-          ) : null}
+          </div>
         </div>
-        {status === 'loading' ? <p className="text-xs text-ink-dim">Loading filters…</p> : null}
-        {status === 'error' ? <p className="text-xs text-red-300">Filters unavailable.</p> : null}
-        <div className="space-y-4">
+        <p className="mb-4 text-[12.5px] text-ink-dim">Filters narrow which cards appear around the focus. They stay in the link you share.</p>
+        {status === 'loading' ? <p className="text-sm text-ink-dim">Loading filters…</p> : null}
+        {status === 'error' ? <p className="text-sm text-red-300">Filters are unavailable right now.</p> : null}
+        <div className="space-y-5">
           {visible.map((filter, i) => (
             <div key={filter.id} className="pop-in" style={{ '--i': i } as React.CSSProperties}>
               <FilterControl filter={filter} value={selection[filter.id] ?? ''} onChange={update} />
@@ -84,12 +93,8 @@ function FilterControl({
   if (filter.type === 'select') {
     return (
       <label className="block">
-        <span className="hud-label block pb-1">{filter.label}</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(filter.id, e.target.value || null)}
-          className="focus-ring w-full rounded-md border border-ink-dim/20 bg-void px-2 py-1.5 text-sm text-ink"
-        >
+        <span className="eyebrow block pb-1.5">{filter.label}</span>
+        <select value={value} onChange={(e) => onChange(filter.id, e.target.value || null)} className="field">
           <option value="">Any</option>
           {filter.values?.map((v) => (
             <option key={v.value} value={v.value}>
@@ -105,13 +110,8 @@ function FilterControl({
   if (filter.type === 'range') return <RangeControl filter={filter} value={value} onChange={onChange} />
   return (
     <label className="flex items-center justify-between text-sm">
-      <span className="hud-label">{filter.label}</span>
-      <input
-        type="checkbox"
-        checked={value === 'true'}
-        onChange={(e) => onChange(filter.id, e.target.checked ? 'true' : null)}
-        className="focus-ring accent-primary"
-      />
+      <span className="eyebrow">{filter.label}</span>
+      <input type="checkbox" checked={value === 'true'} onChange={(e) => onChange(filter.id, e.target.checked ? 'true' : null)} className="focus-ring accent-primary" />
     </label>
   )
 }
@@ -137,28 +137,19 @@ function MultiControl({
   }
   return (
     <fieldset>
-      <legend className="hud-label pb-1">{filter.label}</legend>
+      <legend className="eyebrow pb-1.5">{filter.label}</legend>
       <div className="flex flex-wrap gap-1.5">
         {shown.map((v) => {
           const on = selected.has(v.value)
           return (
-            <button
-              key={v.value}
-              type="button"
-              aria-pressed={on}
-              onClick={() => toggle(v.value)}
-              className={`chip focus-ring rounded-full border px-2 py-0.5 text-[11px] ${
-                on ? 'border-primary/70 bg-primary/20 text-primary' : 'border-ink-dim/25 text-ink-dim hover:text-ink'
-              }`}
-              title={v.count !== undefined ? `${v.count}` : undefined}
-            >
+            <button key={v.value} type="button" aria-pressed={on} onClick={() => toggle(v.value)} className={`chip ${on ? 'chip-on' : ''}`} title={v.count !== undefined ? `${v.count} cards` : undefined}>
               {v.label}
             </button>
           )
         })}
         {values.length > 10 ? (
-          <button type="button" onClick={() => setShowAll((s) => !s)} className="focus-ring px-1 text-[11px] text-ink-dim hover:text-ink">
-            {showAll ? 'less' : `+${values.length - 10}`}
+          <button type="button" onClick={() => setShowAll((s) => !s)} className="chip">
+            {showAll ? 'Show less' : `${values.length - 10} more`}
           </button>
         ) : null}
       </div>
@@ -190,34 +181,13 @@ function RangeControl({
   }
   return (
     <fieldset>
-      <legend className="hud-label pb-1">
-        {filter.label}
-        <span className="ml-2 font-mono text-[10px] normal-case tracking-normal text-ink-dim">
-          {local[0]}–{local[1]}
-        </span>
+      <legend className="eyebrow pb-1.5">
+        {filter.label} <span className="font-normal text-ink-dim">({local[0]}–{local[1]})</span>
       </legend>
       <div className="flex items-center gap-2">
-        <input
-          type="number"
-          aria-label={`${filter.label} minimum`}
-          min={min}
-          max={max}
-          value={local[0]}
-          onChange={(e) => setLocal([Number(e.target.value), local[1]])}
-          onBlur={() => commit(local)}
-          className="focus-ring w-full rounded-md border border-ink-dim/20 bg-void px-2 py-1 text-sm"
-        />
-        <span className="text-ink-dim">–</span>
-        <input
-          type="number"
-          aria-label={`${filter.label} maximum`}
-          min={min}
-          max={max}
-          value={local[1]}
-          onChange={(e) => setLocal([local[0], Number(e.target.value)])}
-          onBlur={() => commit(local)}
-          className="focus-ring w-full rounded-md border border-ink-dim/20 bg-void px-2 py-1 text-sm"
-        />
+        <input type="number" aria-label={`${filter.label} minimum`} min={min} max={max} value={local[0]} onChange={(e) => setLocal([Number(e.target.value), local[1]])} onBlur={() => commit(local)} className="field" />
+        <span className="text-ink-dim">to</span>
+        <input type="number" aria-label={`${filter.label} maximum`} min={min} max={max} value={local[1]} onChange={(e) => setLocal([local[0], Number(e.target.value)])} onBlur={() => commit(local)} className="field" />
       </div>
     </fieldset>
   )

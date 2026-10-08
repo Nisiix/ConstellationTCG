@@ -2,10 +2,10 @@
 
 import { useTheme } from '@/lib/theme'
 import { CameraController } from './CameraController'
-import { CardSprites } from './CardSprites'
 import { EdgeRenderer } from './EdgeRenderer'
 import { EdgeSparks } from './EdgeSparks'
 import { Labels } from './Labels'
+import { NodeImages } from './NodeImages'
 import { NodeRenderer } from './NodeRenderer'
 import { ParticleField } from './ParticleField'
 import { PostFX } from './PostFX'
@@ -22,9 +22,9 @@ export function GraphScene() {
       <EdgeRenderer />
       <EdgeSparks />
       <NodeRenderer />
+      <NodeImages />
       <SelectionEffects />
       <Labels />
-      <CardSprites />
       <CameraController />
       <PostFX />
     </>

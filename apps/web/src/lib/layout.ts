@@ -33,6 +33,12 @@ interface LayoutNode extends SimulationNode {
 
 const DEFAULTS = { shellRadius: 9, iterations: 220 }
 
+/** Shell radius for a neighborhood of `count` nodes: 9 for small ones, up to ~26 for crowds. */
+export function adaptiveShellRadius(count: number): number {
+  const extra = Math.sqrt(Math.max(0, count - 12)) * 0.9
+  return Math.min(26, DEFAULTS.shellRadius + extra)
+}
+
 /** Deterministic pseudo-random generator (mulberry32) so layouts are reproducible. */
 export function createRandom(seed: number): () => number {
   let a = seed >>> 0
@@ -69,7 +75,8 @@ export function computeLayout(
   previous: Map<string, Vec3> = new Map(),
   options: LayoutOptions = {},
 ): Map<string, Vec3> {
-  const shell = options.shellRadius ?? DEFAULTS.shellRadius
+  // Shells grow with the crowd so a set with 200 cards or the whole universe stays readable.
+  const shell = options.shellRadius ?? adaptiveShellRadius(nodes.length)
   const iterations = options.iterations ?? DEFAULTS.iterations
   const random = createRandom(options.seed ?? hashSeed(focusId))
   const index = new Set(nodes.map((n) => n.id))

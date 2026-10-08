@@ -1,48 +1,66 @@
 import type { FilterDefinition, TCGDefinition, TCGTheme } from '@constellation/domain'
 
+/** The classic Pokémon TCG logo (Base Set), used when a set or series has no logo of its own. */
+export const POKEMON_PLACEHOLDER_LOGO = 'https://assets.tcgdex.net/en/base/base1/logo.webp'
+
 /**
- * Pokémon palette: white and red with black contours, on a near-black background.
- * Structural edges are red, semantic edges white; the species ring is pink-red.
+ * Pokémon palette: red and white are contours only (rings, borders, edges, active states).
+ * Backgrounds are a dirty black in dark mode and a dirty white in light mode.
  */
 export const POKEMON_THEME: TCGTheme = {
   id: 'pokemon',
-  background: '#09070a',
-  surface: 'rgba(30, 16, 20, 0.66)',
-  primary: '#ff2f45',
-  secondary: '#ffffff',
-  accent: '#ffd6db',
-  outline: '#000000',
-  text: '#fff5f6',
-  textDim: '#caa9b0',
-  particles: '#6b2430',
+  primary: '#e3242b',
+  accent: '#f08a8f',
+  ownership: '#e0b25a',
   nodes: {
-    game: '#ffffff',
-    series: '#ff2f45',
-    set: '#ff6d7d',
-    card_identity: '#ffffff',
-    card_printing: '#ffe6e9',
-    pokemon: '#ff9aa6',
-    artist: '#ffd6db',
-    mechanic: '#e2495c',
-    attribute: '#b8303f',
-    digital_asset: '#ffd166',
+    game: 'contrast',
+    series: 'primary',
+    set: 'primary',
+    card_identity: 'contrast',
+    card_printing: 'contrast',
+    pokemon: 'contrast',
+    artist: 'contrast',
+    mechanic: 'muted',
+    attribute: 'muted',
+    digital_asset: 'accent',
   },
   edges: {
-    BELONGS_TO: '#ff2f45',
-    PART_OF: '#ff6d7d',
-    PRINTING_OF: '#ffffff',
-    ILLUSTRATED_BY: '#ffd6db',
-    SAME_POKEMON: '#ff9aa6',
-    EVOLVES_FROM: '#ffffff',
-    EVOLUTION_OF: '#ffffff',
-    HAS_TYPE: '#e2495c',
-    WEAK_TO: '#b8303f',
-    RESISTS: '#b8303f',
-    HAS_ATTACK: '#ff8593',
-    HAS_ABILITY: '#ff8593',
-    HAS_ATTRIBUTE: '#b8303f',
+    BELONGS_TO: 'primary',
+    PART_OF: 'primary',
+    PRINTING_OF: 'contrast',
+    ILLUSTRATED_BY: 'contrast',
+    SAME_POKEMON: 'contrast',
+    EVOLVES_FROM: 'contrast',
+    EVOLUTION_OF: 'contrast',
+    HAS_TYPE: 'muted',
+    WEAK_TO: 'muted',
+    RESISTS: 'muted',
+    HAS_ATTACK: 'muted',
+    HAS_ABILITY: 'muted',
+    HAS_ATTRIBUTE: 'muted',
   },
-  ownership: '#ffd166',
+  modes: {
+    dark: {
+      background: '#141214',
+      surface: 'rgba(30, 27, 29, 0.76)',
+      text: '#f3eeea',
+      textDim: '#a69a98',
+      nodeFill: '#1d1a1b',
+      contrast: '#f7f3ee',
+      muted: '#6b5f61',
+      particles: '#4b3a3d',
+    },
+    light: {
+      background: '#f3efe8',
+      surface: 'rgba(255, 252, 247, 0.82)',
+      text: '#1b1618',
+      textDim: '#6f6366',
+      nodeFill: '#fbf8f3',
+      contrast: '#1b1618',
+      muted: '#a59c98',
+      particles: '#cdc3bc',
+    },
+  },
 }
 
 /** Relationship types specific to Pokémon, emitted by this adapter. */
@@ -87,7 +105,7 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
   },
   {
     id: 'pokemon.stage',
-    label: 'Evolution Stage',
+    label: 'Evolution stage',
     type: 'multi',
     scope: 'game',
     appliesTo: ['card_printing'],
@@ -111,7 +129,7 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
   },
   {
     id: 'pokemon.retreat',
-    label: 'Retreat Cost',
+    label: 'Retreat cost',
     type: 'range',
     scope: 'game',
     appliesTo: ['card_printing'],
@@ -135,7 +153,7 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
   },
   {
     id: 'pokemon.regulationMark',
-    label: 'Regulation Mark',
+    label: 'Regulation mark',
     type: 'multi',
     scope: 'game',
     appliesTo: ['card_printing'],
@@ -152,6 +170,11 @@ export const POKEMON_DEFINITION: TCGDefinition = {
   nodeTypes: ['pokemon', 'attribute', 'mechanic'],
   filters: POKEMON_FILTERS,
   theme: POKEMON_THEME,
+  placeholderImages: {
+    game: POKEMON_PLACEHOLDER_LOGO,
+    series: POKEMON_PLACEHOLDER_LOGO,
+    set: POKEMON_PLACEHOLDER_LOGO,
+  },
 }
 
 export const TCGDEX_SOURCE_NAME = 'tcgdex'

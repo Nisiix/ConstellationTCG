@@ -1,6 +1,16 @@
 import type { GraphEdge, GraphNode } from '@constellation/domain'
 import { describe, expect, it } from 'vitest'
-import { computeLayout, createRandom, layoutRadius, type Vec3 } from '../layout'
+import { adaptiveShellRadius, computeLayout, createRandom, layoutRadius, type Vec3 } from '../layout'
+
+describe('adaptiveShellRadius', () => {
+  it('keeps small neighborhoods tight and spreads crowds out, with a ceiling', () => {
+    expect(adaptiveShellRadius(5)).toBe(9)
+    expect(adaptiveShellRadius(12)).toBe(9)
+    expect(adaptiveShellRadius(103)).toBeGreaterThan(15)
+    expect(adaptiveShellRadius(242)).toBeGreaterThan(adaptiveShellRadius(103))
+    expect(adaptiveShellRadius(5000)).toBe(26)
+  })
+})
 
 function node(id: string, nodeType: GraphNode['nodeType'] = 'card_printing'): GraphNode {
   return { id, gameId: 'g', nodeType, entityId: id, label: id, subtitle: null, imageUrl: null, metadata: {} }

@@ -8,22 +8,20 @@ import { useUiStore } from '@/state/ui-store'
 export function NodeTooltip() {
   const tooltip = useUiStore((s) => s.tooltip)
   const node = useGraphStore((s) => (tooltip ? s.nodes.find((n) => n.id === tooltip.nodeId) : undefined))
+  const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const colorOf = useNodeColor()
   if (!tooltip || !node) return null
   return (
-    <div
-      role="tooltip"
-      className="glass fade-up pointer-events-none fixed z-40 max-w-xs rounded-lg px-3 py-2 text-xs"
-      style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
-    >
+    <div role="tooltip" className="panel fade-up pointer-events-none fixed z-40 max-w-xs px-3 py-2 text-[13px]" style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}>
       <div className="flex items-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: colorOf(node.nodeType), boxShadow: '0 0 0 1px var(--c-outline)' }} aria-hidden />
+        <span className="dot" style={{ background: colorOf(node.nodeType) }} aria-hidden />
         <span className="text-ink">{node.label}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: colorOf(node.nodeType) }}>
+        <span className="text-[12px]" style={{ color: colorOf(node.nodeType) }}>
           {NODE_TYPE_LABELS[node.nodeType]}
         </span>
       </div>
       {node.subtitle ? <div className="mt-0.5 text-ink-dim">{node.subtitle}</div> : null}
+      {node.id !== focusNodeId ? <div className="mt-1 text-[11.5px] text-ink-dim/80">Click to fly here</div> : null}
     </div>
   )
 }

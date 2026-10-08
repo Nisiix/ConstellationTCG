@@ -17,6 +17,7 @@ export function SearchBar() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [empty, setEmpty] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
 
@@ -24,6 +25,7 @@ export function SearchBar() {
     if (!query.trim()) {
       setResults([])
       setLoading(false)
+      setEmpty(false)
       return
     }
     const controller = new AbortController()
@@ -32,6 +34,7 @@ export function SearchBar() {
       fetchSearch(query, { game, limit: 12 }, controller.signal)
         .then((res) => {
           setResults(res.results)
+          setEmpty(res.results.length === 0)
           setActive(0)
           setOpen(true)
         })
@@ -86,10 +89,11 @@ export function SearchBar() {
 
   return (
     <div className="relative">
-      <div className="glass flex items-center gap-2 rounded-full px-4 py-2 transition focus-within:border-primary/60">
-        <span className="text-ink-dim" aria-hidden>
-          ⌕
-        </span>
+      <div className="panel pill flex items-center gap-2 px-4 py-2 transition focus-within:border-primary/50">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-dim" aria-hidden>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+        </svg>
         <input
           ref={inputRef}
           type="search"
@@ -98,27 +102,28 @@ export function SearchBar() {
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={open && results[active] ? `${listId}-${active}` : undefined}
-          aria-label="Search cards, sets, Pokémon, artists"
-          placeholder="Search cards, sets, Pokémon, artists…"
+          aria-label="Search a card, set, Pokémon or artist"
+          placeholder="Search a card, set, Pokémon or artist…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKeyDown}
-          className="w-full bg-transparent text-sm text-ink placeholder:text-ink-dim/70 focus:outline-none"
+          className="w-full bg-transparent text-[14.5px] text-ink placeholder:text-ink-dim/80 focus:outline-none"
           autoComplete="off"
           spellCheck={false}
         />
-        {loading ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> : null}
-        <kbd className="hidden rounded border border-ink-dim/30 px-1.5 font-mono text-[10px] text-ink-dim md:block">/</kbd>
+        {loading ? <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden /> : null}
+        <kbd className="hidden md:block">/</kbd>
       </div>
 
-      {open && results.length > 0 ? (
+      {open && (results.length > 0 || empty) ? (
         <ul
           id={listId}
           role="listbox"
-          className="glass glass-strong scroll-thin fade-up absolute inset-x-0 top-full z-40 mt-2 max-h-[60vh] overflow-y-auto rounded-xl p-1"
+          className="panel panel-strong scroll-thin fade-up absolute inset-x-0 top-full z-40 mt-2 max-h-[60vh] overflow-y-auto p-1.5"
         >
+          {empty ? <li className="px-3 py-4 text-sm text-ink-dim">Nothing found for “{query}”. Try a card name, a set or an artist.</li> : null}
           {results.map((hit, index) => (
             <li
               key={hit.nodeId}
@@ -129,32 +134,21 @@ export function SearchBar() {
               onMouseDown={(e) => e.preventDefault()}
               onMouseEnter={() => setActive(index)}
               onClick={() => choose(hit)}
-              className={`pop-in lift flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm ${
-                index === active ? 'bg-primary/15 text-ink' : 'text-ink/85'
-              }`}
+              className={`row-link pop-in cursor-pointer ${index === active ? 'bg-primary/15' : ''}`}
             >
               {hit.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={hit.image}
-                  alt=""
-                  loading="lazy"
-                  className="h-10 w-7 flex-none rounded-sm object-cover opacity-90 shadow-[0_0_0_1px_var(--c-outline)]"
-                />
+                <img src={hit.image} alt="" loading="lazy" className="h-11 w-8 flex-none rounded-md object-cover shadow-[0_0_0_1px_var(--c-outline)]" />
               ) : (
-                <span
-                  className="flex h-10 w-7 flex-none items-center justify-center rounded-sm"
-                  style={{ background: `${colorOf(hit.type)}22` }}
-                  aria-hidden
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: colorOf(hit.type), boxShadow: '0 0 0 1px var(--c-outline)' }} />
+                <span className="flex h-11 w-8 flex-none items-center justify-center rounded-md" style={{ background: `${colorOf(hit.type)}22` }} aria-hidden>
+                  <span className="dot" style={{ background: colorOf(hit.type) }} />
                 </span>
               )}
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{hit.title}</span>
-                {hit.subtitle ? <span className="block truncate text-xs text-ink-dim">{hit.subtitle}</span> : null}
+                {hit.subtitle ? <span className="block truncate text-[12.5px] text-ink-dim">{hit.subtitle}</span> : null}
               </span>
-              <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: colorOf(hit.type) }}>
+              <span className="chip text-[11.5px]" style={{ color: colorOf(hit.type), borderColor: `${colorOf(hit.type)}55` }}>
                 {NODE_TYPE_LABELS[hit.type]}
               </span>
             </li>

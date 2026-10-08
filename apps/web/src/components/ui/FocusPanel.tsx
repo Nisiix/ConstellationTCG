@@ -4,9 +4,12 @@ import { useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
 import { useNodeColor } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
+import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { NodeBadge } from './NodeBadge'
+
+const DEPTH_LABEL: Record<number, string> = { 1: 'direct connections', 2: 'extended connections', 3: 'deep connections' }
 
 export function FocusPanel() {
   const navigation = useExploreNavigation()
@@ -15,9 +18,11 @@ export function FocusPanel() {
   const isUniverse = useGraphStore((s) => s.isUniverse)
   const truncated = useGraphStore((s) => s.truncated)
   const filtered = useGraphStore((s) => s.filtered)
+  const welcomeVisible = useUiStore((s) => s.welcomeVisible)
   const [copied, setCopied] = useState(false)
 
-  if (!focus) return null
+  // On the first visit the welcome card takes the stage; the game panel returns once dismissed.
+  if (!focus || (welcomeVisible && isUniverse)) return null
 
   const meta = focus.metadata
   const isCard = focus.nodeType === 'card_printing' || focus.nodeType === 'card_identity'
@@ -37,37 +42,37 @@ export function FocusPanel() {
     <aside
       id="focus-panel"
       aria-label="Focus"
-      className="glass scroll-thin fade-up absolute right-4 top-16 z-30 flex max-h-[calc(100vh-9rem)] w-80 flex-col overflow-y-auto rounded-xl"
+      className="panel scroll-thin fade-up absolute right-4 top-16 z-30 flex max-h-[calc(100vh-9rem)] w-[21rem] flex-col overflow-y-auto"
       key={focus.id}
     >
-      <div className="border-b border-ink-dim/15 p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="p-5 pb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <NodeBadge type={focus.nodeType} />
           <div className="flex items-center gap-1">
-            <button type="button" onClick={navigation.back} className="chip focus-ring rounded px-1.5 py-0.5 text-[11px] text-ink-dim hover:text-ink" title="Back (Backspace)">
-              ←
+            <button type="button" onClick={navigation.back} className="btn btn-quiet text-[12.5px]" title="Go back (Backspace)">
+              ← Back
             </button>
-            <button type="button" onClick={share} className="chip focus-ring rounded px-1.5 py-0.5 text-[11px] text-ink-dim hover:text-ink" title="Copy link">
-              {copied ? 'copied ✓' : 'share'}
+            <button type="button" onClick={share} className="btn btn-quiet text-[12.5px]" title="Copy a link to this view">
+              {copied ? 'Link copied' : 'Share'}
             </button>
           </div>
         </div>
-        <h1 className="title-shimmer text-lg font-semibold leading-tight tracking-wide">{focus.label}</h1>
-        {focus.subtitle ? <p className="text-sm text-ink-dim">{focus.subtitle}</p> : null}
+        <h1 className="text-[24px] leading-tight text-ink">{focus.label}</h1>
+        {focus.subtitle ? <p className="mt-0.5 text-[14px] text-ink-dim">{focus.subtitle}</p> : null}
       </div>
 
       {focus.imageUrl && isCard ? (
-        <div className="flex justify-center border-b border-ink-dim/15 bg-void/40 p-4">
+        <div className="flex justify-center bg-void/40 px-5 py-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={focus.imageUrl}
             alt={`${focus.label} card`}
-            className="fade-up w-44 rounded-md shadow-[0_0_0_1.5px_var(--c-outline),0_0_40px_color-mix(in_oklab,var(--c-primary)_30%,transparent)]"
+            className="fade-up w-48 rounded-lg shadow-[0_0_0_1.5px_var(--c-outline),0_18px_40px_rgba(0,0,0,0.5)]"
             loading="eager"
           />
         </div>
       ) : focus.imageUrl && focus.nodeType !== 'game' ? (
-        <div className="flex justify-center border-b border-ink-dim/15 bg-void/40 p-4">
+        <div className="flex justify-center bg-void/40 px-5 py-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={focus.imageUrl}
@@ -82,7 +87,7 @@ export function FocusPanel() {
       ) : null}
 
       {details.length > 0 ? (
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-b border-ink-dim/15 p-4 text-xs">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-ink/10 px-5 py-4 text-[13px]">
           {details.map(([k, v]) => (
             <div key={k} className="contents">
               <dt className="text-ink-dim">{k}</dt>
@@ -95,40 +100,32 @@ export function FocusPanel() {
       ) : null}
 
       {typeof meta.description === 'string' && meta.description ? (
-        <p className="border-b border-ink-dim/15 p-4 text-xs leading-relaxed text-ink-dim">{meta.description}</p>
+        <p className="serif border-t border-ink/10 px-5 py-4 text-[14px] leading-relaxed text-ink/85">{meta.description}</p>
       ) : null}
 
-      <div className="p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="hud-label">Relationships</span>
-          <span className="font-mono text-[10px] text-ink-dim">
-            depth {depth}
+      <div className="border-t border-ink/10 px-5 py-4">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="serif text-[17px]">Connections</h2>
+          <span className="text-[12px] text-ink-dim">
+            {DEPTH_LABEL[depth] ?? ''}
             {truncated ? ' · partial' : ''}
             {filtered ? ' · filtered' : ''}
           </span>
         </div>
         {!isUniverse ? (
-          <div className="mb-3 flex gap-2">
-            <button
-              type="button"
-              onClick={navigation.expand}
-              disabled={depth >= 3}
-              className="chip focus-ring flex-1 rounded-md border border-primary/50 px-2 py-1 text-xs text-primary hover:bg-primary/15 disabled:opacity-40"
-            >
-              Expand
+          <div className="mb-4 flex gap-2">
+            <button type="button" onClick={navigation.expand} disabled={depth >= 3} className="btn btn-primary flex-1" title="Also show what the connections are connected to (E)">
+              Show more
             </button>
-            <button
-              type="button"
-              onClick={navigation.collapse}
-              disabled={depth <= 1}
-              className="chip focus-ring flex-1 rounded-md border border-ink-dim/30 px-2 py-1 text-xs text-ink-dim hover:text-ink disabled:opacity-40"
-            >
-              Collapse
+            <button type="button" onClick={navigation.collapse} disabled={depth <= 1} className="btn btn-ghost flex-1" title="Only direct connections (C)">
+              Direct only
             </button>
           </div>
-        ) : null}
-        {groups.length === 0 ? <p className="text-xs text-ink-dim">No relationships yet.</p> : null}
-        <div className="space-y-3">
+        ) : (
+          <p className="mb-4 text-[13px] text-ink-dim">Pick a series or a set to dive in, or search for a card above.</p>
+        )}
+        {groups.length === 0 ? <p className="text-sm text-ink-dim">No connections yet.</p> : null}
+        <div className="space-y-4">
           {groups.map((group, i) => (
             <div key={group.key} className="pop-in" style={{ '--i': i } as React.CSSProperties}>
               <RelationshipGroupView group={group} onSelect={(id) => navigation.goTo(id, { follow: true })} />
@@ -147,40 +144,32 @@ function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; 
   const items = expanded ? group.items : group.items.slice(0, limit)
   return (
     <section aria-label={group.label}>
-      <h2 className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ink-dim">
+      <h3 className="eyebrow mb-1 flex items-center justify-between">
         <span>{group.label}</span>
-        <span className="font-mono text-[10px]">{group.total}</span>
-      </h2>
+        <span className="font-normal">{group.total}</span>
+      </h3>
       <ul className="space-y-0.5">
         {items.map(({ node, metadata }) => (
           <li key={node.id}>
-            <button
-              type="button"
-              onClick={() => onSelect(node.id)}
-              className="lift focus-ring flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-sm text-ink/90 hover:bg-primary/15"
-            >
-              <span
-                className="h-1.5 w-1.5 flex-none rounded-full"
-                style={{ background: colorOf(node.nodeType), boxShadow: '0 0 0 1px var(--c-outline)' }}
-                aria-hidden
-              />
+            <button type="button" onClick={() => onSelect(node.id)} className="row-link" title={`Fly to ${node.label}`}>
+              <span className="dot" style={{ background: colorOf(node.nodeType) }} aria-hidden />
               <span className="min-w-0 flex-1 truncate">{node.label}</span>
               {typeof metadata.value === 'string' ? (
-                <span className="font-mono text-[10px] text-ink-dim">{metadata.value}</span>
+                <span className="text-[12px] text-ink-dim">{metadata.value}</span>
               ) : node.subtitle ? (
-                <span className="max-w-[40%] truncate text-[10px] text-ink-dim">{node.subtitle}</span>
+                <span className="max-w-[45%] truncate text-[12px] text-ink-dim">{node.subtitle}</span>
               ) : null}
             </button>
           </li>
         ))}
       </ul>
       {group.items.length > limit ? (
-        <button type="button" onClick={() => setExpanded((e) => !e)} className="focus-ring mt-1 px-2 text-[11px] text-primary hover:underline">
+        <button type="button" onClick={() => setExpanded((e) => !e)} className="btn btn-quiet mt-1 text-[12.5px]">
           {expanded ? 'Show less' : `Show ${group.items.length - limit} more`}
         </button>
       ) : group.total > group.items.length ? (
-        <p className="mt-1 px-2 text-[10px] text-ink-dim">
-          {group.items.length} of {group.total} shown — expand or filter to see more
+        <p className="mt-1 px-2 text-[12px] text-ink-dim">
+          {group.items.length} of {group.total} shown — use “Show more” or filters to see the rest
         </p>
       ) : null}
     </section>
