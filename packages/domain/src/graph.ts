@@ -83,7 +83,16 @@ export interface GraphNeighborhood {
     truncated: boolean
     nodeCount: number
     edgeCount: number
+    /** Hop distance from the focus node, keyed by node id. */
+    distances: Record<string, number>
   }
+}
+
+export interface RelationshipSummary {
+  relationshipType: RelationshipType
+  /** `out`: focus is the source; `in`: focus is the target. */
+  direction: 'out' | 'in'
+  count: number
 }
 
 export const MAX_GRAPH_DEPTH = 3

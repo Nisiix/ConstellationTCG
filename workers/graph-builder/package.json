@@ -1,0 +1,23 @@
+{
+  "name": "@constellation/worker-graph-builder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI worker: rebuild the graph projection (graph_nodes / graph_edges) from the catalog.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@constellation/adapter-pokemon": "workspace:*",
+    "@constellation/adapters": "workspace:*",
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "@constellation/graph": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
