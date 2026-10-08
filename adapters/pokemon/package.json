@@ -1,0 +1,26 @@
+{
+  "name": "@constellation/adapter-pokemon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pokémon TCG adapter for Constellation (source: TCGdex).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "fixture:refresh": "tsx scripts/refresh-fixture.ts",
+    "pokedex:refresh": "tsx scripts/refresh-pokedex.ts"
+  },
+  "dependencies": {
+    "@constellation/adapters": "workspace:*",
+    "@constellation/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

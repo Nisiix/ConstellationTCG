@@ -1,0 +1,96 @@
+[
+  {
+    "id": "base",
+    "logo": "https://assets.tcgdex.net/en/base/base1/logo",
+    "name": "Base",
+    "firstSet": {
+      "cardCount": {
+        "official": 102,
+        "total": 102
+      },
+      "id": "base1",
+      "logo": "https://assets.tcgdex.net/en/base/base1/logo",
+      "name": "Base Set"
+    },
+    "lastSet": {
+      "cardCount": {
+        "official": 82,
+        "total": 83
+      },
+      "id": "base5",
+      "logo": "https://assets.tcgdex.net/en/base/base5/logo",
+      "name": "Team Rocket",
+      "symbol": "https://assets.tcgdex.net/univ/base/base5/symbol"
+    },
+    "releaseDate": "1999-01-09",
+    "sets": [
+      {
+        "cardCount": {
+          "official": 102,
+          "total": 102
+        },
+        "id": "base1",
+        "logo": "https://assets.tcgdex.net/en/base/base1/logo",
+        "name": "Base Set"
+      },
+      {
+        "cardCount": {
+          "official": 64,
+          "total": 64
+        },
+        "id": "base2",
+        "logo": "https://assets.tcgdex.net/en/base/base2/logo",
+        "name": "Jungle",
+        "symbol": "https://assets.tcgdex.net/univ/base/base2/symbol"
+      },
+      {
+        "cardCount": {
+          "official": 53,
+          "total": 53
+        },
+        "id": "basep",
+        "logo": "https://assets.tcgdex.net/en/base/basep/logo",
+        "name": "Wizards Black Star Promos",
+        "symbol": "https://assets.tcgdex.net/univ/base/basep/symbol"
+      },
+      {
+        "cardCount": {
+          "official": 7,
+          "total": 7
+        },
+        "id": "wp",
+        "name": "W Promotional"
+      },
+      {
+        "cardCount": {
+          "official": 62,
+          "total": 62
+        },
+        "id": "base3",
+        "logo": "https://assets.tcgdex.net/en/base/base3/logo",
+        "name": "Fossil",
+        "symbol": "https://assets.tcgdex.net/univ/base/base3/symbol"
+      },
+      {
+        "cardCount": {
+          "official": 130,
+          "total": 130
+        },
+        "id": "base4",
+        "logo": "https://assets.tcgdex.net/en/base/base4/logo",
+        "name": "Base Set 2",
+        "symbol": "https://assets.tcgdex.net/univ/base/base4/symbol"
+      },
+      {
+        "cardCount": {
+          "official": 82,
+          "total": 83
+        },
+        "id": "base5",
+        "logo": "https://assets.tcgdex.net/en/base/base5/logo",
+        "name": "Team Rocket",
+        "symbol": "https://assets.tcgdex.net/univ/base/base5/symbol"
+      }
+    ]
+  }
+]
