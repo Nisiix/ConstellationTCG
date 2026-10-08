@@ -1,0 +1,266 @@
+@import 'tailwindcss';
+
+/*
+ * Runtime palette. The selected game's adapter provides these values (see /api/games); the
+ * defaults below are the neutral theme used before a game is known.
+ */
+:root {
+  --c-bg: #05070d;
+  --c-surface: rgba(10, 16, 30, 0.6);
+  --c-primary: #38e1ff;
+  --c-secondary: #3b82f6;
+  --c-accent: #a78bfa;
+  --c-outline: #0a1a33;
+  --c-text: #e6f1ff;
+  --c-text-dim: #8aa4c8;
+  --c-own: #ffd166;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-void: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-primary: var(--c-primary);
+  --color-secondary: var(--c-secondary);
+  --color-accent: var(--c-accent);
+  --color-outline: var(--c-outline);
+  --color-ink: var(--c-text);
+  --color-ink-dim: var(--c-text-dim);
+  --color-own: var(--c-own);
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 600ms ease;
+}
+
+body {
+  overflow: hidden;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--c-primary) 35%, transparent);
+}
+
+/* ── glass panels: dark surface, theme contour, soft inner light ── */
+.glass {
+  background: var(--c-surface);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--c-primary) 22%, transparent);
+  box-shadow:
+    0 0 0 1.5px var(--c-outline),
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    border-color 400ms ease,
+    box-shadow 400ms ease,
+    background-color 400ms ease;
+}
+
+.glass-strong {
+  background: color-mix(in oklab, var(--c-surface) 80%, var(--c-bg));
+}
+
+.hud-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-text-dim);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--c-primary) 35%, transparent) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--c-primary) 35%, transparent);
+  border-radius: 999px;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+/* ── brand mark: a two-tone orb with a contour (Pokéball-like in the Pokémon theme) ── */
+.brand-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--c-primary) 0 48%, var(--c-outline) 48% 52%, var(--c-secondary) 52% 100%);
+  box-shadow:
+    0 0 0 1.5px var(--c-outline),
+    0 0 14px color-mix(in oklab, var(--c-primary) 60%, transparent);
+  position: relative;
+  transition: transform 500ms cubic-bezier(0.2, 0.9, 0.2, 1.4);
+}
+
+.brand-orb::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 999px;
+  background: var(--c-secondary);
+  box-shadow: 0 0 0 1.5px var(--c-outline);
+}
+
+button:hover > .brand-orb {
+  transform: rotate(180deg) scale(1.08);
+}
+
+/* ── motion ── */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.01);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes ping-dot {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-primary) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.fade-up {
+  animation: fade-up 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.pop-in {
+  animation: pop-in 420ms cubic-bezier(0.2, 0.9, 0.2, 1.2) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+.title-shimmer {
+  background: linear-gradient(
+    110deg,
+    var(--c-text) 0%,
+    var(--c-text) 40%,
+    var(--c-primary) 50%,
+    var(--c-text) 60%,
+    var(--c-text) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1800ms ease-out 1;
+}
+
+.dot-ping {
+  animation: ping-dot 900ms ease-out infinite;
+}
+
+.lift {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1.3),
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.lift:hover {
+  transform: translateX(2px);
+}
+
+.lift:active {
+  transform: translateX(2px) scale(0.98);
+}
+
+.chip {
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.9, 0.2, 1.4),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+}
+
+.chip:active {
+  transform: scale(0.95);
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  border: 1px solid var(--c-primary);
+  border-radius: 6px;
+}
+
+.skip-link:focus {
+  left: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

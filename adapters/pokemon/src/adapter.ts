@@ -65,13 +65,19 @@ export class PokemonAdapter implements TCGAdapter {
   }
 }
 
+/** TCGdex logo/symbol bases have no extension; `.webp` (and `.png`) are served. */
+export function assetUrl(base: string | undefined, extension: 'webp' | 'png' = 'webp'): string | null {
+  if (!base) return null
+  return /\.(png|webp|jpg)$/i.test(base) ? base : `${base.replace(/\/+$/, '')}.${extension}`
+}
+
 export function toSourceSeries(serie: TCGdexSerie): SourceSeries {
   const { sets, firstSet, lastSet, ...rest } = serie
   return {
     externalId: serie.id,
     name: serie.name,
     releaseDate: serie.releaseDate ?? null,
-    logoUrl: serie.logo ?? null,
+    logoUrl: assetUrl(serie.logo),
     raw: { ...rest, setIds: (sets ?? []).map((s) => s.id) },
   }
 }
@@ -83,8 +89,8 @@ export function toSourceSet(set: TCGdexSet): SourceSet {
     seriesExternalId: set.serie?.id ?? '',
     name: set.name,
     releaseDate: set.releaseDate ?? null,
-    symbolUrl: set.symbol ?? null,
-    logoUrl: set.logo ?? null,
+    symbolUrl: assetUrl(set.symbol),
+    logoUrl: assetUrl(set.logo),
     cardCountTotal: set.cardCount?.total ?? null,
     cardCountOfficial: set.cardCount?.official ?? null,
     raw: { ...rest, cardIds: (cards ?? []).map((c) => c.id) },

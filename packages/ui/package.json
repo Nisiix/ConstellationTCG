@@ -1,0 +1,21 @@
+{
+  "name": "@constellation/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared design tokens and theme presets (framework-free).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@constellation/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

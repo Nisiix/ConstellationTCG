@@ -8,6 +8,7 @@
 import type { EntityKind, Finish, IdentityEntityType } from './catalog'
 import type { FilterDefinition } from './filters'
 import type { GraphRelationship, NodeType } from './graph'
+import type { TCGTheme } from './theme'
 
 export interface TCGDefinition {
   slug: string
@@ -20,6 +21,8 @@ export interface TCGDefinition {
   nodeTypes: NodeType[]
   /** Game-scoped filter definitions (values are computed by the filters package). */
   filters: FilterDefinition[]
+  /** Visual theme: the palette that makes this game recognizable in the dark UI. */
+  theme: TCGTheme
 }
 
 export interface SourceSeries {

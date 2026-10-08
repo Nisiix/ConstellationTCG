@@ -260,7 +260,8 @@ async function ingestSeries(ctx: Context, counters: IngestionCounters): Promise<
   for (const series of list) {
     counters.seen += 1
     try {
-      const hash = contentHash(series.raw)
+      // Hash the whole source record (raw + normalized fields) so adapter changes propagate.
+      const hash = contentHash(series)
       const current = byExternal.get(series.externalId)
       if (current && current.rawHash === hash) {
         counters.unchanged += 1
@@ -329,7 +330,7 @@ async function ingestSets(
       if (!seriesId) {
         throw new Error(`unknown series "${set.seriesExternalId}" for set ${set.externalId}`)
       }
-      const hash = contentHash(set.raw)
+      const hash = contentHash(set)
       const current = byExternal.get(set.externalId)
       if (current && current.rawHash === hash) {
         counters.unchanged += 1

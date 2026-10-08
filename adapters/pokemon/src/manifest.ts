@@ -1,4 +1,49 @@
-import type { FilterDefinition, TCGDefinition } from '@constellation/domain'
+import type { FilterDefinition, TCGDefinition, TCGTheme } from '@constellation/domain'
+
+/**
+ * Pokémon palette: white and red with black contours, on a near-black background.
+ * Structural edges are red, semantic edges white; the species ring is pink-red.
+ */
+export const POKEMON_THEME: TCGTheme = {
+  id: 'pokemon',
+  background: '#09070a',
+  surface: 'rgba(30, 16, 20, 0.66)',
+  primary: '#ff2f45',
+  secondary: '#ffffff',
+  accent: '#ffd6db',
+  outline: '#000000',
+  text: '#fff5f6',
+  textDim: '#caa9b0',
+  particles: '#6b2430',
+  nodes: {
+    game: '#ffffff',
+    series: '#ff2f45',
+    set: '#ff6d7d',
+    card_identity: '#ffffff',
+    card_printing: '#ffe6e9',
+    pokemon: '#ff9aa6',
+    artist: '#ffd6db',
+    mechanic: '#e2495c',
+    attribute: '#b8303f',
+    digital_asset: '#ffd166',
+  },
+  edges: {
+    BELONGS_TO: '#ff2f45',
+    PART_OF: '#ff6d7d',
+    PRINTING_OF: '#ffffff',
+    ILLUSTRATED_BY: '#ffd6db',
+    SAME_POKEMON: '#ff9aa6',
+    EVOLVES_FROM: '#ffffff',
+    EVOLUTION_OF: '#ffffff',
+    HAS_TYPE: '#e2495c',
+    WEAK_TO: '#b8303f',
+    RESISTS: '#b8303f',
+    HAS_ATTACK: '#ff8593',
+    HAS_ABILITY: '#ff8593',
+    HAS_ATTRIBUTE: '#b8303f',
+  },
+  ownership: '#ffd166',
+}
 
 /** Relationship types specific to Pokémon, emitted by this adapter. */
 export const POKEMON_RELATIONSHIPS = [
@@ -106,6 +151,7 @@ export const POKEMON_DEFINITION: TCGDefinition = {
   relationshipTypes: [...POKEMON_RELATIONSHIPS],
   nodeTypes: ['pokemon', 'attribute', 'mechanic'],
   filters: POKEMON_FILTERS,
+  theme: POKEMON_THEME,
 }
 
 export const TCGDEX_SOURCE_NAME = 'tcgdex'

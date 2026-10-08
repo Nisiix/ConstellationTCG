@@ -28,7 +28,8 @@ export function defaultMigrationsDir(): string {
 }
 
 export async function listMigrationFiles(dir = defaultMigrationsDir()): Promise<MigrationFile[]> {
-  const entries = await readdir(dir, { withFileTypes: true })
+  // The directory is runtime-configured (repo root), so bundlers must not try to trace it.
+  const entries = await readdir(/* turbopackIgnore: true */ dir, { withFileTypes: true })
   return entries
     .filter((e) => e.isFile() && e.name.endsWith('.sql'))
     .map((e) => ({ name: e.name, path: path.join(dir, e.name) }))

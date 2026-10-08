@@ -74,6 +74,7 @@ describe('fixture ingestion (Base Set)', () => {
     expect(set?.slug).toBe('base-set')
     expect(set?.releaseDate).toBe('1999-01-09')
     expect(set?.cardCountOfficial).toBe(102)
+    expect(set?.logoUrl).toBe('https://assets.tcgdex.net/en/base/base1/logo.webp')
     const [series] = await database.db.select().from(tcgSeries)
     expect(series?.name).toBe('Base')
   })
