@@ -43,6 +43,8 @@ function parseArgs(argv: string[]): Args {
         if (mode === 'full' || mode === 'incremental' || mode === 'fixture') args.mode = mode
         break
       }
+      case '--':
+        break
       default:
         if (arg?.startsWith('--')) console.warn(`unknown option ${arg}`)
     }

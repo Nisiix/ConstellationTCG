@@ -46,6 +46,11 @@ export async function createPgliteDatabase(dataDir: string | null): Promise<Data
     import('drizzle-orm/pglite'),
   ])
   const memory = !dataDir || dataDir === ':memory:'
+  if (!memory) {
+    // PGlite creates the leaf directory only; make sure the parents exist.
+    const { mkdir } = await import('node:fs/promises')
+    await mkdir(dataDir, { recursive: true })
+  }
   const client = memory
     ? new PGlite({ extensions: { pg_trgm } })
     : new PGlite(dataDir, { extensions: { pg_trgm } })
