@@ -1,0 +1,35 @@
+{
+  "name": "constellation-tcg",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Constellation TCG — a 3D semantic exploration platform for trading card game universes.",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @constellation/web dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "pnpm --filter @constellation/web test:e2e",
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "db:migrate": "pnpm --filter @constellation/worker-ingestion migrate",
+    "ingest": "pnpm --filter @constellation/worker-ingestion start",
+    "ingest:fixture": "pnpm --filter @constellation/worker-ingestion start -- --fixture base1",
+    "graph:build": "pnpm --filter @constellation/worker-graph-builder start",
+    "fixture:refresh": "pnpm --filter @constellation/adapter-pokemon fixture:refresh",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.7",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
