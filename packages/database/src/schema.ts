@@ -408,6 +408,7 @@ export const assetResolutionCandidates = pgTable(
       t.assetId,
       t.printingId,
     ),
+    index('asset_resolution_candidates_printing_idx').on(t.printingId),
   ],
 )
 
@@ -451,7 +452,7 @@ export const ingestionErrors = pgTable(
     resolved: boolean('resolved').notNull().default(false),
     createdAt: timestamps.createdAt,
   },
-  (t) => [index('ingestion_errors_run_idx').on(t.runId)],
+  (t) => [index('ingestion_errors_run_idx').on(t.runId), index('ingestion_errors_source_idx').on(t.sourceId)],
 )
 
 export const sourceSnapshots = pgTable(

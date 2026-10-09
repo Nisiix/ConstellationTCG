@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Figtree, Source_Serif_4 } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { DEFAULT_THEME, themeCssText } from '@constellation/ui'
+import { AuthLinkCatcher } from '@/components/AuthLinkCatcher'
 import { ModeBoot } from '@/components/ModeBoot'
 import { MODE_BOOT_SCRIPT } from '@/lib/mode'
 import './globals.css'
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="antialiased">
         <ModeBoot />
+        <AuthLinkCatcher />
         <a href="#main" className="skip-link">
           Skip to content
         </a>

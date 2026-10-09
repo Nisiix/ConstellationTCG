@@ -52,8 +52,11 @@ DATABASE_URL=<supabase connection string> pnpm graph:build
 ### Accounts and wallets (My Constellation)
 
 Accounts are Supabase Auth email links: set `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` (in the Supabase dashboard, add the site URL and
-`<site>/auth/callback` to the Auth redirect allow list). Signed-in visitors can:
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. In the Supabase dashboard (Authentication → URL Configuration) set
+the Site URL to the public origin and add `<site>/auth/callback` (plus `http://localhost:3000/**`
+for development) to the redirect allow list; until that is done, Supabase sends the link back to
+the Site URL and the app forwards the code to the callback itself. `GET /api/health` reports
+whether accounts are configured and which providers are usable. Signed-in visitors can:
 
 - **link a wallet** — the address is proved by signing a short challenge (EIP-191 `personal_sign`
   on EVM, ed25519 on Solana); a browser wallet signs in one click, any other wallet can paste the

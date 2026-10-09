@@ -3,6 +3,8 @@ import { getGraphStats } from '@constellation/graph'
 import type { SourceHealth } from '@constellation/domain'
 import { getDatabase } from '@/server/db'
 import { errorResponse, json } from '@/server/http'
+import { getProviderRegistry } from '@/server/ownership'
+import { supabaseConfig } from '@/server/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,7 +19,8 @@ interface SourceRow {
 
 function rows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[]
-  if (result && typeof result === 'object' && 'rows' in result) return (result as { rows: T[] }).rows
+  if (result && typeof result === 'object' && 'rows' in result)
+    return (result as { rows: T[] }).rows
   return []
 }
 
@@ -52,6 +55,13 @@ export async function GET() {
         health: healthOf(s),
       })),
       graph,
+      // My Constellation: whether accounts work here and which ownership providers are usable.
+      accounts: {
+        configured: supabaseConfig() !== null,
+        providers: getProviderRegistry()
+          .list()
+          .map((p) => ({ id: p.id, available: p.availability.available })),
+      },
       time: new Date().toISOString(),
     })
   } catch (error) {

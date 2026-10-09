@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isEmail, safeNextPath } from '../auth-redirect'
+import { authCallbackRedirect, isEmail, safeNextPath } from '../auth-redirect'
 import { bytesToHex, utf8ToHex, walletErrorMessage } from '../wallet-bridge'
 
 describe('safeNextPath', () => {
@@ -36,5 +36,31 @@ describe('wallet bridge helpers', () => {
     expect(walletErrorMessage({ code: -32002 })).toMatch(/already asking/)
     expect(walletErrorMessage(new Error('Error: locked'))).toBe('locked')
     expect(walletErrorMessage(null)).toBe('The wallet did not answer.')
+  })
+})
+
+describe('authCallbackRedirect', () => {
+  it('re-addresses a sign-in code that landed on another page to the callback', () => {
+    expect(authCallbackRedirect('http://localhost:3000/?code=abc')).toBe(
+      '/auth/callback?code=abc&next=%2F',
+    )
+    expect(authCallbackRedirect('http://localhost:3000/explore?node=x&code=abc&depth=2')).toBe(
+      '/auth/callback?code=abc&next=%2Fexplore%3Fnode%3Dx%26depth%3D2',
+    )
+    expect(authCallbackRedirect('http://localhost:3000/?token_hash=h&type=magiclink')).toBe(
+      '/auth/callback?token_hash=h&type=magiclink&next=%2F',
+    )
+    expect(
+      authCallbackRedirect(
+        'http://localhost:3000/?error=access_denied&error_code=otp_expired&error_description=x',
+      ),
+    ).toBe('/auth/callback?error=access_denied&error_code=otp_expired&error_description=x&next=%2F')
+  })
+
+  it('leaves ordinary pages and the callback itself alone', () => {
+    expect(authCallbackRedirect('http://localhost:3000/explore?node=x')).toBeNull()
+    expect(authCallbackRedirect('http://localhost:3000/auth/callback?code=abc')).toBeNull()
+    expect(authCallbackRedirect('http://localhost:3000/?type=magiclink')).toBeNull()
+    expect(authCallbackRedirect('not a url')).toBeNull()
   })
 })
