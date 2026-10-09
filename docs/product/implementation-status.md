@@ -245,3 +245,47 @@ statistiche di costellazione, resolver, overlay).
 10. **Cieli condivisi.** Il tuo cielo e quello di un'altra persona sovrapposti: dove si toccano,
     cosa avete in comune, senza scambi né valori. **Richiede una decisione tua**: condividere
     dati di possesso in pubblico è fra le scelte che spettano a te (`CLAUDE.md`).
+
+## Roadmap del master specification: cosa è fatto e cosa manca (9 ottobre 2026)
+
+Verifica dei milestone M0–M8 (cap. 82–91), della sequenza di sviluppo (cap. 119–120), del test di
+accettazione della vertical slice (cap. 118) e dei capitoli di produzione, contro il codice.
+
+| Milestone | Stato | Dettaglio |
+| --------- | ----- | --------- |
+| **M0 Foundation** | ✅ | monorepo, TypeScript, Next.js, schema, tipi di dominio, adapter, test runner, canvas 3D: tutto in piedi. |
+| **M1 Pokémon Catalog** | 🟡 | Pipeline completa (TCGdex → raw → normalize → validate → identity → printing → database) con provenienza; serie, set, carte, stampe, immagini, artisti. **Manca l'esecuzione dell'import completo** (Task 014): ovunque c'è solo la fixture Base Set. Lingue: una sola per ingestione (`TCGDEX_LANGUAGE`), non il multilingua. |
+| **M1 Tests** | ✅ | conteggi, identità e stampe duplicate, id mancanti, relazioni rotte, set non validi, immagini non valide (fallback) coperti da test di adapter, ingestione, grafo. |
+| **M2 Search** | ✅ | carte, set, serie, Pokémon, artisti, fuzzy, focus da URL. La *command palette* è stata rimossa su tua richiesta: fuori dalla roadmap, non mancante. |
+| **M3 Real Graph** | ✅ | API del grafo, nodi, archi, layout a forze, semantic camera, focus, relazioni animate, espansione progressiva. In più `REPRINT_OF`. |
+| **M4 Advanced Filters** | 🟡 | filtri schema-driven, dipendenti (set da serie), profondità, tipo di nodo, lingua, variante. **Manca il filtro per tipo di relazione nell'interfaccia**: è dichiarato (`relationship`) e l'API lo applica (`relationshipTypes`), ma senza valori non viene mostrato. |
+| **M5 My Constellation** | ✅ | autenticazione, collegamento wallet con firma, scoperta asset, resolver, confidenza, storage, overlay visivo (+ scelta manuale, statistiche, effetti). |
+| **M6 Digital Platforms** | 🟡 | EVM generico (Blockscout) e Solana (DAS) fatti. **OpenSea** (API key), **Phygitals** (API user-scoped), integrazioni specifiche: non fatti; ognuno è un adapter in `packages/ownership/src/providers`. |
+| **M7 Production** | 🟡 | ✅ RLS verificata con gli advisor, rate limiting, caching (server, HTTP, client), source health e freschezza dei dati in `/api/health`, `Server-Timing`. **Mancano**: integrazione continua (nessun workflow in `.github/`: typecheck, test, build ed e2e girano solo a mano); error monitoring (servizio esterno: decisione tua); intestazioni di sicurezza (CSP, frame, referrer) in `next.config`; navigazione da tastiera nel cielo 3D (la vista List è accessibile, il cielo no); misura del budget di prestazioni (60 fps su 100–500 nodi) con un test automatico; configurazione di deploy (Vercel) versionata. |
+| **M8 Second TCG** | ❌ | One Piece, poi MTG, Yu-Gi-Oh!, Lorcana: non iniziato (proposto fuori da questa fase, Q5). |
+
+**Sequenza di sviluppo (cap. 119)**: fasi 0–1 e 3–8 fatte; **fase 2 (ingestione completa)** da eseguire da una
+macchina con rete; fase 9 non iniziata; fase 10 parziale come sopra. **Ordine immediato (cap. 120)**:
+Task 001–013 fatti, **Task 014 (import completo) no**.
+
+**Test di accettazione della vertical slice (cap. 118)**: tutti i passi passano, con una deviazione
+voluta: "Pokémon relationship appears" oggi compare solo con il filtro Node type (su tua richiesta
+le connessioni di default sono carte, set e artista).
+
+**Capitoli di produzione**: Firecrawl (70–71) non implementato, e non necessario finché l'unica fonte
+è l'API stabile di TCGdex (servirebbe un account: decisione tua). Osservabilità (102): ingestione,
+confidenza del resolver, asset non risolti, errori dei provider registrati; latenze solo come
+`Server-Timing`; crash lato client non raccolti. Licensing (105): verifica non fatta (Q10).
+
+**Future Features (cap. 111)**: public exploration links ✅ (`/card/...`, `/set/...`, link
+dell'explorer); artist universes, Pokémon evolution maps, card lineage 🟡 (le relazioni ci sono,
+manca una vista dedicata); shared constellations, saved views, constellation snapshots, community
+annotations, semantic collections, set timelines, cross-TCG ❌.
+
+### Vittorie rapide emerse dalla verifica
+
+1. Workflow di integrazione continua (typecheck, test, build, e2e con il Chromium di Playwright).
+2. Filtro per tipo di relazione: basta dare valori al filtro `relationship` (tipi universali +
+   quelli dell'adapter) perché il pannello lo mostri e l'API già lo applichi.
+3. Intestazioni di sicurezza in `next.config` (CSP con le sole origini usate: TCGdex, Supabase).
+4. Tastiera nel cielo: frecce per passare da una connessione all'altra, Invio per volare.
