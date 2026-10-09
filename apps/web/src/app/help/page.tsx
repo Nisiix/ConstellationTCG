@@ -67,7 +67,7 @@ export default function HelpPage() {
           <ul>
             <li>
               <strong>Rings.</strong> Every point is outlined in the color of what it is: sets and series in the game&apos;s color,
-              cards, Pokémon and artists in white, types and abilities in grey. The legend at the bottom of the map lists the
+              cards, Pokémon and artists in white, types in grey. The legend at the bottom of the map lists the
               kinds on screen.
             </li>
             <li>
@@ -106,7 +106,7 @@ export default function HelpPage() {
             </li>
             <li>
               <strong>Filters</strong> (<kbd>F</kbd>) narrow which cards appear around the focus: set, rarity, type, evolution stage,
-              ability, weakness, resistance and more. Filters depend on the game: a game adds its own.
+              weakness, resistance and more. Filters depend on the game: a game adds its own.
             </li>
             <li>
               <strong>Sharing.</strong> Every view has a link. It holds the focus, the depth, the view mode and the filters: paste it

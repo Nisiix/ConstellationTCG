@@ -109,7 +109,7 @@ describe('fixture ingestion (Base Set)', () => {
       .where(sql`${printingEntities.printingId} = ${charizard?.id}`)
     const relations = links.map((l) => l.relation).sort()
     expect(relations).toEqual(
-      ['HAS_ABILITY', 'HAS_TYPE', 'RESISTS', 'SAME_POKEMON', 'WEAK_TO'].sort(),
+      ['HAS_TYPE', 'RESISTS', 'SAME_POKEMON', 'WEAK_TO'].sort(),
     )
     const species = (await database.db.select().from(entities)).find((e) => e.key === 'dex:6')
     expect(species?.name).toBe('Charizard')

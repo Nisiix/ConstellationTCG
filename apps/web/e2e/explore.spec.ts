@@ -36,6 +36,7 @@ test.describe('exploring (list view, no WebGL needed)', () => {
     await expect(page.getByRole('region', { name: 'Artist' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Evolves from' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Attack' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Ability' })).toHaveCount(0)
     // follow a connection
     await page.getByRole('region', { name: 'Set' }).getByRole('link', { name: /Base Set/ }).click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Base Set')
@@ -62,6 +63,7 @@ test.describe('exploring (list view, no WebGL needed)', () => {
     expect(body.meta.depth).toBe(3)
     expect(body.summary.some((s) => s.relationshipType === 'BELONGS_TO')).toBeTruthy()
     expect(body.summary.some((s) => s.relationshipType === 'HAS_ATTACK')).toBeFalsy()
+    expect(body.summary.some((s) => s.relationshipType === 'HAS_ABILITY')).toBeFalsy()
   })
 
   test('the API answers 429 to a burst beyond the limit', async ({ request }) => {

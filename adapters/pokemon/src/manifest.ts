@@ -20,7 +20,6 @@ export const POKEMON_THEME: TCGTheme = {
     card_printing: 'contrast',
     pokemon: 'contrast',
     artist: 'contrast',
-    mechanic: 'muted',
     attribute: 'muted',
     digital_asset: 'accent',
   },
@@ -35,8 +34,6 @@ export const POKEMON_THEME: TCGTheme = {
     HAS_TYPE: 'muted',
     WEAK_TO: 'muted',
     RESISTS: 'muted',
-    HAS_ATTACK: 'muted',
-    HAS_ABILITY: 'muted',
     HAS_ATTRIBUTE: 'muted',
   },
   modes: {
@@ -68,7 +65,6 @@ export const POKEMON_RELATIONSHIPS = [
   'EVOLVES_FROM',
   'EVOLVES_TO',
   'HAS_TYPE',
-  'HAS_ABILITY',
   'WEAK_TO',
   'RESISTS',
   'SAME_POKEMON',
@@ -77,7 +73,7 @@ export const POKEMON_RELATIONSHIPS = [
 
 export type PokemonRelationship = (typeof POKEMON_RELATIONSHIPS)[number]
 
-/** Game filters. Card stats and print marks (HP, attacks, costs, regulation mark) are deliberately not filters: they are data, not relationships. */
+/** Game filters. Card stats and print marks (HP, attacks, abilities, costs, regulation mark) are deliberately not filters: they are data, not relationships. */
 export const POKEMON_FILTERS: FilterDefinition[] = [
   {
     id: 'pokemon.species',
@@ -104,14 +100,6 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
     source: { kind: 'attribute', path: 'stage' },
   },
   {
-    id: 'pokemon.ability',
-    label: 'Ability',
-    type: 'select',
-    scope: 'game',
-    appliesTo: ['card_printing'],
-    source: { kind: 'entity', entityKind: 'mechanic', relation: 'HAS_ABILITY' },
-  },
-  {
     id: 'pokemon.weakness',
     label: 'Weakness',
     type: 'multi',
@@ -135,7 +123,7 @@ export const POKEMON_DEFINITION: TCGDefinition = {
   publisher: 'The Pokémon Company',
   adapterKey: 'pokemon',
   relationshipTypes: [...POKEMON_RELATIONSHIPS],
-  nodeTypes: ['pokemon', 'attribute', 'mechanic'],
+  nodeTypes: ['pokemon', 'attribute'],
   filters: POKEMON_FILTERS,
   theme: POKEMON_THEME,
   placeholderImages: {

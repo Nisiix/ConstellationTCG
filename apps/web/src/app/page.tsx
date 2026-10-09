@@ -31,7 +31,7 @@ const STEPS = [
   },
 ] as const
 
-const CONNECTIONS = ['Set', 'Series', 'Pokémon', 'Artist', 'Evolves from', 'Printings', 'Type', 'Weakness', 'Resistance', 'Ability']
+const CONNECTIONS = ['Set', 'Series', 'Pokémon', 'Artist', 'Evolves from', 'Printings', 'Type', 'Weakness', 'Resistance']
 
 const PRINCIPLES = [
   { title: 'Exploration first', text: 'Not “what is this card worth?” but “what is this card connected to?”.' },
@@ -183,7 +183,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <p className="mt-1 text-[14px] text-ink-dim">
-                    {game.publisher ?? ''} · data from TCGdex · sets, cards, Pokémon, artists, evolutions, types and abilities.
+                    {game.publisher ?? ''} · data from TCGdex · sets, cards, Pokémon, artists, evolutions and types.
                   </p>
                   <Link href={`/explore?game=${encodeURIComponent(game.slug)}`} className="btn btn-primary pill mt-4" style={{ ['--c-primary' as string]: 'var(--brand)' }}>
                     Explore {game.name.replace(' Trading Card Game', '')}

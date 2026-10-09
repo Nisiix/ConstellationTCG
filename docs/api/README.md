@@ -66,8 +66,8 @@ One node and its relationship summary: `{ node, summary }`.
 
 `{ game, filters: FilterDefinition[] }` — universal filters (series, set, rarity, language, artist,
 variant, finish, card type, relationship, node type, graph depth, ownership) followed by the game's
-own (Pokémon: species, type, evolution stage, ability, weakness, resistance, regulation mark —
-card statistics such as HP, attacks and costs are deliberately not filters). Values and ranges are computed from the catalog and cached.
+own (Pokémon: species, type, evolution stage, weakness, resistance — card statistics such as HP,
+attacks, abilities, costs and print marks are deliberately not filters). Values and ranges are computed from the catalog and cached.
 
 ## `GET /api/games`
 

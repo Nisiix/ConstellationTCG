@@ -54,7 +54,7 @@ describe('normalizeCard — TCGdex Charizard (Base Set)', () => {
     expect(normalized.attributes).not.toHaveProperty('pricing')
   })
 
-  it('extracts semantic entities (species, types, mechanics)', () => {
+  it('extracts semantic entities (species, types) and keeps card statistics as data', () => {
     const normalized = normalizeCard(toSource(cards.find((c) => c.id === 'base1-4') as TCGdexCard))
     const byRelation = (relation: string) =>
       normalized.entities.filter((e) => e.relation === relation).map((e) => e.key)
@@ -63,11 +63,12 @@ describe('normalizeCard — TCGdex Charizard (Base Set)', () => {
     expect(byRelation('HAS_TYPE')).toEqual(['type:fire'])
     expect(byRelation('WEAK_TO')).toEqual(['type:water'])
     expect(byRelation('RESISTS')).toEqual(['type:fighting'])
-    expect(byRelation('HAS_ABILITY')).toEqual(['ability:energy-burn'])
-    // Attacks are card data, never entities (they stay in attributes for display only).
+    // Abilities and attacks are card data, never entities (they stay in attributes for display only).
+    expect(byRelation('HAS_ABILITY')).toEqual([])
     expect(byRelation('HAS_ATTACK')).toEqual([])
-    expect(normalized.entities.some((e) => e.key.startsWith('attack:'))).toBe(false)
+    expect(normalized.entities.some((e) => e.kind === 'mechanic')).toBe(false)
     expect(Array.isArray(normalized.attributes.attacks)).toBe(true)
+    expect(Array.isArray(normalized.attributes.abilities)).toBe(true)
   })
 
   it('names the species from the Pokédex, not from the card name', () => {

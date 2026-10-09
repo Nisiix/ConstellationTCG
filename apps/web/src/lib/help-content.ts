@@ -13,7 +13,7 @@ export const HOW_IT_WORKS: HelpStep[] = [
   },
   {
     title: 'Read the colors.',
-    text: 'Every point is outlined in the color of what it is (sets and series in the brand color, cards, Pokémon and artists in white, types and attacks in grey); the lines carry the same colors. The legend at the bottom spells it out.',
+    text: 'Every point is outlined in the color of what it is (sets and series in the brand color, cards, Pokémon and artists in white, types in grey); the lines carry the same colors. The legend at the bottom spells it out.',
   },
   {
     title: 'Follow',

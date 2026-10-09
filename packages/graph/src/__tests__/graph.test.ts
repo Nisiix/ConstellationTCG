@@ -46,9 +46,8 @@ describe('graph projection', () => {
     expect(stats.byNodeType.artist).toBe(4)
     expect(stats.byNodeType.pokemon).toBeGreaterThan(50)
     expect(stats.byNodeType.attribute).toBeGreaterThan(5)
-    // Mechanics are abilities only: attacks are card data, not points.
-    expect(stats.byNodeType.mechanic).toBeGreaterThan(3)
-    expect(stats.byNodeType.mechanic).toBeLessThan(30)
+    // Abilities and attacks are card data, not points: no mechanic nodes at all.
+    expect(stats.byNodeType.mechanic ?? 0).toBe(0)
     expect(stats.nodes).toBe(game?.nodes)
     expect(stats.edges).toBe(game?.edges)
   })
@@ -106,7 +105,7 @@ describe('neighborhood', () => {
     expect(labels.has('artist:Mitsuhiro Arita')).toBe(true)
     expect(labels.has('pokemon:Charizard')).toBe(true)
     expect(labels.has('attribute:Fire')).toBe(true)
-    expect(labels.has('mechanic:Energy Burn')).toBe(true)
+    expect(labels.has('mechanic:Energy Burn')).toBe(false)
     expect(labels.has('mechanic:Fire Spin')).toBe(false)
     const types = new Set(hood.edges.map((e) => e.relationshipType))
     expect(types).toContain('BELONGS_TO')

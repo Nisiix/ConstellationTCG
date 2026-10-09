@@ -28,6 +28,7 @@ function context(overrides: Partial<RelationshipContext> = {}): RelationshipCont
         metadata: { value: '×2' },
       },
       { kind: 'mechanic', key: 'attack:fire-spin', relation: 'HAS_ATTACK', nodeId: 'mechanic:fs', metadata: {} },
+      { kind: 'mechanic', key: 'ability:energy-burn', relation: 'HAS_ABILITY', nodeId: 'mechanic:eb', metadata: {} },
     ],
     identityNodeIdByName: (name) => (name === 'charmeleon' ? 'card_identity:charmeleon' : null),
     entityNodeIdByKey: () => null,
@@ -45,8 +46,10 @@ describe('buildRelationships', () => {
     expect(pairs).toContain('SAME_POKEMON card_printing:p1 -> pokemon:6')
     expect(pairs).toContain('HAS_TYPE card_printing:p1 -> attribute:fire')
     expect(pairs).toContain('WEAK_TO card_printing:p1 -> attribute:water')
-    // A stale attack link (from an older ingestion) never becomes an edge.
+    // Stale attack or ability links (from an older ingestion) never become edges.
     expect(pairs.some((p) => p.startsWith('HAS_ATTACK'))).toBe(false)
+    expect(pairs.some((p) => p.startsWith('HAS_ABILITY'))).toBe(false)
+    expect(pairs.some((p) => p.includes('mechanic:'))).toBe(false)
     expect(pairs).toContain('EVOLVES_FROM card_printing:p1 -> card_identity:charmeleon')
     expect(pairs).toContain('EVOLUTION_OF card_identity:charizard -> card_identity:charmeleon')
     expect(rels.find((r) => r.relationshipType === 'WEAK_TO')?.metadata).toEqual({ value: '×2' })

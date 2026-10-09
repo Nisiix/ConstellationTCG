@@ -35,7 +35,7 @@ describe('Pokémon manifest', () => {
 
   it('exposes Pokémon relationship and node types to the core', () => {
     expect(POKEMON_DEFINITION.relationshipTypes).toContain('EVOLVES_FROM')
-    expect(POKEMON_DEFINITION.nodeTypes).toEqual(['pokemon', 'attribute', 'mechanic'])
+    expect(POKEMON_DEFINITION.nodeTypes).toEqual(['pokemon', 'attribute'])
     expect(POKEMON_DEFINITION.filters.every((f) => f.scope === 'game' && f.id.startsWith('pokemon.'))).toBe(true)
   })
 })

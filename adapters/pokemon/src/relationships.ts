@@ -9,22 +9,16 @@ export const RELATIONSHIP_WEIGHTS: Record<string, number> = {
   EVOLUTION_OF: 0.9,
   ILLUSTRATED_BY: 0.8,
   HAS_TYPE: 0.5,
-  HAS_ATTACK: 0.4,
-  HAS_ABILITY: 0.4,
   HAS_ATTRIBUTE: 0.3,
   WEAK_TO: 0.3,
   RESISTS: 0.3,
 }
 
-/** Entity links that become edges. Stale links of other kinds (e.g. attacks) are ignored. */
-const ENTITY_RELATIONS = new Set([
-  'SAME_POKEMON',
-  'HAS_TYPE',
-  'WEAK_TO',
-  'RESISTS',
-  'HAS_ABILITY',
-  'HAS_ATTRIBUTE',
-])
+/**
+ * Entity links that become edges. Stale links of other kinds (attacks or abilities from an older
+ * ingestion) are ignored: card statistics are data, never connections.
+ */
+const ENTITY_RELATIONS = new Set(['SAME_POKEMON', 'HAS_TYPE', 'WEAK_TO', 'RESISTS', 'HAS_ATTRIBUTE'])
 
 /**
  * Relationships for one printing. Universal catalog edges (set → series → game) are emitted by
@@ -35,7 +29,6 @@ const ENTITY_RELATIONS = new Set([
  *   printing → artist         ILLUSTRATED_BY
  *   printing → pokemon        SAME_POKEMON
  *   printing → attribute      HAS_TYPE / WEAK_TO / RESISTS / HAS_ATTRIBUTE
- *   printing → mechanic       HAS_ABILITY
  *   printing → identity       EVOLVES_FROM   (the pre-evolution's identity)
  *   identity → identity       EVOLUTION_OF   (identity-level evolution line)
  */

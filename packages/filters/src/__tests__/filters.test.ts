@@ -36,6 +36,7 @@ describe('filter definitions', () => {
     // Card stats are data, not filters.
     expect(ids).not.toContain('pokemon.hp')
     expect(ids).not.toContain('pokemon.attack')
+    expect(ids).not.toContain('pokemon.ability')
     expect(ids).not.toContain('pokemon.retreat')
 
     const type = defs.find((d) => d.id === 'pokemon.type')

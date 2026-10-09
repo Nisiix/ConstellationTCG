@@ -76,8 +76,8 @@ Game filters are declared, not coded:
   source: { kind: 'attribute', path: 'stage' } }
 { id: 'pokemon.type', label: 'Type', type: 'multi', scope: 'game', appliesTo: ['card_printing'],
   source: { kind: 'attribute', path: 'types', array: true } }
-{ id: 'pokemon.ability', label: 'Ability', type: 'select', scope: 'game', appliesTo: ['card_printing'],
-  source: { kind: 'entity', entityKind: 'mechanic', relation: 'HAS_ABILITY' } }
+{ id: 'pokemon.weakness', label: 'Weakness', type: 'multi', scope: 'game', appliesTo: ['card_printing'],
+  source: { kind: 'entity', entityKind: 'attribute', relation: 'WEAK_TO' } }
 ```
 
 `source.kind` is `column` (a `card_printings` column), `attribute` (a key in the printing's JSON

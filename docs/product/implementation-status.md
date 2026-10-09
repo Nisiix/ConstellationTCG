@@ -51,7 +51,8 @@
 - **Tipi di relazione previsti dal documento** — 🟡.
   - Presenti e usati dall'adapter Pokémon: `EVOLUTION_OF`, `SAME_POKEMON` (same character),
     `ILLUSTRATED_BY` (same artist), `PART_OF` / `BELONGS_TO` (set, serie), `PRINTING_OF`,
-    `HAS_TYPE`, `HAS_ABILITY`, `HAS_ATTACK`, `HAS_ATTRIBUTE`.
+    `HAS_TYPE`, `WEAK_TO`, `RESISTS`, `HAS_ATTRIBUTE`. Attacchi e abilità restano dati della carta,
+    mai nodi o archi.
   - Dichiarati nel core ma non ancora emessi da nessun adapter: `ALTERNATE_PRINTING`,
     `REPRINT_OF`, `SAME_VARIANT`, `RELATED_TO`, `REPRESENTS_ASSET`. "Variant" e "Related print"
     oggi si raggiungono tramite l'identità ("Also printed in", `useOtherPrintings`), non come archi
@@ -160,10 +161,9 @@
 7. **Secondo TCG** (MTG o One Piece) per dimostrare il core agnostico; **adapter Phygitals** se
    le loro API lo consentono.
 
-## Nota su un'ambiguità aperta
+## Decisione presa: statistiche di carta mai come nodi
 
-Il `CLAUDE.md` dice che le statistiche di carta (HP, attacchi, costi) restano in `attributes` e
-non diventano entità o archi; l'adapter Pokémon emette però `HAS_ATTACK` / `HAS_ABILITY` /
-`HAS_TYPE` verso nodi `mechanic` e `attribute` (tipi, abilità, attacchi come meccaniche). I filtri
-numerici (HP, costo di ritirata, regulation mark) sono stati rimossi su richiesta; se anche
-attacchi e abilità vanno considerati "statistiche", quegli archi vanno tolti dall'adapter.
+Attacchi, abilità, HP e costi restano negli `attributes` della stampa (visibili nella vista
+Details) e non diventano entità, archi o filtri. L'adapter Pokémon non emette più nodi `mechanic`
+né archi `HAS_ABILITY`; eventuali collegamenti residui di ingestioni precedenti vengono ignorati dal
+graph builder. Il tipo di nodo `mechanic` resta disponibile nel core, agnostico, per altri TCG.
