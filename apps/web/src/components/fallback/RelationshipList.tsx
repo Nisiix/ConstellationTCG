@@ -3,19 +3,28 @@
 import { useMemo, useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
 import { NODE_TYPE_LABELS } from '@/lib/colors'
-import { useNodeColor } from '@/lib/theme'
+import { detailRows } from '@/lib/details'
+import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
 import { buildExploreUrl } from '@/lib/url'
 import { useGraphStore } from '@/state/graph-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useExploreNavigation } from '../navigation'
+import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
+import { Facts, Prose } from '../ui/Facts'
 import { NodeBadge } from '../ui/NodeBadge'
 import { NodeImage } from '../ui/NodeImage'
+import { OwnButton } from '../ui/OwnButton'
 
 const DEPTH_LABEL: Record<number, string> = { 1: 'Direct connections', 2: 'Extended connections', 3: 'Deep connections' }
 
+type Go = (id: string, follow?: boolean) => (e: React.MouseEvent) => void
+
 /**
- * List view: a full page with everything about the focus and its connections, laid out as a
- * readable document (no 3D). The same links as the scene; the "3D" button brings the scene back.
+ * List view: the same exploration as the sky, without WebGL. Two panels and no more: the point
+ * (image, data, description, other printings) on the left, every connection on the right as
+ * compact chips grouped by kind, so a card's sets, Pokémon, artist, evolutions and printings are
+ * all in view at once. The same links as the scene; depth and the 3D/List switch live in the HUD.
  */
 export function RelationshipList() {
   const navigation = useExploreNavigation()
@@ -27,6 +36,7 @@ export function RelationshipList() {
   const isUniverse = useGraphStore((s) => s.isUniverse)
   const truncated = useGraphStore((s) => s.truncated)
   const filtered = useGraphStore((s) => s.filtered)
+  const other = useOtherPrintings(focus)
   const [copied, setCopied] = useState(false)
 
   const current = navigation.current
@@ -62,7 +72,7 @@ export function RelationshipList() {
 
   if (!focus) return null
 
-  const go = (nodeId: string, follow = false) => (e: React.MouseEvent) => {
+  const go: Go = (nodeId, follow = false) => (e) => {
     e.preventDefault()
     navigation.goTo(nodeId, { follow })
   }
@@ -79,43 +89,32 @@ export function RelationshipList() {
 
   const isCard = focus.nodeType === 'card_printing' || focus.nodeType === 'card_identity'
   const details = detailRows(focus)
+  const description = typeof focus.metadata.description === 'string' ? focus.metadata.description : null
 
   return (
-    <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-4">
+    <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-3">
       <div className="mx-auto w-full max-w-6xl">
-        {/* ── header ── */}
-        <header className="panel fade-up flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2">
-              <NodeBadge type={focus.nodeType} />
-              <span className="text-[12.5px] text-ink-dim">
+        {/* ── header: who is in focus and what you can do ── */}
+        <header className="panel fade-up flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <NodeBadge type={focus.nodeType} />
+            <div className="min-w-0">
+              <h1 className="title-reveal truncate text-[26px] leading-tight">{focus.label}</h1>
+              <p className="truncate text-[13px] text-ink-dim">
+                {focus.subtitle ? `${focus.subtitle} · ` : ''}
                 {isUniverse ? 'Universe' : DEPTH_LABEL[depth]}
                 {truncated ? ' · partial' : ''}
                 {filtered ? ' · filtered' : ''}
-              </span>
+              </p>
             </div>
-            <h1 className="text-[34px] leading-tight">{focus.label}</h1>
-            {focus.subtitle ? <p className="mt-1 text-[15px] text-ink-dim">{focus.subtitle}</p> : null}
           </div>
           <div className="flex flex-none flex-wrap items-center gap-2">
+            <OwnButton node={focus} />
             <button type="button" onClick={navigation.back} className="btn btn-ghost">
               ← Back
             </button>
             <button type="button" onClick={share} className="btn btn-ghost">
               {copied ? 'Link copied' : 'Share'}
-            </button>
-            {!isUniverse ? (
-              <>
-                <button type="button" onClick={navigation.expand} disabled={depth >= 3} className="btn btn-ghost" title="Also show what the connections are connected to (E)">
-                  Show more
-                </button>
-                <button type="button" onClick={navigation.collapse} disabled={depth <= 1} className="btn btn-ghost" title="Direct connections only (C)">
-                  Direct only
-                </button>
-              </>
-            ) : null}
-            <button type="button" onClick={() => navigation.setView('3d')} className="btn btn-primary" title="Back to the constellation (L)">
-              Open in 3D
             </button>
           </div>
         </header>
@@ -123,65 +122,70 @@ export function RelationshipList() {
         {isUniverse && universe ? (
           <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
         ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-[20rem_1fr]">
-            {/* ── left: identity ── */}
-            <div className="space-y-4">
+          <div className="mt-3 grid gap-3 md:grid-cols-[18rem_1fr] md:items-start">
+            {/* ── left: the point itself, everything grouped in one panel ── */}
+            <section className="panel fade-up p-4 md:sticky md:top-20" aria-label="Details">
               {focus.imageUrl ? (
-                <section className="panel fade-up flex justify-center p-5">
+                <div className="mb-3 flex justify-center">
                   <NodeImage
                     node={focus}
-                    className={isCard ? 'img-frame w-full max-w-[16rem] rounded-xl' : 'max-h-28 object-contain'}
+                    className={isCard ? 'img-frame w-40 rounded-lg' : 'max-h-16 object-contain'}
                     loading="eager"
                     placeholder={null}
                   />
-                </section>
+                </div>
               ) : null}
-              {details.length > 0 ? (
-                <section className="panel fade-up p-5" aria-label="Details">
-                  <h2 className="serif mb-3 text-[18px]">Details</h2>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[14px]">
-                    {details.map(([k, v]) => (
-                      <div key={k} className="contents">
-                        <dt className="text-ink-dim">{k}</dt>
-                        <dd className="text-ink">{v}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
+              <Facts rows={details} />
+              {description ? <Collapsible label="In the words of the card">{description}</Collapsible> : null}
+              {focus.nodeType === 'card_printing' && other.status !== 'idle' ? (
+                <div className="mt-3 border-t border-ink/10 pt-3">
+                  <h2 className="eyebrow mb-1.5 flex items-center justify-between">
+                    <span>Also printed in</span>
+                    {other.status === 'ready' ? <span className="count">{other.printings.length}</span> : null}
+                  </h2>
+                  {other.status === 'loading' ? <p className="breathe text-[12.5px] text-ink-dim">Looking…</p> : null}
+                  {other.status === 'ready' && other.printings.length === 0 ? (
+                    <p className="text-[12.5px] text-ink-dim">Only printing in the catalog.</p>
+                  ) : null}
+                  <ChipList
+                    nodes={other.printings}
+                    hrefFor={hrefFor}
+                    go={go}
+                    limit={8}
+                    label={(n) => `${String(n.metadata.setName ?? n.subtitle ?? '')}${typeof n.metadata.releaseDate === 'string' ? ` · ${n.metadata.releaseDate.slice(0, 4)}` : ''}`}
+                  />
+                  {other.identityNodeId ? (
+                    <a href={hrefFor(other.identityNodeId)} onClick={go(other.identityNodeId)} className="btn btn-quiet mt-1 text-[12.5px]">
+                      See the card and all its printings →
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
-              {typeof focus.metadata.description === 'string' && focus.metadata.description ? (
-                <section className="panel fade-up p-5" aria-label="Description">
-                  <h2 className="serif mb-2 text-[18px]">Description</h2>
-                  <p className="serif text-[15px] leading-relaxed text-ink/90">{focus.metadata.description}</p>
-                </section>
-              ) : null}
-            </div>
+            </section>
 
-            {/* ── right: connections ── */}
-            <div className="space-y-4">
-              {groups.length === 0 ? (
-                <section className="panel p-5 text-[14px] text-ink-dim">No connections yet.</section>
-              ) : (
-                groups.map((group, i) => (
-                  <GroupSection key={group.key} group={group} index={i} hrefFor={hrefFor} go={go} />
-                ))
-              )}
+            {/* ── right: every connection, grouped, as chips ── */}
+            <section className="panel fade-up p-4" aria-label="Connections">
+              <div className="mb-2 flex items-baseline justify-between">
+                <h2 className="serif text-[18px]">Connections</h2>
+                <span className="text-[12px] text-ink-dim">
+                  {groups.reduce((n, g) => n + g.total, 0)} · click any to make it the focus
+                </span>
+              </div>
+              {groups.length === 0 ? <p className="text-[14px] text-ink-dim">No connections yet.</p> : null}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {groups.map((group, i) => (
+                  <ConnectionGroup key={group.key} group={group} index={i} hrefFor={hrefFor} go={go} />
+                ))}
+              </div>
               {farther.length > 0 ? (
-                <section className="panel fade-up p-5" aria-label="Further away">
-                  <h2 className="serif mb-1 text-[18px]">Further away</h2>
-                  <p className="mb-3 text-[13px] text-ink-dim">Two or three steps from {focus.label}.</p>
-                  <ul className="flex flex-wrap gap-1.5">
-                    {farther.slice(0, 160).map((node) => (
-                      <li key={node.id}>
-                        <a href={hrefFor(node.id)} onClick={go(node.id)} className="chip">
-                          {node.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                <div className="mt-3 border-t border-ink/10 pt-3">
+                  <h3 className="eyebrow mb-1.5">
+                    Further away <span className="font-normal">· two or three steps from {focus.label}</span>
+                  </h3>
+                  <ChipList nodes={farther} hrefFor={hrefFor} go={go} limit={24} />
+                </div>
               ) : null}
-            </div>
+            </section>
           </div>
         )}
       </div>
@@ -189,71 +193,109 @@ export function RelationshipList() {
   )
 }
 
-function Thumb({ node }: { node: GraphNode }) {
-  const colorOf = useNodeColor()
-  const logo = node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
+function Collapsible({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
   return (
-    <NodeImage
-      node={node}
-      small
-      alt=""
-      loading="lazy"
-      className={logo ? 'h-10 w-14 flex-none rounded-md bg-node object-contain p-1' : 'img-frame h-12 w-9 flex-none rounded-md object-cover'}
-      placeholder={
-        <span className="flex h-12 w-9 flex-none items-center justify-center rounded-md" style={{ background: `color-mix(in oklab, ${colorOf(node.nodeType)} 14%, transparent)` }} aria-hidden>
-          <span className="dot" style={{ color: colorOf(node.nodeType) }} />
-        </span>
-      }
-    />
+    <div className="mt-3 border-t border-ink/10 pt-3">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="eyebrow flex w-full items-center justify-between" aria-expanded={open}>
+        {label}
+        <span className="font-normal">{open ? 'hide' : 'show'}</span>
+      </button>
+      {open ? <Prose className="mt-2">{children}</Prose> : null}
+    </div>
   )
 }
 
-function GroupSection({
-  group,
-  index,
+/** A connection as a chip: thumbnail, name, and (on hover) what it is. */
+function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; onClick: (e: React.MouseEvent) => void; label?: string }) {
+  const colorOf = useNodeColor()
+  const owned = useOwnershipStore((s) => s.ownedNodeIds.has(node.id))
+  const logo = node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className={`chip max-w-full text-[13px] ${owned ? 'chip-owned' : ''}`}
+      title={`${NODE_TYPE_LABELS[node.nodeType]}${node.subtitle ? ` · ${node.subtitle}` : ''}${owned ? ' · in your constellation' : ''}`}
+    >
+      <NodeImage
+        node={node}
+        small
+        alt=""
+        loading="lazy"
+        className={logo ? 'h-5 w-7 flex-none rounded-sm bg-node object-contain' : 'h-6 w-[18px] flex-none rounded-sm object-cover'}
+        placeholder={<span className="dot" style={{ color: colorOf(node.nodeType) }} aria-hidden />}
+      />
+      <span className="truncate">{label ?? node.label}</span>
+    </a>
+  )
+}
+
+function ChipList({
+  nodes,
   hrefFor,
   go,
+  limit,
+  label,
 }: {
-  group: RelationshipGroup
-  index: number
+  nodes: GraphNode[]
   hrefFor: (id: string) => string
-  go: (id: string, follow?: boolean) => (e: React.MouseEvent) => void
+  go: Go
+  limit: number
+  label?: (n: GraphNode) => string
 }) {
   const [expanded, setExpanded] = useState(false)
-  const limit = 12
-  const items = expanded ? group.items : group.items.slice(0, limit)
+  const shown = expanded ? nodes : nodes.slice(0, limit)
+  if (nodes.length === 0) return null
   return (
-    <section className="panel pop-in p-5" style={{ '--i': index } as React.CSSProperties} aria-label={group.label}>
-      <h2 className="serif mb-3 flex items-baseline justify-between text-[18px]">
-        <span>{group.label}</span>
-        <span className="text-[13px] text-ink-dim">{group.total}</span>
-      </h2>
-      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
-        {items.map(({ node, metadata }) => (
-          <li key={node.id}>
-            <a href={hrefFor(node.id)} onClick={go(node.id, true)} className="row-link" title={NODE_TYPE_LABELS[node.nodeType]}>
-              <Thumb node={node} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{node.label}</span>
-                <span className="block truncate text-[12px] text-ink-dim">{typeof metadata.value === 'string' ? metadata.value : node.subtitle}</span>
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      {group.items.length > limit ? (
-        <button type="button" onClick={() => setExpanded((e) => !e)} className="btn btn-quiet mt-2 text-[13px]">
-          {expanded ? 'Show less' : `Show ${group.items.length - limit} more`}
+    <div className="flex flex-wrap gap-1.5">
+      {shown.map((n, i) => (
+        <span key={n.id} className="pop-in min-w-0 max-w-full" style={{ '--i': Math.min(i, 14) } as React.CSSProperties}>
+          <Chip node={n} href={hrefFor(n.id)} onClick={go(n.id, true)} label={label?.(n)} />
+        </span>
+      ))}
+      {nodes.length > limit ? (
+        <button type="button" onClick={() => setExpanded((e) => !e)} className="chip text-[12.5px]">
+          {expanded ? 'Show less' : `+${nodes.length - limit} more`}
         </button>
-      ) : group.total > group.items.length ? (
-        <p className="mt-2 text-[12.5px] text-ink-dim">
-          {group.items.length} of {group.total} shown — use “Show more” or filters to see the rest
+      ) : null}
+    </div>
+  )
+}
+
+function ConnectionGroup({ group, index, hrefFor, go }: { group: RelationshipGroup; index: number; hrefFor: (id: string) => string; go: Go }) {
+  const theme = useTheme()
+  const lineColor = edgeColor(theme, group.relationshipType)
+  const wide = group.items.length > 8
+  return (
+    <section className={`pop-in min-w-0 ${wide ? 'sm:col-span-2' : ''}`} style={{ '--i': index } as React.CSSProperties} aria-label={group.label}>
+      <h3 className="eyebrow mb-1.5 flex items-center justify-between">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-[2px] w-4 rounded-full" style={{ background: lineColor }} aria-hidden />
+          {group.label}
+        </span>
+        <span className="count">{group.total}</span>
+      </h3>
+      <ChipList
+        nodes={group.items.map((i) => i.node)}
+        hrefFor={hrefFor}
+        go={go}
+        limit={wide ? 24 : 8}
+        label={(n) => {
+          const meta = group.items.find((i) => i.node.id === n.id)?.metadata
+          return typeof meta?.value === 'string' ? `${n.label} ${meta.value}` : n.label
+        }}
+      />
+      {group.total > group.items.length ? (
+        <p className="mt-1 text-[12px] text-ink-dim">
+          {group.items.length} of {group.total} shown — widen to Extended or Deep (bottom right) or use filters for the rest
         </p>
       ) : null}
     </section>
   )
 }
 
+/** Before any search: the game's series and their sets, newest first, in one panel. */
 function UniverseCatalog({
   series,
   bySeries,
@@ -265,106 +307,44 @@ function UniverseCatalog({
   bySeries: Map<string, GraphNode[]>
   orphanSets: GraphNode[]
   hrefFor: (id: string) => string
-  go: (id: string, follow?: boolean) => (e: React.MouseEvent) => void
+  go: Go
 }) {
   return (
-    <div className="mt-4 space-y-4">
-      {series.map((s, i) => {
-        const sets = bySeries.get(s.id) ?? []
-        return (
-          <section key={s.id} className="panel pop-in p-5" style={{ '--i': Math.min(i, 20) } as React.CSSProperties} aria-label={s.label}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <a href={hrefFor(s.id)} onClick={go(s.id)} className="flex min-w-0 items-center gap-3">
-                <Thumb node={s} />
-                <span className="min-w-0">
-                  <span className="serif block truncate text-[20px]">{s.label}</span>
-                  <span className="block text-[12.5px] text-ink-dim">
-                    {s.subtitle}
-                    {typeof s.metadata.releaseDate === 'string' ? ` · since ${s.metadata.releaseDate.slice(0, 4)}` : ''}
-                  </span>
+    <section className="panel fade-up mt-3 p-4" aria-label="Series and sets">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="serif text-[18px]">Series and sets</h2>
+        <span className="text-[12px] text-ink-dim">newest first · pick a set to see its cards</span>
+      </div>
+      <div className="space-y-4">
+        {series.map((s, i) => {
+          const sets = bySeries.get(s.id) ?? []
+          return (
+            <section key={s.id} className="pop-in" style={{ '--i': Math.min(i, 20) } as React.CSSProperties} aria-label={s.label}>
+              <a href={hrefFor(s.id)} onClick={go(s.id)} className="mb-1.5 flex min-w-0 items-center gap-2">
+                <NodeImage node={s} small alt="" loading="lazy" className="h-7 w-10 flex-none rounded-sm bg-node object-contain p-0.5" placeholder={null} />
+                <span className="serif truncate text-[17px]">{s.label}</span>
+                <span className="text-[12px] text-ink-dim">
+                  {sets.length} {sets.length === 1 ? 'set' : 'sets'}
+                  {typeof s.metadata.releaseDate === 'string' ? ` · since ${s.metadata.releaseDate.slice(0, 4)}` : ''}
                 </span>
               </a>
-            </div>
-            <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
-              {sets.map((set) => (
-                <li key={set.id}>
-                  <a href={hrefFor(set.id)} onClick={go(set.id)} className="row-link" title={String(set.metadata.releaseDate ?? '')}>
-                    <Thumb node={set} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{set.label}</span>
-                      <span className="block truncate text-[12px] text-ink-dim">
-                        {typeof set.metadata.printingCount === 'number' ? `${set.metadata.printingCount} cards` : ''}
-                        {typeof set.metadata.releaseDate === 'string' ? ` · ${set.metadata.releaseDate}` : ''}
-                      </span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+              <ChipList
+                nodes={sets}
+                hrefFor={hrefFor}
+                go={go}
+                limit={30}
+                label={(set) => `${set.label}${typeof set.metadata.releaseDate === 'string' ? ` · ${set.metadata.releaseDate.slice(0, 4)}` : ''}`}
+              />
+            </section>
+          )
+        })}
+        {orphanSets.length > 0 ? (
+          <section aria-label="Other sets">
+            <h3 className="eyebrow mb-1.5">Other sets</h3>
+            <ChipList nodes={orphanSets} hrefFor={hrefFor} go={go} limit={30} />
           </section>
-        )
-      })}
-      {orphanSets.length > 0 ? (
-        <section className="panel p-5" aria-label="Other sets">
-          <h2 className="serif mb-3 text-[20px]">Other sets</h2>
-          <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
-            {orphanSets.map((set) => (
-              <li key={set.id}>
-                <a href={hrefFor(set.id)} onClick={go(set.id)} className="row-link">
-                  <Thumb node={set} />
-                  <span className="min-w-0 flex-1 truncate">{set.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </div>
+        ) : null}
+      </div>
+    </section>
   )
-}
-
-function detailRows(node: GraphNode): Array<[string, string]> {
-  const m = node.metadata
-  const rows: Array<[string, unknown]> = []
-  switch (node.nodeType) {
-    case 'card_printing':
-      rows.push(
-        ['Set', m.setName],
-        ['Number', m.printedNumber ?? m.collectorNumber],
-        ['Rarity', m.rarity],
-        ['Finish', m.finish],
-        ['Artist', m.artist],
-        ['Type', Array.isArray(m.types) ? m.types.join(' / ') : null],
-        ['Stage', m.stage],
-        ['Regulation mark', m.regulationMark],
-        ['Language', m.language],
-        ['Released', m.releaseDate],
-      )
-      break
-    case 'card_identity':
-      rows.push(['Printings', m.printingCount], ['Kind', m.entityType], ['First release', m.firstReleaseDate])
-      break
-    case 'set':
-      rows.push(['Series', m.seriesName], ['Released', m.releaseDate], ['Cards', m.cardCountOfficial ?? m.printingCount], ['Imported', m.printingCount])
-      break
-    case 'series':
-      rows.push(['Sets', m.setCount], ['Released', m.releaseDate])
-      break
-    case 'pokemon':
-      rows.push(['Pokédex', m.dexId ? `#${m.dexId}` : null], ['Cards', m.cardCount])
-      break
-    case 'artist':
-      rows.push(['Illustrations', m.illustrationCount])
-      break
-    case 'mechanic':
-    case 'attribute':
-      rows.push(['Cards', m.cardCount])
-      break
-    case 'game':
-      rows.push(['Series', m.seriesCount], ['Sets', m.setCount])
-      break
-  }
-  return rows
-    .filter(([, v]) => v !== null && v !== undefined && v !== '')
-    .map(([k, v]) => [k, String(v)] as [string, string])
 }

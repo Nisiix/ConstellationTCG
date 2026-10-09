@@ -285,6 +285,54 @@ export const graphEdges = pgTable(
   ],
 )
 
+/**
+ * An address a person linked to their account (My Constellation). `owner_id` is the Supabase Auth
+ * user id (no foreign key: the embedded database has no `auth` schema). Control of the address is
+ * proven by signing a one-time challenge (`challenge_nonce`) → `verified_at`.
+ */
+export const wallets = pgTable(
+  'wallets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id').notNull(),
+    provider: text('provider').notNull(),
+    chain: text('chain').notNull(),
+    address: text('address').notNull(),
+    label: text('label'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true, mode: 'string' }),
+    challengeNonce: text('challenge_nonce'),
+    challengeExpiresAt: timestamp('challenge_expires_at', { withTimezone: true, mode: 'string' }),
+    syncStatus: text('sync_status').notNull().default('idle'),
+    syncError: text('sync_error'),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true, mode: 'string' }),
+    assetCount: integer('asset_count').notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('wallets_owner_id_provider_chain_address_key').on(t.ownerId, t.provider, t.chain, t.address),
+    index('wallets_owner_idx').on(t.ownerId),
+  ],
+)
+
+export const walletSyncRuns = pgTable(
+  'wallet_sync_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    walletId: uuid('wallet_id')
+      .notNull()
+      .references(() => wallets.id, { onDelete: 'cascade' }),
+    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true, mode: 'string' }),
+    status: text('status').notNull().default('running'),
+    assetsSeen: integer('assets_seen').notNull().default(0),
+    assetsResolved: integer('assets_resolved').notNull().default(0),
+    assetsAmbiguous: integer('assets_ambiguous').notNull().default(0),
+    assetsUnresolved: integer('assets_unresolved').notNull().default(0),
+    errorMessage: text('error_message'),
+  },
+  (t) => [index('wallet_sync_runs_wallet_idx').on(t.walletId, t.startedAt)],
+)
+
 export const digitalAssets = pgTable(
   'digital_assets',
   {
@@ -319,6 +367,7 @@ export const digitalOwnership = pgTable(
       .references(() => digitalAssets.id, { onDelete: 'cascade' }),
     ownerId: uuid('owner_id').notNull(),
     walletAddress: text('wallet_address'),
+    walletId: uuid('wallet_id').references(() => wallets.id, { onDelete: 'cascade' }),
     quantity: integer('quantity').notNull().default(1),
     firstSeen: timestamp('first_seen', { withTimezone: true, mode: 'string' })
       .notNull()
@@ -335,6 +384,7 @@ export const digitalOwnership = pgTable(
       t.walletAddress,
     ),
     index('digital_ownership_owner_idx').on(t.ownerId),
+    index('digital_ownership_wallet_idx').on(t.walletId),
   ],
 )
 
@@ -441,6 +491,8 @@ export const schema = {
   externalIds,
   graphNodes,
   graphEdges,
+  wallets,
+  walletSyncRuns,
   digitalAssets,
   digitalOwnership,
   assetResolutionCandidates,

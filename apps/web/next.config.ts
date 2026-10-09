@@ -12,6 +12,8 @@ const config: NextConfig = {
     '@constellation/graph',
     '@constellation/search',
     '@constellation/filters',
+    '@constellation/ownership',
+    '@constellation/resolver',
     '@constellation/ui',
   ],
   serverExternalPackages: ['@electric-sql/pglite', 'postgres'],

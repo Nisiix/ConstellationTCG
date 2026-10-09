@@ -67,8 +67,23 @@ printing, printing counts, release dates, a representative image for artists and
 The projection is dropped and rebuilt per game by `pnpm graph:build`; it is deterministic for the
 same catalog.
 
-## Digital assets (later milestone)
+## Accounts, wallets and digital assets (My Constellation)
 
-`digital_assets`, `digital_ownership` and `asset_resolution_candidates` are in place for the
-"My Constellation" overlay: an asset is resolved to a `card_printing` with a confidence score, and
-ownership never changes the graph — owned nodes are only rendered differently.
+Accounts live in Supabase Auth; the database only knows the user id (`owner_id`, no foreign key,
+so the embedded database needs no `auth` schema).
+
+| Table                         | Role                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `wallets`                     | An address linked to an account: provider (`evm`, `solana`), chain, address, the pending challenge (nonce + expiry), `verified_at`, last sync status and asset count. Unique per (owner, provider, chain, address). |
+| `wallet_sync_runs`            | One row per sync: when, outcome, how many assets were seen / resolved / ambiguous / unresolved, the error if any. |
+| `digital_assets`              | A token as a provider reports it (platform, chain, contract, token id, name, image, attributes, sanitised raw metadata). Unique per (platform, chain, contract, token id). Declared cards use platform `manual`. |
+| `digital_ownership`           | Who holds which asset, through which wallet (`wallet_id`, cascade) or by declaration (`source = 'manual'`); `last_seen` moves on every sync and rows the address no longer holds are released. |
+| `asset_resolution_candidates` | The resolver's verdict per asset: every candidate printing with its confidence, the match flagged `resolved`. |
+
+Ownership never changes the graph: the explorer only paints the matched printings (and their
+identities) in the ownership color. No table holds a price; providers' market fields are stripped
+before a payload is stored.
+
+On the hosted database, row level security lets the publishable key read the catalog and the graph,
+keeps provenance private, and shows wallets and ownership to their owner only
+(`20261009000002_rls_public_read.sql`, `20261009000003_accounts_wallets.sql`).

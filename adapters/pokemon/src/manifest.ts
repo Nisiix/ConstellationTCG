@@ -77,7 +77,7 @@ export const POKEMON_RELATIONSHIPS = [
 
 export type PokemonRelationship = (typeof POKEMON_RELATIONSHIPS)[number]
 
-/** Game filters. Card stats (HP, attacks, costs) are deliberately not filters: they are data, not relationships. */
+/** Game filters. Card stats and print marks (HP, attacks, costs, regulation mark) are deliberately not filters: they are data, not relationships. */
 export const POKEMON_FILTERS: FilterDefinition[] = [
   {
     id: 'pokemon.species',
@@ -126,14 +126,6 @@ export const POKEMON_FILTERS: FilterDefinition[] = [
     scope: 'game',
     appliesTo: ['card_printing'],
     source: { kind: 'entity', entityKind: 'attribute', relation: 'RESISTS' },
-  },
-  {
-    id: 'pokemon.regulationMark',
-    label: 'Regulation mark',
-    type: 'multi',
-    scope: 'game',
-    appliesTo: ['card_printing'],
-    source: { kind: 'attribute', path: 'regulationMark' },
   },
 ]
 

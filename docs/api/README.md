@@ -97,6 +97,30 @@ it fails to load.
 Driver in use, per-source health (`healthy` / `degraded` / `failed` / `unknown` from the last
 ingestion run and its age), graph statistics and the server time. Not cached.
 
+## Accounts and ownership (My Constellation)
+
+These routes need a signed-in visitor (Supabase Auth cookie) and answer `401` otherwise, or `503`
+when accounts are not configured. They are never cached and never carry prices.
+
+| Route                              | What it does                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `GET /api/account`                 | `{ configured, user, providers }` — who is signed in and which providers (with availability) exist      |
+| `POST /api/account/magic-link`     | `{ email, next? }` → sends the sign-in link (lands on `/auth/callback`, then `next`)                     |
+| `POST /api/account/sign-out`       | Ends the session                                                                                        |
+| `GET /api/wallets`                 | `{ wallets, challenges }` — linked wallets and the text still to sign for the unverified ones           |
+| `POST /api/wallets`                | `{ provider, chain, address, label? }` → `{ wallet, challenge }` (201 when a challenge is issued)        |
+| `POST /api/wallets/:id/verify`     | `{ signature }` — hex (EVM `r‖s‖v`) or base58/hex (Solana); marks the wallet verified                   |
+| `POST /api/wallets/:id/sync`       | `{ game? }` → `{ summary, wallet }` — reads the address, resolves assets, releases what left            |
+| `DELETE /api/wallets/:id`          | Unlinks the wallet and its ownership rows                                                               |
+| `GET /api/ownership`               | `{ nodeIds, assets, counts, syncedAt }` — what to paint gold, and every owned asset with its resolution |
+| `POST /api/ownership/manual`       | `{ printing, quantity? }` — declare a printing (`card_printing:<uuid>`) as owned                        |
+| `DELETE /api/ownership/manual`     | `{ printing }` — take it back off the list                                                              |
+
+Providers: `evm` (Ethereum, Polygon, Base, Arbitrum One, OP Mainnet through Blockscout's public
+`GET /api/v2/addresses/:address/nft`), `solana` (DAS `getAssetsByOwner`; available when
+`SOLANA_RPC_URL` is set), `manual` (declared cards). Token payloads lose every market-looking key
+(`price`, `exchange_rate`, `floor`, `volume`, …) before they are stored.
+
 ## URL-addressable exploration
 
 The explorer itself is addressable: `/explore?node=card_printing:<uuid>&depth=2&view=list&f.rarity=Rare`.

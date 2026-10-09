@@ -26,6 +26,22 @@ export class ApiError extends Error {
 
 async function request<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal, headers: { accept: 'application/json' } })
+  return parse<T>(response)
+}
+
+/** A request with a JSON body (account, wallet and ownership routes); same errors as `request`. */
+export async function send<T>(url: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
+  const hasBody = options.body !== undefined
+  const response = await fetch(url, {
+    method: options.method ?? 'POST',
+    signal: options.signal,
+    headers: { accept: 'application/json', ...(hasBody ? { 'content-type': 'application/json' } : {}) },
+    body: hasBody ? JSON.stringify(options.body) : undefined,
+  })
+  return parse<T>(response)
+}
+
+async function parse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Request failed (${response.status})`
     let layer = 'unknown'

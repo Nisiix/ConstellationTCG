@@ -43,6 +43,7 @@
 | `packages/filters`      | Universal + per-game `FilterDefinition`s, value computation, SQL predicates, query parsing              |
 | `packages/ui`           | Theme presets, `resolveTheme`, CSS variable helpers, mode resolution (framework-free)                   |
 | `packages/resolver`     | Digital asset → card printing resolver: candidate lookup, confidence scoring, persisted candidates     |
+| `packages/ownership`    | My Constellation: signed-challenge wallet linking, providers (Blockscout, Solana DAS, manual), sync    |
 | `packages/testing`      | In-memory PGlite seeded with the Base Set fixture                                                       |
 | `adapters/pokemon`      | TCGdex client, price stripping, normalizer, identity resolver, relationships, manifest, fixtures        |
 | `workers/ingestion`     | CLI: `migrate`, `ingest --fixture base1`, `ingest` (live)                                              |

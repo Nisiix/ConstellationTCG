@@ -1,6 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/theme'
+import { useAccountStore } from '@/state/account-store'
 import { useCatalogStore } from '@/state/catalog-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 import { SearchBar } from './SearchBar'
@@ -11,6 +14,12 @@ export function TopBar() {
   const game = useCatalogStore((s) => s.game)
   const games = useCatalogStore((s) => s.games)
   const toggleHelp = useUiStore((s) => s.toggleHelp)
+  const accountOpen = useUiStore((s) => s.accountOpen)
+  const toggleAccount = useUiStore((s) => s.toggleAccount)
+  const accountStatus = useAccountStore((s) => s.status)
+  const ownedCount = useAccountStore((s) => s.counts?.resolved ?? 0)
+  const connected = useOwnershipStore((s) => s.connected)
+  const theme = useTheme()
   const current = games.find((g) => g.slug === game)
   const gameLabel = (current?.name ?? 'Pokémon').replace(' Trading Card Game', '')
 
@@ -60,12 +69,15 @@ export function TopBar() {
         <ThemeToggle />
         <button
           type="button"
-          className="btn btn-ghost pill hidden whitespace-nowrap xl:inline-flex"
-          title="My Constellation — connecting your digital cards arrives in a later milestone"
-          aria-disabled="true"
+          onClick={toggleAccount}
+          className={`btn pill whitespace-nowrap ${accountOpen ? 'btn-on' : 'btn-ghost'}`}
+          title={accountStatus === 'signed-in' ? 'My Constellation: your wallets and the cards you own' : 'My Constellation: sign in to mark the cards you own'}
+          aria-expanded={accountOpen}
+          aria-haspopup="dialog"
         >
-          My Constellation
-          <span className="text-[11px] text-ink-dim">soon</span>
+          <span className="dot" style={{ color: theme.ownership }} aria-hidden />
+          <span className="hidden md:inline">My Constellation</span>
+          {connected && ownedCount > 0 ? <span className="count">{ownedCount}</span> : null}
         </button>
       </div>
     </header>

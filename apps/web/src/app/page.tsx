@@ -65,7 +65,7 @@ export default function HomePage() {
                 <span className="dot" style={{ color: 'var(--c-brand-ink)' }} aria-hidden />
                 Pokémon TCG today · more games to come
               </p>
-              <h1 className="text-[40px] leading-[1.05] md:text-[56px]">
+              <h1 className="title-reveal text-[40px] leading-[1.05] md:text-[56px]">
                 Explore the TCG universe.
                 <br />
                 Follow relationships.
@@ -87,7 +87,7 @@ export default function HomePage() {
                   How it works
                 </Link>
               </div>
-              <ul className="mt-6 flex flex-wrap gap-2" aria-label="Principles">
+              <ul className="stagger mt-6 flex flex-wrap gap-2" aria-label="Principles">
                 {['No account', 'No prices', 'No marketplace', 'Search first'].map((item) => (
                   <li key={item} className="chip">
                     {item}

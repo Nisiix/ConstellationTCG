@@ -1,0 +1,29 @@
+{
+  "name": "@constellation/ownership",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "My Constellation: wallet linking (signed challenges), ownership providers (EVM via Blockscout, Solana via DAS, manual) and the sync that resolves digital assets to printings. Never stores prices.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@constellation/database": "workspace:*",
+    "@constellation/domain": "workspace:*",
+    "@constellation/resolver": "workspace:*",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@constellation/testing": "workspace:*",
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

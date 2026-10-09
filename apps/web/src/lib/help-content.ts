@@ -19,13 +19,17 @@ export const HOW_IT_WORKS: HelpStep[] = [
     title: 'Follow',
     text: 'any connection by clicking it, in the scene or in the panel on the right. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
   },
-  { title: 'Go wider', text: 'with “Show more” (extended and deep connections) or narrow down with filters.' },
+  { title: 'Go wider', text: 'with Extended or Deep connections (bottom right) or narrow down with filters.' },
   { title: 'Share', text: 'any view: the link holds the focus, the depth and the filters.' },
+  {
+    title: 'Make it yours.',
+    text: 'My Constellation (top right): sign in with an email link, link a wallet by signing a free message, or mark the cards you own. They glow gold in the sky. Searching and exploring never need an account; nothing here shows a price.',
+  },
 ]
 
 export const SHORTCUTS: Array<[key: string, label: string]> = [
   ['/', 'Search'],
-  ['E', 'Show more connections'],
+  ['E', 'Widen the connections'],
   ['C', 'Direct connections only'],
   ['F', 'Filters'],
   ['L', 'Switch 3D / list'],

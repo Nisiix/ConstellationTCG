@@ -7,7 +7,8 @@ three-dimensional constellation: every card is a point, every relationship is a 
 
 - Search a card, fly to it, explore its relationships.
 - Traverse sets, Pokémon, artists, series, evolutions and alternate printings.
-- No account, no wallet, no prices, no marketplace.
+- No prices, no marketplace. Accounts and wallets are optional: **My Constellation** only colors
+  the cards you own.
 
 Pages: `/` (landing — Home · Help · Explore), `/help`, `/explore` (the constellation; every focus,
 depth, view and filter is in the URL). Dark and light modes: each game's brand colors are used for
@@ -33,6 +34,37 @@ pnpm graph:build
 ```
 
 To run against a real PostgreSQL (or Supabase), set `DATABASE_URL` in `.env` (see `.env.example`).
+
+### Hosted database (Supabase)
+
+The dedicated Supabase project **ConstellationTCG** carries the same schema (`supabase/migrations`,
+applied in order, recorded in `schema_migrations`), the Base Set seed and its graph projection, and
+row level security: the catalog and the graph are readable with the publishable key, provenance
+tables are private, wallets and ownership are visible to their owner only. The app itself connects
+with `DATABASE_URL` (table owner, unaffected by RLS). To load the full catalog there, run the
+ingestion from a networked machine against the project:
+
+```bash
+DATABASE_URL=<supabase connection string> pnpm ingest
+DATABASE_URL=<supabase connection string> pnpm graph:build
+```
+
+### Accounts and wallets (My Constellation)
+
+Accounts are Supabase Auth email links: set `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (in the Supabase dashboard, add the site URL and
+`<site>/auth/callback` to the Auth redirect allow list). Signed-in visitors can:
+
+- **link a wallet** — the address is proved by signing a short challenge (EIP-191 `personal_sign`
+  on EVM, ed25519 on Solana); a browser wallet signs in one click, any other wallet can paste the
+  signature;
+- **sync it** — what the address holds is read through public providers (EVM chains via
+  Blockscout's REST API, Solana via a DAS RPC when `SOLANA_RPC_URL` is set), every asset is matched
+  to a printing by the resolver, and matches glow gold in the sky and in the lists;
+- **declare cards** by hand (“I own this”) without any wallet.
+
+Market data that providers attach to tokens is stripped before storage: the platform never holds
+a price.
 
 ## Verification
 

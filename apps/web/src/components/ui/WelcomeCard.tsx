@@ -69,12 +69,12 @@ export function WelcomeCard() {
     <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center px-4 md:justify-start md:pl-6">
       <section aria-label="Welcome" className="panel panel-strong fade-up pointer-events-auto w-full max-w-md p-6">
         <p className="eyebrow mb-1">Welcome</p>
-        <h2 className="serif text-[26px] leading-tight">Every card is a point. Every relationship is a line.</h2>
+        <h2 className="serif title-reveal text-[26px] leading-tight">Every card is a point. Every relationship is a line.</h2>
         <p className="mt-3 text-[14px] leading-relaxed text-ink/85">
           Search a card, fly to it, then follow its connections: the set it belongs to, the Pokémon it shows, the artist who drew it, what it
           evolves from. Click any point to move there.
         </p>
-        <div className="mt-4 flex flex-wrap gap-1.5">
+        <div className="stagger mt-4 flex flex-wrap gap-1.5">
           <span className="eyebrow mr-1 self-center">Try</span>
           {SUGGESTIONS.map((term) => (
             <button key={term} type="button" onClick={() => jump(term)} className="chip" disabled={busy !== null}>

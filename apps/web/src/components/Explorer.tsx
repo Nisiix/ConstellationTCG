@@ -5,6 +5,7 @@ import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse, prefetch
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
 import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
 import { filtersKey } from '@/lib/url'
+import { useAccountStore } from '@/state/account-store'
 import { useCameraStore } from '@/state/camera-store'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useGraphStore } from '@/state/graph-store'
@@ -12,6 +13,7 @@ import { useUiStore } from '@/state/ui-store'
 import { RelationshipList } from './fallback/RelationshipList'
 import { setNavigator, useExploreNavigation } from './navigation'
 import { ConstellationCanvas } from './three/ConstellationCanvas'
+import { AccountPanel } from './ui/AccountPanel'
 import { ErrorState } from './ui/ErrorState'
 import { FilterPanel } from './ui/FilterPanel'
 import { FocusPanel } from './ui/FocusPanel'
@@ -44,6 +46,8 @@ export function Explorer() {
   const setFiltersOpen = useUiStore((s) => s.setFiltersOpen)
   const toggleHelp = useUiStore((s) => s.toggleHelp)
   const setHelpOpen = useUiStore((s) => s.setHelpOpen)
+  const setAccountOpen = useUiStore((s) => s.setAccountOpen)
+  const refreshAccount = useAccountStore((s) => s.refreshAccount)
   const setHovered = useUiStore((s) => s.setHovered)
 
   const setGame = useCatalogStore((s) => s.setGame)
@@ -66,6 +70,19 @@ export function Explorer() {
   useEffect(() => {
     setCapabilities({ reducedMotion: prefersReducedMotion(), webgl: detectWebGL() })
   }, [setCapabilities])
+
+  // Who is signed in and what they own (an overlay: the graph loads regardless). Coming back
+  // from a sign-in link (`?account=…`) opens My Constellation once; the marker leaves the URL.
+  useEffect(() => {
+    refreshAccount()
+    const url = new URL(window.location.href)
+    const marker = url.searchParams.get('account')
+    if (marker) {
+      setAccountOpen(true)
+      url.searchParams.delete('account')
+      window.history.replaceState(window.history.state, '', url.toString())
+    }
+  }, [refreshAccount, setAccountOpen])
 
   // Games and their themes.
   useEffect(() => {
@@ -166,6 +183,7 @@ export function Explorer() {
       if (event.key === 'Escape') {
         setFiltersOpen(false)
         setHelpOpen(false)
+        setAccountOpen(false)
         setHovered(null)
         setHighlight(null)
         return
@@ -216,6 +234,7 @@ export function Explorer() {
       <GraphHUD view={effectiveView} />
       {!listMode ? <NodeTooltip /> : null}
       <HelpOverlay />
+      <AccountPanel />
       {status === 'loading' ? <LoadingState overlay label="Charting connections" /> : null}
       {status === 'error' ? <ErrorState message={error ?? 'Something went wrong'} /> : null}
     </div>

@@ -7,6 +7,7 @@ import { nodeColor, useSceneTheme } from '@/lib/theme'
 import type { ViewMode } from '@/lib/url'
 import { useCameraStore } from '@/state/camera-store'
 import { useGraphStore } from '@/state/graph-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 
@@ -20,6 +21,8 @@ const DEPTHS: Array<{ value: number; label: string; title: string }> = [
 function Legend() {
   const theme = useSceneTheme()
   const nodes = useGraphStore((s) => s.nodes)
+  const owned = useOwnershipStore((s) => s.ownedNodeIds)
+  const ownedHere = useMemo(() => nodes.some((n) => owned.has(n.id)), [nodes, owned])
   const entries = useMemo(() => {
     const present = new Set(nodes.map((n) => n.nodeType))
     const byColor = new Map<string, NodeType[]>()
@@ -40,6 +43,12 @@ function Legend() {
           {e.label}
         </span>
       ))}
+      {ownedHere ? (
+        <span className="fade-up flex items-center gap-1.5" title="Cards in your constellation">
+          <span className="dot" style={{ color: theme.ownership, background: theme.nodeFill }} aria-hidden />
+          yours
+        </span>
+      ) : null}
       <span className="hidden xl:inline">· lines = relationships</span>
     </div>
   )
@@ -69,7 +78,7 @@ export function GraphHUD({ view }: { view: ViewMode }) {
             aria-hidden
             title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
           />
-          <span className="max-w-[18rem] truncate text-ink" key={focus?.id}>
+          <span className="fade-up max-w-[18rem] truncate text-ink" key={focus?.id}>
             {focus?.label ?? '—'}
           </span>
           <span className="text-ink-dim">

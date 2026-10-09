@@ -4,6 +4,8 @@ import type { ViewMode } from '@/lib/url'
 export interface UiStoreState {
   filtersOpen: boolean
   helpOpen: boolean
+  /** The My Constellation panel (account, wallets, owned cards). */
+  accountOpen: boolean
   hoveredNodeId: string | null
   /**
    * Points singled out from the interface (a group or a row in the focus panel under the
@@ -24,6 +26,8 @@ export interface UiStoreState {
   toggleFilters(): void
   setHelpOpen(open: boolean): void
   toggleHelp(): void
+  setAccountOpen(open: boolean): void
+  toggleAccount(): void
   setHovered(nodeId: string | null, position?: { x: number; y: number }): void
   setHighlight(nodeIds: Iterable<string> | null): void
   setView(view: ViewMode): void
@@ -33,6 +37,7 @@ export interface UiStoreState {
 export const useUiStore = create<UiStoreState>((set) => ({
   filtersOpen: false,
   helpOpen: false,
+  accountOpen: false,
   hoveredNodeId: null,
   highlight: null,
   view: '3d',
@@ -46,6 +51,8 @@ export const useUiStore = create<UiStoreState>((set) => ({
   toggleFilters: () => set((s) => ({ filtersOpen: !s.filtersOpen })),
   setHelpOpen: (open) => set({ helpOpen: open }),
   toggleHelp: () => set((s) => ({ helpOpen: !s.helpOpen })),
+  setAccountOpen: (open) => set({ accountOpen: open }),
+  toggleAccount: () => set((s) => ({ accountOpen: !s.accountOpen })),
   setHovered: (nodeId, position) =>
     set({
       hoveredNodeId: nodeId,

@@ -15,7 +15,8 @@ export function repoRoot(): string {
   return process.cwd()
 }
 
-function loadRootEnv(): void {
+/** Load `<repo>/.env` into `process.env` once (the app may be started from `apps/web`). */
+export function loadRootEnv(): void {
   const file = path.join(repoRoot(), '.env')
   if (!existsSync(file)) return
   try {
