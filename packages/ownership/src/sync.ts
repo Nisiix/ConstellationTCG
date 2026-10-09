@@ -17,6 +17,7 @@ import {
 import { ProviderError } from '@constellation/domain'
 import { recordResolution, resolveAsset } from '@constellation/resolver'
 import type { ProviderRegistry } from './registry'
+import { hasOwnerChoice } from './resolve'
 import { signalsFromAsset } from './signals'
 import type { FetchAssetsOptions, ProviderAsset, SyncSummary } from './types'
 import { getWallet } from './wallets'
@@ -203,6 +204,11 @@ export async function storeAssets(
         },
       })
 
+    // A printing the owner chose by hand stays; everything else is resolved afresh.
+    if (await hasOwnerChoice(db, stored.id)) {
+      summary.assetsResolved += 1
+      continue
+    }
     const result = await resolveAsset(db, signalsFromAsset(asset, scope.game))
     await recordResolution(db, stored.id, result)
     if (result.status === 'resolved') summary.assetsResolved += 1

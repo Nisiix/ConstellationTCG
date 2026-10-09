@@ -7,11 +7,13 @@ import {
   type Database,
 } from '@constellation/database'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { buildGraphProjection } from '@constellation/graph'
 import { createSeededDatabase } from '@constellation/testing'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { declareOwnership, releaseOwnership } from '../manual'
 import { ownershipSnapshot } from '../owned'
 import { createProviderRegistry } from '../registry'
+import { chooseResolution } from '../resolve'
 import { syncWallet } from '../sync'
 import type { OwnershipProvider, ProviderAsset } from '../types'
 import { evmAddressFromPublicKey, signEvmMessage } from '../verify'
@@ -56,7 +58,10 @@ const fakeEvm: OwnershipProvider = {
 const registry = createProviderRegistry({ providers: [fakeEvm] })
 
 beforeAll(async () => {
-  database = (await createSeededDatabase()).database
+  // The graph projection too: constellation stats read `graph_edges`.
+  const seeded = await createSeededDatabase()
+  database = seeded.database
+  await buildGraphProjection({ database, registry: seeded.registry })
 })
 
 afterAll(async () => {
@@ -245,6 +250,44 @@ describe('wallet sync → ownership overlay', () => {
     await expect(
       syncWallet(database.db, registry, { ownerId: OTHER, walletId: wallet.id, game: 'pokemon' }),
     ).rejects.toThrow(/not found/)
+  })
+
+  it('lets the owner pin an ambiguous asset to a printing, keeps it across syncs, and can undo it', async () => {
+    const [wallet] = await listWallets(database.db, OWNER)
+    if (!wallet) throw new Error('wallet missing')
+    holdings = [asset('4', 'Charizard', { Set: 'Base Set', 'Card Number': '4/102' }), asset('58', 'Pikachu #58', { 'TCGdex ID': 'base1-58' }), asset('1000', 'Charizard')]
+    await syncWallet(database.db, registry, { ownerId: OWNER, walletId: wallet.id, game: 'pokemon' })
+
+    const before = await ownershipSnapshot(database.db, OWNER)
+    const ambiguous = before.assets.find((a) => a.tokenId === '1000')
+    expect(ambiguous?.status).toBe('ambiguous')
+    expect(ambiguous?.candidates.length).toBeGreaterThan(0)
+    const candidate = ambiguous?.candidates[0]
+    if (!ambiguous || !candidate) throw new Error('no candidate')
+    expect(candidate.name).toBe('Charizard')
+    expect(before.stats).toEqual({ ownedCards: 2, connected: expect.any(Number), constellations: 1 })
+    expect(before.stats.connected).toBeGreaterThan(2)
+
+    // Someone else cannot touch it; the owner can.
+    await expect(chooseResolution(database.db, { ownerId: OTHER, assetId: ambiguous.assetId, printingId: candidate.printingId, game: 'pokemon' })).rejects.toThrow(/not found/)
+    const chosen = await chooseResolution(database.db, { ownerId: OWNER, assetId: ambiguous.assetId, printingId: candidate.printingId, game: 'pokemon' })
+    expect(chosen).toEqual({ status: 'resolved', printingId: candidate.printingId })
+    const after = await ownershipSnapshot(database.db, OWNER)
+    const pinned = after.assets.find((a) => a.tokenId === '1000')
+    expect(pinned).toMatchObject({ status: 'resolved', chosen: true, printingId: candidate.printingId, confidence: 1 })
+    expect(after.nodeIds).toContain(candidate.printingNodeId)
+    expect(after.stats.ownedCards).toBe(2) // the same Charizard printing twice is one owned point
+
+    // A new sync leaves the owner's choice alone.
+    const summary = await syncWallet(database.db, registry, { ownerId: OWNER, walletId: wallet.id, game: 'pokemon' })
+    expect(summary).toMatchObject({ assetsSeen: 3, assetsResolved: 3, assetsAmbiguous: 0 })
+    expect((await ownershipSnapshot(database.db, OWNER)).assets.find((a) => a.tokenId === '1000')?.chosen).toBe(true)
+
+    // Undo: the resolver decides again, and the asset is ambiguous once more.
+    const reset = await chooseResolution(database.db, { ownerId: OWNER, assetId: ambiguous.assetId, printingId: null, game: 'pokemon' })
+    expect(reset.status).toBe('ambiguous')
+    expect((await ownershipSnapshot(database.db, OWNER)).assets.find((a) => a.tokenId === '1000')?.status).toBe('ambiguous')
+    await expect(chooseResolution(database.db, { ownerId: OWNER, assetId: ambiguous.assetId, printingId: '00000000-0000-4000-8000-00000000dead', game: 'pokemon' })).rejects.toThrow(/Printing not found/)
   })
 
   it('removing the wallet removes its ownership rows', async () => {

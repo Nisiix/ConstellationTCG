@@ -52,6 +52,9 @@ re-normalization; `ingestion_runs` and `ingestion_errors` record every run and e
 Node types: `game`, `series`, `set`, `card_identity`, `card_printing`, `pokemon`, `artist`,
 `mechanic`, `attribute`, `digital_asset`.
 
+The core emits the catalog edges (`PART_OF`) and, for every card with more than one printing,
+`REPRINT_OF` from each later printing to the card's first printing (by release date, then
+number): one edge per reprint, so the original is the hub of all its reprints across sets.
 Universal relationships are listed in `packages/domain/src/graph.ts`; adapters add their own
 (Pokémon: `EVOLVES_FROM`, `HAS_TYPE`, `WEAK_TO`, `RESISTS`,
 `SAME_POKEMON`, …). The core treats relationship types as opaque strings.

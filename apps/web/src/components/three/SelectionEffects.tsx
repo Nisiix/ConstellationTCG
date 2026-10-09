@@ -9,7 +9,7 @@ import { useUiStore } from '@/state/ui-store'
 import { displayScales, drawnPosition, easeOutCubic, revealClock } from './animated'
 
 /** A soft radial halo: a bright core adding light, fading into the brand color. */
-function useHaloTexture(color: string): THREE.Texture | null {
+export function useHaloTexture(color: string): THREE.Texture | null {
   return useMemo(() => {
     if (typeof document === 'undefined') return null
     const size = 128

@@ -7,6 +7,7 @@ import {
   type Challenge,
   type OwnedAsset,
   type OwnershipSnapshot,
+  type OwnershipStats,
   type ProviderDescriptor,
   type WalletRecord,
 } from '@/lib/account-api'
@@ -27,6 +28,7 @@ export interface AccountStoreState {
   challenges: Record<string, Challenge>
   assets: OwnedAsset[]
   counts: OwnershipSnapshot['counts'] | null
+  stats: OwnershipStats | null
   /** Last failure of a refresh, as a sentence. */
   error: string | null
 
@@ -51,6 +53,7 @@ export const useAccountStore = create<AccountStoreState>((set, get) => ({
   challenges: {},
   assets: [],
   counts: null,
+  stats: null,
   error: null,
 
   async refreshAccount() {
@@ -65,7 +68,7 @@ export const useAccountStore = create<AccountStoreState>((set, get) => ({
       if (status === 'signed-in') {
         await Promise.all([get().refreshWallets(), get().refreshOwnership()])
       } else {
-        set({ wallets: [], challenges: {}, assets: [], counts: null })
+        set({ wallets: [], challenges: {}, assets: [], counts: null, stats: null })
         useOwnershipStore.getState().disconnect()
       }
       return status
@@ -87,7 +90,12 @@ export const useAccountStore = create<AccountStoreState>((set, get) => ({
   async refreshOwnership() {
     try {
       const snapshot = await fetchOwnership()
-      set({ assets: snapshot.assets, counts: snapshot.counts ?? EMPTY_COUNTS, error: null })
+      set({
+        assets: snapshot.assets,
+        counts: snapshot.counts ?? EMPTY_COUNTS,
+        stats: snapshot.stats ?? null,
+        error: null,
+      })
       useOwnershipStore.getState().setOwned(snapshot.nodeIds, snapshot.syncedAt)
     } catch (error) {
       set({ error: (error as Error).message || 'Could not load your cards.' })
@@ -102,6 +110,7 @@ export const useAccountStore = create<AccountStoreState>((set, get) => ({
       challenges: {},
       assets: [],
       counts: null,
+      stats: null,
       error: null,
     })
     useOwnershipStore.getState().disconnect()

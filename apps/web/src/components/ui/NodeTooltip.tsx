@@ -5,6 +5,7 @@ import { NODE_TYPE_LABELS, relationshipLabel } from '@/lib/colors'
 import { useNodeColor } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
+import { ElementIcon, elementOfNode } from './ElementIcon'
 
 /** Name, kind and — the part that explains the line — how the point relates to the focus. */
 export function NodeTooltip() {
@@ -31,6 +32,7 @@ export function NodeTooltip() {
     <div role="tooltip" className="panel fade-up pointer-events-none fixed z-40 max-w-xs px-3 py-2 text-[13px]" style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}>
       <div className="flex items-center gap-2">
         <span className="dot" style={{ color }} aria-hidden />
+        {elementOfNode(node) ? <ElementIcon element={elementOfNode(node) as NonNullable<ReturnType<typeof elementOfNode>>} /> : null}
         <span className="text-ink">{node.label}</span>
         <span className="text-[12px]" style={{ color }}>
           {NODE_TYPE_LABELS[node.nodeType]}

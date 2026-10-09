@@ -27,6 +27,7 @@ export const POKEMON_THEME: TCGTheme = {
     BELONGS_TO: 'primary',
     PART_OF: 'primary',
     PRINTING_OF: 'contrast',
+    REPRINT_OF: 'contrast',
     ILLUSTRATED_BY: 'contrast',
     SAME_POKEMON: 'contrast',
     EVOLVES_FROM: 'contrast',

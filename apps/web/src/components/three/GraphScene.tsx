@@ -9,6 +9,7 @@ import { NodeImages } from './NodeImages'
 import { NodeRenderer } from './NodeRenderer'
 import { ParticleField } from './ParticleField'
 import { PostFX } from './PostFX'
+import { OwnershipEffects } from './OwnershipEffects'
 import { SelectionEffects } from './SelectionEffects'
 
 /** The constellation. Always on the dark sky: the interface mode changes the panels, not the map. */
@@ -25,6 +26,7 @@ export function GraphScene() {
       <NodeRenderer />
       <NodeImages />
       <SelectionEffects />
+      <OwnershipEffects />
       <Labels />
       <CameraController />
       <PostFX />

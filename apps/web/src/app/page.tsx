@@ -31,7 +31,7 @@ const STEPS = [
   },
 ] as const
 
-const CONNECTIONS = ['Set', 'Series', 'Pokémon', 'Artist', 'Evolves from', 'Printings', 'Type', 'Weakness', 'Resistance']
+const CONNECTIONS = ['Set', 'Series', 'Evolves from', 'Printings', 'Reprints', 'Pokémon', 'Artist', 'Type']
 
 const PRINCIPLES = [
   { title: 'Exploration first', text: 'Not “what is this card worth?” but “what is this card connected to?”.' },

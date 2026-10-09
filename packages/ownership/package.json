@@ -21,6 +21,7 @@
     "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
+    "@constellation/graph": "workspace:*",
     "@constellation/testing": "workspace:*",
     "@types/node": "^26.6.4",
     "typescript": "^5.9.3",

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse, prefetchFocus } from '@/lib/api'
+import { connectionNodeTypes } from '@/lib/connections'
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
 import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
 import { filtersKey } from '@/lib/url'
@@ -124,7 +125,9 @@ export function Explorer() {
     const controller = new AbortController()
     setLoading()
     const request = node
-      ? fetchFocus(node, { depth, filters }, controller.signal).then((res) => setNeighborhood(res, { summary: res.summary, filtered: res.filtered }))
+      ? fetchFocus(node, { depth, filters, nodeTypes: connectionNodeTypes(filters) }, controller.signal).then((res) =>
+          setNeighborhood(res, { summary: res.summary, filtered: res.filtered }),
+        )
       : fetchUniverse(game, controller.signal).then((res) => setNeighborhood(res, { isUniverse: true }))
     request.catch((err: unknown) => {
       if ((err as Error).name === 'AbortError') return
@@ -155,7 +158,7 @@ export function Explorer() {
         if (other) best.set(other, Math.max(best.get(other) ?? 0, e.weight))
       }
       const ids = [...best.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
-      for (const [id] of ids) prefetchFocus(id, { depth: 1, filters })
+      for (const [id] of ids) prefetchFocus(id, { depth: 1, filters, nodeTypes: connectionNodeTypes(filters) })
     }, 450)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +167,7 @@ export function Explorer() {
   // Whatever is under the pointer for a moment is probably the next focus: preload it.
   useEffect(() => {
     if (!hoveredNodeId || hoveredNodeId === focusNodeId) return
-    const timer = setTimeout(() => prefetchFocus(hoveredNodeId, { depth: 1, filters }), 120)
+    const timer = setTimeout(() => prefetchFocus(hoveredNodeId, { depth: 1, filters, nodeTypes: connectionNodeTypes(filters) }), 120)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoveredNodeId, filterKey])

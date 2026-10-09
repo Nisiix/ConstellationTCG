@@ -117,14 +117,12 @@ describe('applying filters', () => {
     const selection = parseSelection(defs, {
       'pokemon.type': 'Fire,Water',
       graphDepth: '1..2',
-      ownership: 'true',
       set: 'abc',
       unknown: 'x',
     })
     expect(selection).toEqual({
       'pokemon.type': ['Fire', 'Water'],
       graphDepth: [1, 2],
-      ownership: true,
       set: 'abc',
     })
   })

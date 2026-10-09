@@ -440,6 +440,28 @@ export async function composeGame(
     }
   }
 
+  // Reprints (universal, TCG agnostic): every later printing of a card points at the card's first
+  // printing. One edge per reprint rather than a clique, so the original is the hub of all its
+  // reprints and "reprint of" is a connection of its own, not only a list derived from the identity.
+  // Order: the printing's release date (else its set's), then collector number, then external id.
+  const releaseOf = (p: (typeof printings)[number]) => p.releaseDate ?? setById.get(p.setId)?.releaseDate ?? '9999'
+  for (const list of printingsByIdentity.values()) {
+    if (list.length < 2) continue
+    const sorted = [...list].sort(
+      (a, b) =>
+        releaseOf(a).localeCompare(releaseOf(b)) ||
+        a.collectorNumber.localeCompare(b.collectorNumber, undefined, { numeric: true }) ||
+        a.externalId.localeCompare(b.externalId),
+    )
+    const first = sorted[0]
+    const firstNodeId = first ? printingNodeIds.get(first.id) : undefined
+    if (!first || !firstNodeId) continue
+    for (const reprint of sorted.slice(1)) {
+      const nodeId = printingNodeIds.get(reprint.id)
+      if (nodeId) addEdge(nodeId, 'REPRINT_OF', firstNodeId, 0.7, 'directed', { firstExternalId: first.externalId })
+    }
+  }
+
   // Add search text (normalized label + aliases) to every node via metadata-free field.
   const nodeList = [...nodes.values()].map((node) => ({
     ...node,

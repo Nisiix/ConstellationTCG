@@ -53,29 +53,40 @@
     `ILLUSTRATED_BY` (same artist), `PART_OF` / `BELONGS_TO` (set, serie), `PRINTING_OF`,
     `HAS_TYPE`, `WEAK_TO`, `RESISTS`, `HAS_ATTRIBUTE`. Attacchi e abilità restano dati della carta,
     mai nodi o archi.
-  - Dichiarati nel core ma non ancora emessi da nessun adapter: `ALTERNATE_PRINTING`,
-    `REPRINT_OF`, `SAME_VARIANT`, `RELATED_TO`, `REPRESENTS_ASSET`. "Variant" e "Related print"
-    oggi si raggiungono tramite l'identità ("Also printed in", `useOtherPrintings`), non come archi
-    propri.
+  - `REPRINT_OF` è emesso dal core per ogni carta con più stampe: ogni ristampa punta alla prima
+    stampa (per data di uscita), così l'originale è il fulcro di tutte le sue ristampe fra set
+    diversi e "Reprint of" / "Reprints" sono connessioni di primo livello (oltre a "Also printed
+    in"). Con la sola fixture Base Set non ce ne sono: servono più set a catalogo.
+  - Dichiarati nel core ma non emessi: `ALTERNATE_PRINTING`, `SAME_VARIANT`, `RELATED_TO`,
+    `REPRESENTS_ASSET` (le varianti sono colonne della stampa, non stampe distinte).
 - **Nebbia di profondità** — ❌ (dettaglio estetico; bloom, vignette, particelle e archi animati
   ci sono).
+- **Cosa conta come connessione** — ✅. Di default il vicinato mostra altre carte (stampe,
+  ristampe, evoluzioni, la carta stessa), set, serie, gioco e l'artista (la via alle altre carte
+  che ha illustrato); specie Pokémon ed energy type restano fuori finché il filtro "Node type" non
+  li richiede. Dove compare un elemento (Fire, Water, …) la sua icona animata sta alla sua sinistra
+  (`ElementIcon`).
+- **Immagine ancorata al disco del nodo** — ✅. Il disco con l'immagine è posizionato e orientato
+  ogni frame dalla stessa posizione disegnata della sfera e dalla camera di quel frame, e scalato
+  sulla silhouette della sfera: riempie il pallino bordo a bordo e non scivola al suo interno.
 
 ### 10–11 · La Constellation personale e l'indipendenza dal wallet
 
 - **Il wallet non cambia il mondo, lo illumina** — ✅. `useOwnershipStore` contiene solo gli id
   dei nodi posseduti; `NodeRenderer` li colora con `theme.ownership` (oro) e li ingrandisce del
   25 %; legenda "yours", righe del pannello e chip della vista List marcati.
-- **Effetti suggeriti sui nodi posseduti** — 🟡. Fatti: luminosità/colore e dimensione. Non
-  fatti: particelle orbitanti, alone dedicato, archi più intensi tra nodi posseduti. L'icona
-  wallet è stata deliberatamente evitata (vedi punto 21).
+- **Effetti suggeriti sui nodi posseduti** — ✅. Colore e dimensione, alone dedicato
+  (`OwnershipEffects`, una sola draw call), archi più intensi e nel colore oro tra due nodi
+  posseduti, toggle "only yours" nella legenda che fa arretrare tutto il resto. Non fatte le
+  particelle orbitanti; l'icona wallet è stata deliberatamente evitata (vedi punto 21).
 - **Il grafo esiste senza wallet; la mappa pubblica è completa** — ✅. Tutte le API del grafo
   sono anonime e cacheable; `/api/ownership` è l'unico overlay autenticato.
-- **URL per carta del tipo `app.com/card/pokemon/charizard-base-set-4`** — 🟡. Ogni vista è
-  indirizzabile e condivisibile (`/explore?node=card_printing:<uuid>&depth=2&view=list&f.…`) ma
-  gli id sono UUID, non slug leggibili.
-- **Statistiche "37 owned nodes · 214 connected nodes · 6 constellations"** — 🟡. Il pannello
-  mostra i conteggi delle carte possedute (trovate nel cielo / da verificare / non a catalogo);
-  mancano "nodi connessi" e il conteggio dei cluster ("costellazioni").
+- **URL per carta del tipo `app.com/card/pokemon/charizard-base-set-4`** — ✅.
+  `/card/<gioco>/<nome>-<set>-<numero>` (o l'id della sorgente, `base1-4`) e `/set/<gioco>/<slug>`
+  reindirizzano all'explorer portando con sé profondità, vista e filtri; Share copia questa forma.
+- **Statistiche "37 owned nodes · 214 connected nodes · 6 constellations"** — ✅. Il pannello
+  mostra carte possedute, punti connessi e numero di costellazioni (carte possedute che
+  condividono set, Pokémon, artista, carta o linea di ristampa).
 
 ### 12–16 · Digital asset → Card Identity e Asset Resolver
 
@@ -93,8 +104,8 @@
   `resolved ≥ 0.85`, `ambiguous ≥ 0.35`, altrimenti `unresolved`; candidati persistiti con
   `confidence` e `reasons`. 🟡 i segnali `edition` e `imageUri` vengono estratti ma non pesati.
 - **Gli asset non risolti non entrano nel grafo come identità** — ✅. Solo lo stato `resolved`
-  colora i nodi; `ambiguous` e `unresolved` restano nei conteggi del pannello. ❌ manca
-  un'interfaccia per scegliere a mano il candidato giusto fra gli ambigui.
+  colora i nodi; gli `ambiguous` compaiono nel pannello con i candidati plausibili e la persona
+  sceglie la stampa giusta (scelta conservata dalle sincronizzazioni successive, annullabile).
 - **Verifica del controllo dell'indirizzo** — ✅ (oltre la visione): sfida firmata una tantum
   (EIP-191 `personal_sign` su EVM, ed25519 su Solana), nonce e scadenza; firma dal wallet del
   browser in un click o incollata.
@@ -150,15 +161,10 @@
    rimanda al Site URL: l'app intercetta comunque il codice e completa l'accesso
    (`AuthLinkCatcher`), ma la configurazione resta da fare a mano: non esiste uno strumento MCP
    per farlo.
-3. **Archi di variante / ristampa espliciti** (`ALTERNATE_PRINTING`, `REPRINT_OF`,
-   `SAME_VARIANT`) dall'adapter Pokémon, così "Variant" e "Related print" diventano connessioni di
-   primo livello, non solo "Also printed in".
-4. **Risoluzione manuale degli asset ambigui** nel pannello (scegliere il candidato giusto).
-5. **Effetti dedicati ai nodi posseduti** (alone, archi più intensi tra nodi posseduti) e
-   statistiche "nodi connessi / costellazioni". Il filtro universale `ownership` ("solo le mie")
-   è dichiarato in `packages/filters` ma nascosto nel pannello e non applicato dalle API del grafo.
-6. **Slug leggibili per le carte** (`/card/pokemon/charizard-base-set-4`) accanto agli id attuali.
-7. **Secondo TCG** (MTG o One Piece) per dimostrare il core agnostico; **adapter Phygitals** se
+3. **Archi di variante espliciti** (`ALTERNATE_PRINTING`, `SAME_VARIANT`): richiedono stampe
+   distinte per variante nel modello dati; oggi le varianti sono attributi della stampa.
+4. **Particelle orbitanti** sui nodi posseduti (dettaglio estetico).
+5. **Secondo TCG** (MTG o One Piece) per dimostrare il core agnostico; **adapter Phygitals** se
    le loro API lo consentono.
 
 ## Decisione presa: statistiche di carta mai come nodi

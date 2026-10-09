@@ -11,7 +11,8 @@ three-dimensional constellation: every card is a point, every relationship is a 
   the cards you own.
 
 Pages: `/` (landing — Home · Help · Explore), `/help`, `/explore` (the constellation; every focus,
-depth, view and filter is in the URL). Dark and light modes: each game's brand colors are used for
+depth, view and filter is in the URL; printings and sets also answer at
+`/card/pokemon/charizard-base-set-4` and `/set/pokemon/base-set`). Dark and light modes: each game's brand colors are used for
 contours only, over a dirty black or dirty white background; the 3D sky itself always stays dark.
 
 First TCG: **Pokémon** (source: [TCGdex](https://tcgdex.dev)). The core is TCG agnostic.
@@ -21,12 +22,14 @@ First TCG: **Pokémon** (source: [TCGdex](https://tcgdex.dev)). The core is TCG 
 ```bash
 pnpm install
 pnpm db:migrate          # creates the embedded PostgreSQL (PGlite) under .data/pglite
-pnpm ingest:fixture      # imports the bundled Base Set fixture (offline, ~100 cards)
+pnpm ingest:fixture      # imports the bundled Base Set fixture (offline, ~100 cards, one set only)
 pnpm graph:build         # projects the catalog into graph nodes / edges
 pnpm dev                 # http://localhost:3000
 ```
 
-To import the full Pokémon catalog from TCGdex (network, several minutes):
+With the fixture alone every connection stays inside Base Set. To see every expansion and the
+reprints of a card across sets, import the full Pokémon catalog from TCGdex (network, several
+minutes):
 
 ```bash
 pnpm ingest

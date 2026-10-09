@@ -1,5 +1,5 @@
 import { sql, type Db } from '@constellation/database'
-import type { GraphNode, RelationshipSummary } from '@constellation/domain'
+import type { GraphNode, NodeType, RelationshipSummary } from '@constellation/domain'
 import { loadNodes } from './neighborhood'
 import { rows } from './rows'
 
@@ -8,16 +8,41 @@ export async function getNode(db: Db, nodeId: string): Promise<GraphNode | null>
   return node ?? null
 }
 
-/** How many edges of each type touch a node, split by direction. */
+export interface SummaryOptions {
+  /** Count only edges whose other end is one of these node types (the neighborhood's own filter). */
+  nodeTypes?: NodeType[] | null
+  excludeNodeTypes?: NodeType[] | null
+  relationshipTypes?: string[] | null
+}
+
+function list(values: readonly string[]) {
+  return sql.join(
+    values.map((v) => sql`${v}`),
+    sql`, `,
+  )
+}
+
+/**
+ * How many edges of each type touch a node, split by direction. With the same filters as the
+ * neighborhood, the totals describe what the neighborhood would show in full, not the raw graph.
+ */
 export async function getRelationshipSummary(
   db: Db,
   nodeId: string,
+  options: SummaryOptions = {},
 ): Promise<RelationshipSummary[]> {
+  const typeFilter = options.nodeTypes?.length ? sql`and n.node_type in (${list(options.nodeTypes)})` : sql``
+  const excludeFilter = options.excludeNodeTypes?.length ? sql`and n.node_type not in (${list(options.excludeNodeTypes)})` : sql``
+  const relFilter = options.relationshipTypes?.length ? sql`and e.relationship_type in (${list(options.relationshipTypes)})` : sql``
   const result = await db.execute(sql`
     select relationship_type, direction, count(*)::int as count from (
-      select relationship_type, 'out' as direction from graph_edges where source_node_id = ${nodeId}
+      select e.relationship_type, 'out' as direction from graph_edges e
+        join graph_nodes n on n.id = e.target_node_id
+        where e.source_node_id = ${nodeId} ${typeFilter} ${excludeFilter} ${relFilter}
       union all
-      select relationship_type, 'in' as direction from graph_edges where target_node_id = ${nodeId}
+      select e.relationship_type, 'in' as direction from graph_edges e
+        join graph_nodes n on n.id = e.source_node_id
+        where e.target_node_id = ${nodeId} ${typeFilter} ${excludeFilter} ${relFilter}
     ) t
     group by relationship_type, direction
     order by count desc, relationship_type asc

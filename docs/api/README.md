@@ -65,7 +65,7 @@ One node and its relationship summary: `{ node, summary }`.
 ## `GET /api/filters?game=pokemon`
 
 `{ game, filters: FilterDefinition[] }` — universal filters (series, set, rarity, language, artist,
-variant, finish, card type, relationship, node type, graph depth, ownership) followed by the game's
+variant, finish, card type, relationship, node type, graph depth) followed by the game's
 own (Pokémon: species, type, evolution stage, weakness, resistance — card statistics such as HP,
 attacks, abilities, costs and print marks are deliberately not filters). Values and ranges are computed from the catalog and cached.
 
@@ -115,6 +115,11 @@ when accounts are not configured. They are never cached and never carry prices.
 | `GET /api/ownership`               | `{ nodeIds, assets, counts, syncedAt }` — what to paint gold, and every owned asset with its resolution |
 | `POST /api/ownership/manual`       | `{ printing, quantity? }` — declare a printing (`card_printing:<uuid>`) as owned                        |
 | `DELETE /api/ownership/manual`     | `{ printing }` — take it back off the list                                                              |
+| `POST /api/ownership/resolve`      | `{ assetId, printingId }` pins an ambiguous asset to a printing (kept across syncs); `printingId: null` hands it back to the resolver |
+
+`GET /api/ownership` also carries, per ambiguous asset, up to five `candidates` (printing, set,
+number, confidence) and `stats`: owned cards, points connected to them, and how many
+constellations they form (owned cards sharing a set, Pokémon, artist, card or reprint line).
 
 Providers: `evm` (Ethereum, Polygon, Base, Arbitrum One, OP Mainnet through Blockscout's public
 `GET /api/v2/addresses/:address/nft`), `solana` (DAS `getAssetsByOwner`; available when
@@ -125,3 +130,14 @@ Providers: `evm` (Ethereum, Polygon, Base, Arbitrum One, OP Mainnet through Bloc
 
 The explorer itself is addressable: `/explore?node=card_printing:<uuid>&depth=2&view=list&f.rarity=Rare`.
 Every focus, depth, view mode and filter selection is in the URL, so any view can be shared.
+
+Printings and sets also have readable addresses that redirect to the explorer, carrying depth,
+view and filters along:
+
+- `/card/pokemon/charizard-base-set-4` — `<card name>-<set slug>-<collector number>`; the set is the
+  longest known set slug ending the middle part, so multi-word names and sets both work;
+- `/card/pokemon/base1-4` — the source's own id of the printing;
+- `/set/pokemon/base-set` (or `/set/pokemon/base1`).
+
+Unknown slugs land on the explorer's universe with `?missing=<slug>`. The Share button copies the
+readable form for printings and sets.

@@ -43,6 +43,7 @@ export function NodeRenderer() {
   const setHovered = useUiStore((s) => s.setHovered)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const owned = useOwnershipStore((s) => s.ownedNodeIds)
+  const focusOnOwned = useOwnershipStore((s) => s.focusOnOwned && s.ownedNodeIds.size > 0)
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const contourRef = useRef<THREE.InstancedMesh>(null)
   const count = nodes.length
@@ -59,7 +60,8 @@ export function NodeRenderer() {
       const node = nodes[i]
       if (!node) continue
       const isFocus = node.id === focusNodeId
-      const dimmed = highlight !== null && !isFocus && !highlight.has(node.id)
+      // A hover highlight wins; otherwise "only mine" dims whatever is not owned.
+      const dimmed = highlight !== null ? !isFocus && !highlight.has(node.id) : focusOnOwned && !isFocus && !owned.has(node.id)
       tmpColor.set(owned.has(node.id) ? theme.ownership : nodeColor(theme, node.nodeType))
       if (isFocus) tmpColor.lerp(contrastColor, 0.25)
       if (dimmed) tmpColor.lerp(backgroundColor, 0.72)
@@ -70,7 +72,7 @@ export function NodeRenderer() {
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     if (contour.instanceColor) contour.instanceColor.needsUpdate = true
-  }, [nodes, focusNodeId, owned, count, theme, highlight])
+  }, [nodes, focusNodeId, owned, focusOnOwned, count, theme, highlight])
 
   // A new neighborhood: restart the reveal and let new points emerge from the focus.
   useEffect(() => {

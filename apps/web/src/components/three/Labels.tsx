@@ -8,6 +8,7 @@ import type { GraphNode, NodeType } from '@constellation/domain'
 import { nodeRadius } from '@/lib/colors'
 import { useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { displayScales, drawnPosition } from './animated'
 
@@ -59,6 +60,8 @@ export function Labels() {
 function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: boolean; distance: number }) {
   const theme = useSceneTheme()
   const highlight = useUiStore((s) => s.highlight)
+  const ownedHere = useOwnershipStore((s) => s.ownedNodeIds.has(node.id))
+  const focusOnOwned = useOwnershipStore((s) => s.focusOnOwned && s.ownedNodeIds.size > 0)
   const ref = useRef<THREE.Group>(null)
   const fallbackRadius = nodeRadius(node.nodeType, distance, isFocus)
   useFrame(() => {
@@ -69,7 +72,7 @@ function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: bool
     ref.current.position.set(p[0], p[1] - radius - 0.4, p[2])
   })
   const size = isFocus ? 0.95 : distance <= 1 ? 0.52 : 0.42
-  const dimmed = highlight !== null && !isFocus && !highlight.has(node.id)
+  const dimmed = highlight !== null ? !isFocus && !highlight.has(node.id) : focusOnOwned && !isFocus && !ownedHere
   return (
     <group ref={ref}>
       <Billboard follow>

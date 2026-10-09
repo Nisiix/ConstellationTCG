@@ -8,6 +8,7 @@ export * from './wallets'
 export * from './sync'
 export * from './owned'
 export * from './manual'
+export * from './resolve'
 export {
   createBlockscoutProvider,
   BLOCKSCOUT_CHAINS,

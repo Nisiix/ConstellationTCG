@@ -22,6 +22,8 @@ function Legend() {
   const theme = useSceneTheme()
   const nodes = useGraphStore((s) => s.nodes)
   const owned = useOwnershipStore((s) => s.ownedNodeIds)
+  const focusOnOwned = useOwnershipStore((s) => s.focusOnOwned)
+  const toggleFocusOnOwned = useOwnershipStore((s) => s.toggleFocusOnOwned)
   const ownedHere = useMemo(() => nodes.some((n) => owned.has(n.id)), [nodes, owned])
   const entries = useMemo(() => {
     const present = new Set(nodes.map((n) => n.nodeType))
@@ -44,10 +46,16 @@ function Legend() {
         </span>
       ))}
       {ownedHere ? (
-        <span className="fade-up flex items-center gap-1.5" title="Cards in your constellation">
+        <button
+          type="button"
+          onClick={toggleFocusOnOwned}
+          aria-pressed={focusOnOwned}
+          className={`fade-up flex items-center gap-1.5 rounded-full px-1.5 ${focusOnOwned ? 'bg-primary/20 text-ink' : ''}`}
+          title={focusOnOwned ? 'Showing only your constellation; click to show everything' : 'Cards in your constellation; click to let everything else step back'}
+        >
           <span className="dot" style={{ color: theme.ownership, background: theme.nodeFill }} aria-hidden />
-          yours
-        </span>
+          {focusOnOwned ? 'only yours' : 'yours'}
+        </button>
       ) : null}
       <span className="hidden xl:inline">· lines = relationships</span>
     </div>

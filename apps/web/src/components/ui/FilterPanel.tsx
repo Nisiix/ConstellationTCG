@@ -6,7 +6,7 @@ import { activeFilterCount, useCatalogStore } from '@/state/catalog-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 
-const HIDDEN = new Set(['tcg', 'ownership', 'graphDepth'])
+const HIDDEN = new Set(['tcg', 'graphDepth'])
 
 export function FilterPanel() {
   const open = useUiStore((s) => s.filtersOpen)

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
 import { NODE_TYPE_LABELS } from '@/lib/colors'
 import { detailRows } from '@/lib/details'
+import { prettySharePath } from '@/lib/pretty-url'
 import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
 import { buildExploreUrl } from '@/lib/url'
 import { useGraphStore } from '@/state/graph-store'
@@ -11,6 +12,7 @@ import { useOwnershipStore } from '@/state/ownership-store'
 import { useExploreNavigation } from '../navigation'
 import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
+import { ElementIcon, elementOfNode } from '../ui/ElementIcon'
 import { Facts, Prose } from '../ui/Facts'
 import { NodeBadge } from '../ui/NodeBadge'
 import { NodeImage } from '../ui/NodeImage'
@@ -79,7 +81,8 @@ export function RelationshipList() {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(navigation.shareUrl())
+      const pretty = prettySharePath(focus, navigation.current)
+      await navigator.clipboard.writeText(pretty ? `${window.location.origin}${pretty}` : navigation.shareUrl())
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -120,7 +123,15 @@ export function RelationshipList() {
         </header>
 
         {isUniverse && universe ? (
-          <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
+          <>
+            <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
+            {nodes.filter((n) => n.nodeType === 'set').length === 1 ? (
+              <p className="panel fade-up mt-3 px-5 py-3 text-[13px] text-ink-dim">
+                Only the bundled Base Set is loaded, so every connection stays inside it. Import the whole catalog with{' '}
+                <code>pnpm ingest</code> and <code>pnpm graph:build</code> to see every expansion and the reprints across sets.
+              </p>
+            ) : null}
+          </>
         ) : (
           <div className="mt-3 grid gap-3 md:grid-cols-[18rem_1fr] md:items-start">
             {/* ── left: the point itself, everything grouped in one panel ── */}
@@ -210,6 +221,7 @@ function Collapsible({ label, children }: { label: string; children: React.React
 function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; onClick: (e: React.MouseEvent) => void; label?: string }) {
   const colorOf = useNodeColor()
   const owned = useOwnershipStore((s) => s.ownedNodeIds.has(node.id))
+  const element = elementOfNode(node)
   const logo = node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
   return (
     <a
@@ -224,7 +236,7 @@ function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; o
         alt=""
         loading="lazy"
         className={logo ? 'h-5 w-7 flex-none rounded-sm bg-node object-contain' : 'h-6 w-[18px] flex-none rounded-sm object-cover'}
-        placeholder={<span className="dot" style={{ color: colorOf(node.nodeType) }} aria-hidden />}
+        placeholder={element ? <ElementIcon element={element} size={15} /> : <span className="dot" style={{ color: colorOf(node.nodeType) }} aria-hidden />}
       />
       <span className="truncate">{label ?? node.label}</span>
     </a>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
 import { detailRows } from '@/lib/details'
+import { prettySharePath } from '@/lib/pretty-url'
 import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
@@ -10,6 +11,7 @@ import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
+import { ElementIcon, elementOfNode } from './ElementIcon'
 import { Facts, Prose } from './Facts'
 import { NodeBadge } from './NodeBadge'
 import { NodeImage } from './NodeImage'
@@ -22,6 +24,7 @@ export function FocusPanel() {
   const { focus, groups } = useRelationshipGroups()
   const depth = useGraphStore((s) => s.depth)
   const isUniverse = useGraphStore((s) => s.isUniverse)
+  const setCount = useGraphStore((s) => s.nodes.reduce((n, node) => n + (node.nodeType === 'set' ? 1 : 0), 0))
   const truncated = useGraphStore((s) => s.truncated)
   const filtered = useGraphStore((s) => s.filtered)
   const welcomeVisible = useUiStore((s) => s.welcomeVisible)
@@ -39,7 +42,9 @@ export function FocusPanel() {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(navigation.shareUrl())
+      // Printings and sets get their readable address; everything else the explorer link.
+      const pretty = prettySharePath(focus, navigation.current)
+      await navigator.clipboard.writeText(pretty ? `${window.location.origin}${pretty}` : navigation.shareUrl())
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -116,6 +121,12 @@ export function FocusPanel() {
         </div>
         {isUniverse ? (
           <p className="mb-4 text-[13px] text-ink-dim">Pick a series or a set to dive in, or search for a card above.</p>
+        ) : null}
+        {isUniverse && setCount === 1 ? (
+          <p className="mb-4 rounded-lg bg-void/40 px-3 py-2 text-[12.5px] text-ink-dim">
+            Only the bundled Base Set is loaded, so every connection stays inside it. Import the whole catalog with{' '}
+            <code>pnpm ingest</code> and <code>pnpm graph:build</code> to see every expansion and the reprints across sets.
+          </p>
         ) : null}
         {groups.length === 0 ? <p className="text-sm text-ink-dim">No connections yet.</p> : null}
         {groups.length > 0 ? (
@@ -212,6 +223,7 @@ function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; 
               data-node-id={node.id}
             >
               <span className="dot" style={{ color: owned.has(node.id) ? theme.ownership : colorOf(node.nodeType) }} aria-hidden />
+              {elementOfNode(node) ? <ElementIcon element={elementOfNode(node) as NonNullable<ReturnType<typeof elementOfNode>>} /> : null}
               <span className="min-w-0 flex-1 truncate">{node.label}</span>
               {owned.has(node.id) ? <span className="owned-mark">yours</span> : null}
               {typeof metadata.value === 'string' ? (

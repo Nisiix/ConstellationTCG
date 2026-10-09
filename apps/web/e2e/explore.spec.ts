@@ -8,6 +8,37 @@ async function charizardPrintingId(request: APIRequestContext): Promise<string> 
   return body.results[0]!.nodeId
 }
 
+test.describe('readable addresses', () => {
+  test('a card slug and a source id both lead to the printing; a set slug to the set', async ({ request }) => {
+    const bySlug = await request.get('/card/pokemon/charizard-base-set-4?depth=2&view=list', { maxRedirects: 0 })
+    expect(bySlug.status()).toBe(302)
+    const target = new URL(bySlug.headers()['location'] ?? '', 'http://127.0.0.1')
+    expect(target.pathname).toBe('/explore')
+    expect(target.searchParams.get('node')).toMatch(/^card_printing:/)
+    expect(target.searchParams.get('depth')).toBe('2')
+    expect(target.searchParams.get('view')).toBe('list')
+
+    const byId = await request.get('/card/pokemon/base1-4', { maxRedirects: 0 })
+    expect(new URL(byId.headers()['location'] ?? '', 'http://127.0.0.1').searchParams.get('node')).toBe(target.searchParams.get('node'))
+
+    const set = await request.get('/set/pokemon/base-set', { maxRedirects: 0 })
+    expect(new URL(set.headers()['location'] ?? '', 'http://127.0.0.1').searchParams.get('node')).toMatch(/^set:/)
+
+    const missing = await request.get('/card/pokemon/nothing-here-9', { maxRedirects: 0 })
+    const fallback = new URL(missing.headers()['location'] ?? '', 'http://127.0.0.1')
+    expect(fallback.pathname).toBe('/explore')
+    expect(fallback.searchParams.get('missing')).toBe('nothing-here-9')
+  })
+
+  test('the list view explains that only the bundled set is loaded and shows element icons', async ({ page }) => {
+    await page.goto('/explore?view=list')
+    await expect(page.getByText(/Only the bundled Base Set is loaded/)).toBeVisible()
+    await page.getByRole('link', { name: /Base Set/ }).first().click()
+    await page.getByRole('link', { name: /Charizard/ }).first().click()
+    await expect(page.getByRole('region', { name: 'Details' }).locator('svg.el-fire')).toHaveCount(1)
+  })
+})
+
 test.describe('exploring (list view, no WebGL needed)', () => {
   test('the universe lists the series and its sets, newest first', async ({ page, request }) => {
     const res = await request.get('/api/graph/universe?game=pokemon')
@@ -33,10 +64,21 @@ test.describe('exploring (list view, no WebGL needed)', () => {
     await expect(details.getByText('HP', { exact: true })).toHaveCount(0)
     // connection groups
     await expect(page.getByRole('region', { name: 'Set' })).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Artist' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Evolves from' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Artist' })).toBeVisible()
+    // Connections are other cards, sets and the artist: Pokémon species and types step aside by default…
+    await expect(page.getByRole('region', { name: 'Pokémon' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Type' })).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Attack' })).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Ability' })).toHaveCount(0)
+    // …and come back through the Node type filter.
+    const here = new URL(page.url())
+    here.searchParams.set('f.nodeType', 'card_printing,set,pokemon,attribute')
+    await page.goto(here.toString())
+    await expect(page.getByRole('region', { name: 'Pokémon' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Type' }).locator('svg.el-fire')).toHaveCount(1)
+    here.searchParams.delete('f.nodeType')
+    await page.goto(here.toString())
     // follow a connection
     await page.getByRole('region', { name: 'Set' }).getByRole('link', { name: /Base Set/ }).click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Base Set')

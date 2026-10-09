@@ -1,7 +1,7 @@
 /**
  * Apply a filter selection to the catalog: returns the set of `card_printing` node ids that match
  * every active printing-level filter, or `null` when no printing-level filter is active.
- * Graph-level filters (relationship, nodeType, graphDepth, ownership) are applied by the caller
+ * Graph-level filters (relationship, nodeType, graphDepth) are applied by the caller
  * on the neighborhood query.
  */
 import { sql, type Db } from '@constellation/database'

@@ -5,6 +5,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { edgeColor, useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { drawnPosition, easeOutCubic, revealClock } from './animated'
 
@@ -24,6 +25,8 @@ export function EdgeRenderer() {
   const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
   const highlight = useUiStore((s) => s.highlight)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
+  const owned = useOwnershipStore((s) => s.ownedNodeIds)
+  const focusOnOwned = useOwnershipStore((s) => s.focusOnOwned && s.ownedNodeIds.size > 0)
   const geometryRef = useRef<THREE.BufferGeometry>(null)
 
   const buffers = useMemo(() => {
@@ -31,21 +34,25 @@ export function EdgeRenderer() {
     const position = new Float32Array(n * 6)
     const color = new Float32Array(n * 6)
     const base = new Float32Array(n * 3)
+    // 2 = both ends owned (a line of the constellation), 1 = one end owned, 0 = none.
+    const ownership = new Uint8Array(n)
     edges.forEach((edge, i) => {
-      tmpColor.set(edgeColor(theme, edge.relationshipType))
+      const ends = (owned.has(edge.sourceNodeId) ? 1 : 0) + (owned.has(edge.targetNodeId) ? 1 : 0)
+      ownership[i] = ends
+      tmpColor.set(ends === 2 ? theme.ownership : edgeColor(theme, edge.relationshipType))
       base[i * 3] = tmpColor.r
       base[i * 3 + 1] = tmpColor.g
       base[i * 3 + 2] = tmpColor.b
     })
-    return { position, color, base }
-  }, [edges, theme])
+    return { position, color, base, ownership }
+  }, [edges, theme, owned])
 
   useFrame((state) => {
     const geometry = geometryRef.current
     if (!geometry) return
     const elapsed = (performance.now() - revealClock.startedAt) / 1000
     const breathe = reducedMotion ? 1 : 0.9 + Math.sin(state.clock.elapsedTime * 1.8) * 0.1
-    const { position, color, base } = buffers
+    const { position, color, base, ownership } = buffers
     for (let i = 0; i < edges.length; i += 1) {
       const edge = edges[i]
       if (!edge) continue
@@ -71,9 +78,13 @@ export function EdgeRenderer() {
         hoveredNodeId !== null && (edge.sourceNodeId === hoveredNodeId || edge.targetNodeId === hoveredNodeId)
       const highlighted =
         highlight !== null && (highlight.has(edge.sourceNodeId) || highlight.has(edge.targetNodeId))
-      const dimmed = highlight !== null && !highlighted
+      const ends = ownership[i] ?? 0
+      const dimmed = highlight !== null ? !highlighted : focusOnOwned && ends === 0
+      // Lines between two owned points carry the constellation: brighter, in the ownership color.
+      const ownedBoost = ends === 2 ? 1.35 : 1
       const intensity =
-        (touchesHover ? 1.15 : highlighted ? 1.05 : touchesFocus ? 0.85 * breathe : d >= 2 ? 0.18 : 0.42) *
+        (touchesHover ? 1.15 : highlighted ? 1.05 : touchesFocus ? 0.85 * breathe : ends === 2 ? 0.7 : d >= 2 ? 0.18 : 0.42) *
+        ownedBoost *
         progress *
         (dimmed ? 0.22 : 1)
       const r = base[i * 3] ?? 0

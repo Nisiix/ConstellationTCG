@@ -46,7 +46,11 @@ describe('resolver over the catalog', () => {
     const result = await resolveAsset(database.db, { game: 'pokemon', name: 'Charizard', set: 'Base Set', cardNumber: '4' })
     await recordResolution(database.db, asset.id, result)
     const stored = await database.db.select().from(assetResolutionCandidates)
-    expect(stored.filter((r) => r.assetId === asset.id).some((r) => r.status === 'resolved')).toBe(true)
+    const mine = stored.filter((r) => r.assetId === asset.id)
+    // Only the match is `resolved`; the runners-up stay `ambiguous`.
+    expect(mine.filter((r) => r.status === 'resolved')).toHaveLength(1)
+    expect(mine.filter((r) => r.status === 'resolved')[0]?.printingId).toBe(result.status === 'resolved' ? result.printingId : '')
+    expect(mine.filter((r) => r.status !== 'resolved').every((r) => r.status === 'ambiguous')).toBe(true)
     await recordResolution(database.db, asset.id, { status: 'unresolved', confidence: 0, candidates: [] })
     const after = await database.db.select().from(assetResolutionCandidates)
     expect(after.filter((r) => r.assetId === asset.id)).toHaveLength(0)

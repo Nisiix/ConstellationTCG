@@ -1,6 +1,5 @@
 'use client'
 
-import { Billboard } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -12,22 +11,27 @@ import { displayScales, drawnPosition } from './animated'
 import { isLogoNode, nodeDiscImageUrl, useNodeTexture } from './textures'
 
 const MAX_IMAGES = 320
-/** How far in front of the sphere's center the disc sits (sphere radius = 1). */
+/** How far in front of the sphere's center the disc sits, along the line to the camera (sphere radius = 1). */
 const DISC_OFFSET = 1.02
-/** Disc radius relative to the sphere: leaves a rim of the neutral fill before the contour. */
-const DISC_RADIUS = 0.94
+/**
+ * Runs after the points (priority -1) and the camera (0) have settled for this frame, before the
+ * frame is rendered (the effect composer renders at 1): the disc always uses this frame's camera
+ * and this frame's drawn point, never last frame's.
+ */
+const FRAME_PRIORITY_IMAGES = 0.5
 
-const tmpVec = new THREE.Vector3()
+const toCamera = new THREE.Vector3()
 
 /**
- * The picture of each point, filling its disc edge to edge:
+ * The picture of each point, anchored to its disc:
  *  - cards: the artwork area cropped to a centered square ("cover");
  *  - logos (sets, series): a zoomed, dimmed copy of the logo fills the disc and the readable
  *    logo sits on top, so nothing is left empty.
- * The disc is drawn on the camera-facing side of the sphere, at exactly the size and position the
- * sphere was drawn with this frame (drift, hover and focus pulse included) and shrunk to cancel
- * the perspective magnification of sitting closer to the camera, so it never leaves the point.
- * A set whose logo is missing or fails to load shows the game's standard logo.
+ * The disc is drawn on the camera-facing side of the sphere, placed and oriented by hand every
+ * frame from the same drawn position and size as the sphere (drift, hover and focus pulse
+ * included) and from this frame's camera, and sized so that it projects exactly onto the sphere's
+ * silhouette: it fills the white disc edge to edge and never slides inside it. A set whose logo is
+ * missing or fails to load shows the game's standard logo.
  */
 export function NodeImages() {
   const nodes = useGraphStore((s) => s.nodes)
@@ -36,7 +40,9 @@ export function NodeImages() {
   const isUniverse = useGraphStore((s) => s.isUniverse)
 
   const candidates = useMemo(() => {
-    const withImage = nodes.filter((n) => n.imageUrl && (isUniverse || n.id === focusNodeId || (distances[n.id] ?? 9) <= 2))
+    const withImage = nodes.filter(
+      (n) => n.imageUrl && (isUniverse || n.id === focusNodeId || (distances[n.id] ?? 9) <= 2),
+    )
     withImage.sort((a, b) => (distances[a.id] ?? 9) - (distances[b.id] ?? 9))
     return withImage.slice(0, MAX_IMAGES)
   }, [nodes, distances, focusNodeId, isUniverse])
@@ -51,7 +57,13 @@ export function NodeImages() {
 }
 
 /** Clone a texture cropped to a centered square ("cover"), optionally centered on a vertical point. */
-function coverCrop(texture: THREE.Texture, width: number, height: number, centerV = 0.5, zoom = 1): THREE.Texture {
+function coverCrop(
+  texture: THREE.Texture,
+  width: number,
+  height: number,
+  centerV = 0.5,
+  zoom = 1,
+): THREE.Texture {
   const t = texture.clone()
   t.wrapS = THREE.ClampToEdgeWrapping
   t.wrapT = THREE.ClampToEdgeWrapping
@@ -74,7 +86,6 @@ function coverCrop(texture: THREE.Texture, width: number, height: number, center
 function NodeImage({ node }: { node: GraphNode }) {
   const placeholders = useCatalogStore((s) => s.placeholders)
   const texture = useNodeTexture(nodeDiscImageUrl(node), fallbackImageUrl(node, placeholders))
-  const group = useRef<THREE.Group>(null)
   const disc = useRef<THREE.Group>(null)
   const logo = isLogoNode(node)
 
@@ -88,52 +99,75 @@ function NodeImage({ node }: { node: GraphNode }) {
       // Fit the readable logo inside the disc (inscribed square, with a little margin).
       const fit = 1.26
       const scale: [number, number] = aspect >= 1 ? [fit, fit / aspect] : [fit * aspect, fit]
-      return { fill: coverCrop(texture, width, height, 0.5, 1.6), front: texture, frontScale: scale }
+      return {
+        fill: coverCrop(texture, width, height, 0.5, 1.6),
+        front: texture,
+        frontScale: scale,
+      }
     }
     // Cards: a square around the artwork, which sits in the upper part of the card.
-    return { fill: coverCrop(texture, width, height, 0.64), front: null, frontScale: [1, 1] as [number, number] }
+    return {
+      fill: coverCrop(texture, width, height, 0.64),
+      front: null,
+      frontScale: [1, 1] as [number, number],
+    }
   }, [texture, logo])
 
   useFrame(({ camera }) => {
-    const g = group.current
+    const g = disc.current
     if (!g) return
     const p = drawnPosition(node.id)
-    const scale = displayScales.get(node.id)
-    if (!p || scale === undefined) {
+    const radius = displayScales.get(node.id)
+    if (!p || radius === undefined) {
       g.visible = false
       return
     }
     g.visible = true
-    g.position.set(p[0], p[1], p[2])
-    g.scale.setScalar(scale)
-    if (disc.current) {
-      // The disc is DISC_OFFSET * scale closer to the camera than the sphere's center: shrink it by
-      // the same ratio so its projected size never exceeds the sphere's.
-      const d = tmpVec.set(p[0], p[1], p[2]).distanceTo(camera.position)
-      const ratio = Math.max(0.5, (d - DISC_OFFSET * scale) / Math.max(d, 0.001))
-      disc.current.scale.setScalar(ratio)
+    // From the sphere's center towards the camera: the disc sits just outside the surface, on the
+    // exact line of sight, so its center projects onto the sphere's center from any angle.
+    toCamera.set(camera.position.x - p[0], camera.position.y - p[1], camera.position.z - p[2])
+    const d = toCamera.length()
+    if (d <= radius * DISC_OFFSET + 0.001) {
+      g.visible = false
+      return
     }
-  })
+    toCamera.multiplyScalar(1 / d)
+    const offset = radius * DISC_OFFSET
+    g.position.set(
+      p[0] + toCamera.x * offset,
+      p[1] + toCamera.y * offset,
+      p[2] + toCamera.z * offset,
+    )
+    // Face the camera exactly as it stands this frame.
+    g.quaternion.copy(camera.quaternion)
+    // The sphere's silhouette projects with radius r / sqrt(d² − r²); a disc at distance d − offset
+    // projects with radius R / (d − offset). Equal when R = r · (d − offset) / sqrt(d² − r²).
+    const silhouette = Math.sqrt(Math.max(d * d - radius * radius, 1e-6))
+    g.scale.setScalar((radius * (d - offset)) / silhouette)
+  }, FRAME_PRIORITY_IMAGES)
 
   if (!layers) return null
 
   return (
-    <group ref={group} visible={false}>
-      <Billboard follow>
-        {/* pushed towards the camera so the disc sits on the front of the sphere */}
-        <group ref={disc} position={[0, 0, DISC_OFFSET]}>
-          <mesh raycast={() => null}>
-            <circleGeometry args={[DISC_RADIUS, 48]} />
-            <meshBasicMaterial map={layers.fill} color={logo ? '#777777' : '#ffffff'} toneMapped={false} />
-          </mesh>
-          {layers.front ? (
-            <mesh position={[0, 0, 0.01]} scale={[layers.frontScale[0], layers.frontScale[1], 1]} raycast={() => null}>
-              <planeGeometry args={[1, 1]} />
-              <meshBasicMaterial map={layers.front} transparent toneMapped={false} />
-            </mesh>
-          ) : null}
-        </group>
-      </Billboard>
+    <group ref={disc} visible={false}>
+      <mesh raycast={() => null}>
+        <circleGeometry args={[1, 56]} />
+        <meshBasicMaterial
+          map={layers.fill}
+          color={logo ? '#777777' : '#ffffff'}
+          toneMapped={false}
+        />
+      </mesh>
+      {layers.front ? (
+        <mesh
+          position={[0, 0, 0.01]}
+          scale={[layers.frontScale[0], layers.frontScale[1], 1]}
+          raycast={() => null}
+        >
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial map={layers.front} transparent toneMapped={false} />
+        </mesh>
+      ) : null}
     </group>
   )
 }

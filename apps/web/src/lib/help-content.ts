@@ -13,11 +13,11 @@ export const HOW_IT_WORKS: HelpStep[] = [
   },
   {
     title: 'Read the colors.',
-    text: 'Every point is outlined in the color of what it is (sets and series in the brand color, cards, Pokémon and artists in white, types in grey); the lines carry the same colors. The legend at the bottom spells it out.',
+    text: 'Every point is outlined in the color of what it is (sets and series in the brand color, cards and artists in white); the lines carry the same colors. The legend at the bottom spells it out.',
   },
   {
     title: 'Follow',
-    text: 'any connection by clicking it, in the scene or in the panel on the right. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
+    text: 'any connection by clicking it, in the scene or in the panel on the right: other cards (printings, reprints, evolutions), the sets and series they belong to, and the artist, who leads to the other cards they illustrated. Pokémon species and energy types stay out of the way unless the Node type filter asks for them. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
   },
   { title: 'Go wider', text: 'with Extended or Deep connections (bottom right) or narrow down with filters.' },
   { title: 'Share', text: 'any view: the link holds the focus, the depth and the filters.' },

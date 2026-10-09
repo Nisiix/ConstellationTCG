@@ -103,8 +103,7 @@ export const UNIVERSAL_FILTERS: FilterDefinition[] = [
     min: 1,
     max: MAX_GRAPH_DEPTH,
   },
-  { id: 'ownership', label: 'Ownership', type: 'boolean', scope: 'global' },
 ]
 
 /** Ids of filters that shape the graph query rather than the printing set. */
-export const GRAPH_LEVEL_FILTER_IDS = new Set(['tcg', 'relationship', 'nodeType', 'graphDepth', 'ownership'])
+export const GRAPH_LEVEL_FILTER_IDS = new Set(['tcg', 'relationship', 'nodeType', 'graphDepth'])

@@ -243,6 +243,157 @@ h2.serif,
   color: var(--c-brand-ink);
 }
 
+/* Elements: small living icons next to an element's name. */
+.el {
+  display: inline-block;
+  flex: none;
+  vertical-align: -2px;
+}
+.el .el-anim {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.el-fire .el-anim {
+  transform-origin: 50% 100%;
+  animation: el-flicker 1.1s ease-in-out infinite alternate;
+}
+.el-water .el-anim {
+  animation: el-bob 2.2s ease-in-out infinite;
+}
+.el-grass .el-anim {
+  transform-origin: 15% 90%;
+  animation: el-sway 2.6s ease-in-out infinite alternate;
+}
+.el-lightning .el-anim {
+  animation: el-flash 1.6s steps(1, end) infinite;
+}
+.el-psychic .el-anim {
+  animation: el-pulse 2s ease-in-out infinite;
+}
+.el-fighting .el-anim {
+  animation: el-punch 1.4s cubic-bezier(0.2, 0.9, 0.2, 1.2) infinite;
+}
+.el-darkness .el-anim {
+  animation: el-drift 4s ease-in-out infinite alternate;
+}
+.el-metal .el-anim {
+  animation: el-spin 10s linear infinite;
+}
+.el-fairy .el-anim {
+  animation: el-twinkle 1.8s ease-in-out infinite;
+}
+.el-dragon .el-anim {
+  animation: el-spin 6s linear infinite reverse;
+}
+.el-colorless .el-anim {
+  animation: el-shimmer 2.4s ease-in-out infinite;
+}
+@keyframes el-flicker {
+  from {
+    transform: scaleY(1) skewX(-3deg);
+  }
+  to {
+    transform: scaleY(1.1) skewX(3deg);
+  }
+}
+@keyframes el-bob {
+  0%,
+  100% {
+    transform: translateY(0) scaleX(1);
+  }
+  50% {
+    transform: translateY(-1.2px) scaleX(0.94);
+  }
+}
+@keyframes el-sway {
+  from {
+    transform: rotate(-7deg);
+  }
+  to {
+    transform: rotate(7deg);
+  }
+}
+@keyframes el-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  58% {
+    opacity: 1;
+  }
+  64% {
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes el-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes el-punch {
+  0%,
+  70%,
+  100% {
+    transform: scale(1);
+  }
+  80% {
+    transform: scale(1.22);
+  }
+}
+@keyframes el-drift {
+  from {
+    transform: rotate(-10deg) translateY(0.5px);
+  }
+  to {
+    transform: rotate(8deg) translateY(-0.5px);
+  }
+}
+@keyframes el-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes el-twinkle {
+  0%,
+  100% {
+    transform: scale(0.9) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08) rotate(12deg);
+    opacity: 1;
+  }
+}
+@keyframes el-shimmer {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .el .el-anim {
+    animation: none !important;
+  }
+}
+
 /* My Constellation: owned points keep their place and gain the ownership color. */
 .chip-owned {
   border-color: color-mix(in oklab, var(--c-own) 75%, transparent);

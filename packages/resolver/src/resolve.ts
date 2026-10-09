@@ -21,7 +21,8 @@ export async function recordResolution(db: Db, assetId: string, result: Resolver
     result.candidates.map((c) => ({
       assetId,
       printingId: c.printingId,
-      status: result.status === 'resolved' && c.printingId === result.printingId ? 'resolved' : result.status,
+      status:
+        result.status === 'resolved' ? (c.printingId === result.printingId ? 'resolved' : 'ambiguous') : result.status,
       confidence: c.confidence,
       reasons: c.reasons,
     })),

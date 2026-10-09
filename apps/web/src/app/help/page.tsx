@@ -67,7 +67,7 @@ export default function HelpPage() {
           <ul>
             <li>
               <strong>Rings.</strong> Every point is outlined in the color of what it is: sets and series in the game&apos;s color,
-              cards, Pokémon and artists in white, types in grey. The legend at the bottom of the map lists the
+              cards and artists in white; Pokémon species and energy types join only when the Node type filter asks for them. The legend at the bottom of the map lists the
               kinds on screen.
             </li>
             <li>

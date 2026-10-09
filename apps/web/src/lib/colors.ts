@@ -44,6 +44,8 @@ export function relationshipLabel(type: string, direction: 'out' | 'in'): string
         return 'Contains'
       case 'PRINTING_OF':
         return 'Printings'
+      case 'REPRINT_OF':
+        return 'Reprints'
       case 'ILLUSTRATED_BY':
         return 'Illustrations'
       case 'SAME_POKEMON':
@@ -94,6 +96,7 @@ export function nodeRadius(type: NodeType, distance: number, isFocus: boolean): 
 /** Group ordering in the focus panel: most semantic first. */
 export const RELATIONSHIP_ORDER = [
   'PRINTING_OF',
+  'REPRINT_OF',
   'SAME_POKEMON',
   'BELONGS_TO',
   'PART_OF',

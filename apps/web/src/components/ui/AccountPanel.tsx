@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '@/lib/api'
 import {
+  chooseResolution,
   linkWallet,
   removeWallet,
   requestMagicLink,
@@ -26,6 +27,7 @@ import {
 } from '@/lib/wallet-bridge'
 import { useAccountStore } from '@/state/account-store'
 import { useCatalogStore } from '@/state/catalog-store'
+import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 
@@ -181,6 +183,8 @@ function SignedIn() {
   const providers = useAccountStore((s) => s.providers)
   const assets = useAccountStore((s) => s.assets)
   const counts = useAccountStore((s) => s.counts)
+  const stats = useAccountStore((s) => s.stats)
+  const setFocusOnOwned = useOwnershipStore((s) => s.setFocusOnOwned)
   const refreshWallets = useAccountStore((s) => s.refreshWallets)
   const refreshOwnership = useAccountStore((s) => s.refreshOwnership)
   const signedOut = useAccountStore((s) => s.signedOut)
@@ -200,6 +204,7 @@ function SignedIn() {
   }
 
   const declared = assets.filter((a) => a.platform === 'manual')
+  const ambiguous = assets.filter((a) => a.status === 'ambiguous')
   const linkable = providers.filter((p) => p.kind !== 'manual')
 
   return (
@@ -237,7 +242,10 @@ function SignedIn() {
             {counts && counts.resolved > 0 ? (
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setFocusOnOwned(true)
+                  setOpen(false)
+                }}
                 className="btn btn-ghost pill text-[12.5px]"
                 title="Back to the sky; your cards are the gold points"
               >
@@ -258,6 +266,17 @@ function SignedIn() {
             Nothing yet. Link a wallet below, or open a card and press “I own this”.
           </p>
         )}
+        {stats && stats.ownedCards > 0 ? (
+          <p className="mt-1 text-[12.5px] text-ink-dim">
+            {stats.ownedCards} owned card{stats.ownedCards === 1 ? '' : 's'} · {stats.connected}{' '}
+            connected point
+            {stats.connected === 1 ? '' : 's'} · {stats.constellations} constellation
+            {stats.constellations === 1 ? '' : 's'}
+          </p>
+        ) : null}
+        {ambiguous.length > 0 ? (
+          <AmbiguousList assets={ambiguous} onChanged={refreshOwnership} />
+        ) : null}
         {declared.length > 0 ? <DeclaredList assets={declared} /> : null}
       </section>
 
@@ -666,6 +685,89 @@ function LinkWalletForm({
       </p>
       {message ? <p className="text-[12.5px] text-ink/90">{message}</p> : null}
     </form>
+  )
+}
+
+/**
+ * Assets the resolver could not pin down: the owner picks the right printing. The choice sticks
+ * across syncs.
+ */
+function AmbiguousList({
+  assets,
+  onChanged,
+}: {
+  assets: OwnedAsset[]
+  onChanged: () => Promise<void>
+}) {
+  const game = useCatalogStore((s) => s.game)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? assets : assets.slice(0, 4)
+
+  const pick = async (assetId: string, printingId: string) => {
+    setBusy(assetId)
+    setError(null)
+    try {
+      await chooseResolution(assetId, printingId, game)
+      await onChanged()
+    } catch (err) {
+      setError(messageOf(err, 'The choice could not be saved.'))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="mt-3">
+      <h4 className="eyebrow mb-1">Need a closer look · {assets.length}</h4>
+      <p className="mb-2 text-[12.5px] text-ink-dim">
+        These could be more than one card. Pick the right printing and it joins your constellation.
+      </p>
+      <ul className="space-y-2">
+        {shown.map((a) => (
+          <li key={a.assetId} className="rounded-lg bg-void/40 px-3 py-2">
+            <p className="truncate text-[13.5px] text-ink" title={a.tokenId ?? ''}>
+              {a.name ?? a.tokenId ?? 'Asset'}
+              <span className="text-ink-dim"> · {a.chain ?? a.platform}</span>
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {a.candidates.map((c) => (
+                <button
+                  key={c.printingId}
+                  type="button"
+                  className="chip text-[12.5px]"
+                  disabled={busy !== null}
+                  onClick={() => pick(a.assetId, c.printingId)}
+                  title={`Confidence ${Math.round(c.confidence * 100)}%`}
+                >
+                  {c.name}
+                  {c.setName ? <span className="text-ink-dim"> · {c.setName}</span> : null}
+                  {c.collectorNumber ? (
+                    <span className="text-ink-dim"> #{c.collectorNumber}</span>
+                  ) : null}
+                </button>
+              ))}
+              {a.candidates.length === 0 ? (
+                <span className="text-[12.5px] text-ink-dim">
+                  No plausible printing in the catalog yet.
+                </span>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {assets.length > 4 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="btn btn-quiet mt-1 text-[12.5px]"
+        >
+          {expanded ? 'Show less' : `+${assets.length - 4} more`}
+        </button>
+      ) : null}
+      {error ? <p className="mt-1 text-[12.5px] text-rose-500">{error}</p> : null}
+    </div>
   )
 }
 

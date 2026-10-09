@@ -89,7 +89,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ nod
           nodeTypes: graphNodeTypes.length ? graphNodeTypes : null,
           allowedPrintingNodeIds,
         }),
-        getRelationshipSummary(db, nodeId),
+        getRelationshipSummary(db, nodeId, {
+          nodeTypes: graphNodeTypes.length ? graphNodeTypes : null,
+          relationshipTypes: graphRelationshipTypes,
+        }),
       ])
       return { ...neighborhood, summary, filtered: allowedPrintingNodeIds !== null }
     })

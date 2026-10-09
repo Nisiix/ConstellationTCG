@@ -1,4 +1,4 @@
-import { eq, graphEdges, graphNodes, tcgSets, type Database } from '@constellation/database'
+import { cardPrintings, eq, graphEdges, graphNodes, tcgSets, type Database } from '@constellation/database'
 import { GraphError } from '@constellation/domain'
 import { createSeededDatabase } from '@constellation/testing'
 import type { AdapterRegistry } from '@constellation/adapters'
@@ -240,5 +240,74 @@ describe('placeholder images', () => {
     const game = all.find((n) => n.nodeType === 'game')
     expect(game?.imageUrl).toBe(placeholder)
     expect(game?.metadata.imagePlaceholder).toBe(true)
+  })
+})
+
+describe('reprints across sets', () => {
+  it('links a later printing of the same card to its first printing, and the original is a hub', async () => {
+    const charizard = await findNode('card_printing', 'Charizard')
+    const [base] = await database.db.select().from(tcgSets).limit(1)
+    const [printing] = await database.db.select().from(cardPrintings).where(eq(cardPrintings.id, charizard.entityId))
+    if (!base || !printing) throw new Error('fixture rows missing')
+    // Base Set 2 reprinted Charizard: a second printing of the same identity in a later set.
+    const [later] = await database.db
+      .insert(tcgSets)
+      .values({
+        gameId: base.gameId,
+        seriesId: base.seriesId,
+        sourceId: base.sourceId,
+        externalId: 'base4',
+        slug: 'base-set-2',
+        name: 'Base Set 2',
+        releaseDate: '2000-02-24',
+        rawHash: 'test-base4',
+      })
+      .returning()
+    if (!later) throw new Error('set not created')
+    await database.db.insert(cardPrintings).values({
+      identityId: printing.identityId,
+      setId: later.id,
+      sourceId: printing.sourceId,
+      externalId: 'base4-4',
+      collectorNumber: '4',
+      printedNumber: '4/130',
+      rarity: printing.rarity,
+      artistId: printing.artistId,
+      imageFront: printing.imageFront,
+      attributes: printing.attributes,
+      rawDataHash: 'test-base4-4',
+    })
+
+    const rebuilt = await buildGraphProjection({ database, registry })
+    expect(rebuilt.games[0]?.skippedEdges).toBe(0)
+    const edges = await database.db.select().from(graphEdges)
+    const reprints = edges.filter((e) => e.relationshipType === 'REPRINT_OF')
+    expect(reprints).toHaveLength(1)
+    expect(reprints[0]?.targetNodeId).toBe(charizard.id)
+    expect(reprints[0]?.sourceNodeId).not.toBe(charizard.id)
+    expect(reprints[0]?.weight).toBeCloseTo(0.7)
+
+    // One hop from the original reaches its reprint; the summary names the relationship.
+    const hood = await getNeighborhood(database.db, charizard.id, { depth: 1 })
+    expect(hood.nodes.some((n) => n.id === reprints[0]?.sourceNodeId)).toBe(true)
+    const summary = await getRelationshipSummary(database.db, charizard.id)
+    expect(summary.some((s) => s.relationshipType === 'REPRINT_OF' && s.direction === 'in')).toBe(true)
+  })
+})
+
+describe('relationship summary filters', () => {
+  it('counts only the connections the neighborhood would show', async () => {
+    const charizard = await findNode('card_printing', 'Charizard')
+    const all = await getRelationshipSummary(database.db, charizard.id)
+    expect(all.some((s) => s.relationshipType === 'SAME_POKEMON')).toBe(true)
+    const cardsAndSets = await getRelationshipSummary(database.db, charizard.id, {
+      nodeTypes: ['set', 'card_identity', 'card_printing', 'artist'],
+    })
+    expect(cardsAndSets.some((s) => s.relationshipType === 'SAME_POKEMON')).toBe(false)
+    expect(cardsAndSets.some((s) => s.relationshipType === 'HAS_TYPE')).toBe(false)
+    expect(cardsAndSets.some((s) => s.relationshipType === 'BELONGS_TO')).toBe(true)
+    expect(cardsAndSets.some((s) => s.relationshipType === 'ILLUSTRATED_BY')).toBe(true)
+    const onlyArtist = await getRelationshipSummary(database.db, charizard.id, { relationshipTypes: ['ILLUSTRATED_BY'] })
+    expect(onlyArtist.map((s) => s.relationshipType)).toEqual(['ILLUSTRATED_BY'])
   })
 })

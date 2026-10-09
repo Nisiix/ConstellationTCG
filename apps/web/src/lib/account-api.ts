@@ -2,7 +2,9 @@ import type {
   Challenge,
   OwnedAsset,
   OwnershipSnapshot,
+  OwnershipStats,
   ProviderDescriptor,
+  ResolutionCandidate,
   SyncSummary,
   WalletRecord,
 } from '@constellation/ownership'
@@ -12,7 +14,9 @@ export type {
   Challenge,
   OwnedAsset,
   OwnershipSnapshot,
+  OwnershipStats,
   ProviderDescriptor,
+  ResolutionCandidate,
   SyncSummary,
   WalletRecord,
 }
@@ -91,6 +95,14 @@ export function declareOwned(printing: string, quantity?: number) {
   return send<{ assetId: string; printingId: string }>('/api/ownership/manual', {
     body: { printing, quantity },
   })
+}
+
+/** Pin an ambiguous asset to a printing (node id or uuid), or `null` to let the resolver decide again. */
+export function chooseResolution(assetId: string, printingId: string | null, game?: string) {
+  return send<{ status: 'resolved' | 'ambiguous' | 'unresolved'; printingId: string | null }>(
+    '/api/ownership/resolve',
+    { body: { assetId, printingId, game } },
+  )
 }
 
 export function releaseOwned(printing: string) {
