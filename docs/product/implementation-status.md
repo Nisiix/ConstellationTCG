@@ -318,3 +318,23 @@ fuori da questa fase. La mappa dei ticket di decisione è in `.scratch/fase-2/ma
 (convenzione `wayfinder`, tracker markdown locale): due task del proprietario (import completo,
 configurazione Auth), due ricerche (algoritmo del cammino, termini TCGdex e marchi), due grilling
 (come si vede il filo, come si chiede e si mostra il cammino), due prototipi e l'accettazione.
+
+**Ricerche concluse (9 ottobre)**, note in `.scratch/fase-2/research/`:
+
+- *Cammino fra due punti* (ticket 03): BFS bidirezionale **in memoria** su un indice di adiacenza
+  per gioco, caricato alla prima richiesta e tenuto in cache come le altre (misurato sul fixture:
+  7 ms di caricamento, 1,4 ms per cammino; stima a catalogo completo ~130k archi, 6–10 MB, 1–10 ms
+  per cammino, 0,8–2 s il primo caricamento). Le CTE ricorsive che portano l'array del cammino
+  esplodono (1–2 s a profondità 6 già sul fixture) e non vanno usate. Profondità 6 di default, 8 come
+  tetto; ponti di default = carte, set, serie, artista, ristampe ed evoluzioni, **senza il nodo
+  gioco come transito** (altrimenti ogni cammino collassa in carta → set → serie → gioco → …) e
+  senza tipi di energia (renderebbero ogni coppia distante 2). Spareggio deterministico (preferenza
+  per relazione, poi id) perché l'URL `/thread/<a>/<b>` sia condivisibile.
+- *Termini TCGdex e marchi* (ticket 04): i dati TCGdex sono **MIT** (© 2021 TCGdex, unica
+  condizione conservare l'avviso); le **immagini non sono coperte** dalla licenza e restano di The
+  Pokémon Company (TCGdex le serve, non le licenzia); API libera senza chiave, nessun limite
+  pubblicato, caching incoraggiato. Attribuzioni aggiornate di conseguenza (adapter, footer, help,
+  README, `docs/legal/ATTRIBUTION.md`): licenza nominata con l'avviso, immagini dichiarate linkate e
+  mai archiviate, riga ufficiale dei titolari, disclaimer nella forma "not produced, endorsed,
+  supported or affiliated". Nessun disclaimer concede diritti: prima di un annuncio pubblico serve
+  la conferma di un legale e conviene avvisare TCGdex del progetto.

@@ -55,6 +55,21 @@ export function SiteFooter() {
             >
               {game.attribution.source.name}
             </a>
+            {game.attribution.source.license ? (
+              <>
+                {' '}
+                (data under the{' '}
+                <a
+                  href={game.attribution.source.license.url}
+                  rel="noreferrer"
+                  target="_blank"
+                  className="underline decoration-ink/30 underline-offset-2 hover:text-ink"
+                >
+                  {game.attribution.source.license.name}
+                </a>
+                , {game.attribution.source.license.notice}; images are linked, never stored)
+              </>
+            ) : null}
             . {game.attribution.rightsHolders} {game.attribution.disclaimer}
           </p>
         ))}

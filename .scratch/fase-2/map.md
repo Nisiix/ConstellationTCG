@@ -36,6 +36,22 @@ di stato e la voce nell'help.
   glossario; tracker markdown locale; orizzonte due mesi; progetto pubblico non commerciale; il
   filo vive nella sessione e si condivide come cammino fra due estremi ricalcolato; "fatto" = e2e +
   stato + help; import del catalogo e configurazione Auth a carico del proprietario.
+- [Ricerca 03, algoritmo del cammino](./issues/03-algoritmo-cammino.md) (nota in
+  [research/](./research/03-algoritmo-cammino.md)): BFS bidirezionale in memoria su indice per
+  gioco, non CTE ricorsive; profondità 6 (tetto 8); ponti = carte, set, serie, artista, ristampe,
+  evoluzioni, senza il nodo gioco come transito; spareggio deterministico per URL condivisibili.
+  Sblocca 06; il prototipo 08 deve misurare sul catalogo completo.
+- [Ricerca 04, termini TCGdex e marchi](./issues/04-termini-tcgdex-e-marchi.md) (nota in
+  [research/](./research/04-termini-tcgdex-e-marchi.md)): dati MIT con avviso da conservare,
+  immagini senza licenza e solo linkate; attribuzioni aggiornate (adapter, footer, help, README,
+  `docs/legal/ATTRIBUTION.md`). Prima dell'annuncio: conferma legale e avviso a TCGdex.
+
+## Frontier (prossima sessione)
+
+- **05** come si vede il filo (grilling) → poi 07.
+- **06** come si chiede e si mostra il cammino (grilling, sbloccato da 03) → poi 08.
+- **01** import completo e **02** configurazione Auth: task del proprietario (serve `DATABASE_URL`
+  con la password del database e una macchina con rete; Auth solo dalla dashboard Supabase).
 
 ## Not yet specified
 
@@ -43,8 +59,9 @@ di stato e la voce nell'help.
   Pokémon, stesso artista) invece di una lista. Conseguenza della destinazione, dopo filo e cammino.
 - **Tastiera lungo il filo**: tornare indietro e avanti sul filo con i tasti; dipende da come il
   filo verrà disegnato.
-- **Cammini sul catalogo completo**: profondità massima, tempi e limiti dipendono dall'import
-  (ticket 01) e dalla ricerca sull'algoritmo (ticket 03).
+- **Cammini sul catalogo completo**: l'algoritmo è scelto (ticket 03); le misure reali (frontiera
+  per salto, freddo su Vercel, indice stantio dopo `graph:build`) aspettano l'import (ticket 01) e
+  si fanno nel prototipo 08.
 - **Lingue**: ingestione in più lingue (quale lingua è canonica per set e serie, come mostrare i
   nomi stampati); l'identità già regge.
 

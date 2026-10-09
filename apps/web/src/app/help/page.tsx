@@ -133,13 +133,19 @@ export default function HelpPage() {
               <a href="https://tcgdex.dev" rel="noreferrer" target="_blank">
                 TCGdex
               </a>
-              , an open, community-maintained database, used with attribution and never resold. Data is imported by a background job
-              and projected into the graph; the site never queries the source while you browse.
+              , a free community database whose card data is published under the{' '}
+              <a href="https://github.com/tcgdex/cards-database/blob/master/LICENSE" rel="noreferrer" target="_blank">
+                MIT License
+              </a>{' '}
+              (Copyright © 2021 TCGdex). Data is imported by a background job and projected into the graph: the site never queries the
+              TCGdex API while you browse. Card images are not covered by that license; they are loaded from TCGdex’s asset host at
+              the sizes it publishes and are never stored here.
             </li>
             <li>
-              <strong>Rights.</strong> Pokémon, card names, artwork, set logos and symbols are © Nintendo, Creatures Inc., GAME FREAK
-              inc. and The Pokémon Company International. Constellation is an unofficial, non-commercial fan project, not affiliated
-              with, endorsed or sponsored by them or by TCGdex. The full credits are in the footer of every page and in the{' '}
+              <strong>Rights.</strong> ©1995–{new Date().getFullYear()} Nintendo/Creatures Inc./GAME FREAK inc. Pokémon and Pokémon
+              character names are trademarks of Nintendo; card images, set logos and symbols are the property of The Pokémon Company
+              International. Constellation is an unofficial, non-commercial fan project, not produced, endorsed, supported or
+              affiliated with them or with TCGdex. The full credits are in the footer of every page and in the{' '}
               <a href="https://github.com/Nisiix/ConstellationTCG/blob/main/docs/legal/ATTRIBUTION.md" rel="noreferrer" target="_blank">
                 attribution notice
               </a>

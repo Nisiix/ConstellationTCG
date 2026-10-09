@@ -37,8 +37,17 @@ export interface TCGDefinition {
  * under which terms, and whose intellectual property the names, artwork and logos are.
  */
 export interface Attribution {
-  /** The data source (name, link, how its terms are described). */
-  source: { name: string; url: string; terms: string; termsUrl?: string }
+  /**
+   * The data source: name, link, how its terms are described, and (when the data ships under a
+   * license whose notice must be kept, e.g. MIT) the license name, its notice and its text.
+   */
+  source: {
+    name: string
+    url: string
+    terms: string
+    termsUrl?: string
+    license?: { name: string; notice: string; url: string }
+  }
   /** Whose trademarks and copyrights the game's names, artwork and logos are. */
   rightsHolders: string
   /** The disclaimer the interface shows (not affiliated, non-commercial, …). */

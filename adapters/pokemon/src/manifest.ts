@@ -3,6 +3,9 @@ import type { FilterDefinition, TCGDefinition, TCGTheme } from '@constellation/d
 /** The classic Pokémon TCG logo (Base Set), used when a set or series has no logo of its own. */
 export const POKEMON_PLACEHOLDER_LOGO = 'https://assets.tcgdex.net/en/base/base1/logo.webp'
 
+/** TCGdex publishes its card database under the MIT License; the notice must travel with the data. */
+export const TCGDEX_LICENSE_URL = 'https://github.com/tcgdex/cards-database/blob/master/LICENSE'
+
 /**
  * Pokémon palette: red and white are contours only (rings, borders, edges, active states).
  * Backgrounds are a dirty black in dark mode and a dirty white in light mode.
@@ -131,11 +134,14 @@ export const POKEMON_DEFINITION: TCGDefinition = {
     source: {
       name: 'TCGdex',
       url: 'https://tcgdex.dev',
-      terms: 'Open, community-maintained Pokémon TCG database and API; card data and image links are used as provided by TCGdex, with attribution, and never resold.',
-      termsUrl: 'https://tcgdex.dev/',
+      terms:
+        'Card data under the MIT License (Copyright (c) 2021 TCGdex), from a free community API that needs no key. Card images are not covered by that license: they stay the property of The Pokémon Company and are linked from assets.tcgdex.net at the sizes TCGdex publishes, never stored.',
+      termsUrl: TCGDEX_LICENSE_URL,
+      license: { name: 'MIT License', notice: 'Copyright (c) 2021 TCGdex', url: TCGDEX_LICENSE_URL },
     },
-    rightsHolders: 'Pokémon, card names, artwork, set logos and symbols are © Nintendo, Creatures Inc., GAME FREAK inc. and The Pokémon Company International.',
-    disclaimer: 'Constellation is an unofficial, non-commercial fan project. It is not affiliated with, endorsed or sponsored by The Pokémon Company, Nintendo or TCGdex. No prices are shown and nothing is sold.',
+    rightsHolders: `©1995–${new Date().getFullYear()} Nintendo/Creatures Inc./GAME FREAK inc. Pokémon and Pokémon character names are trademarks of Nintendo. Card images, set logos and symbols are the property of The Pokémon Company International.`,
+    disclaimer:
+      'Constellation is an unofficial, non-commercial fan project, not produced, endorsed, supported or affiliated with Nintendo, Creatures Inc., GAME FREAK inc., The Pokémon Company (International) or TCGdex. No prices are shown and nothing is sold.',
   },
   placeholderImages: {
     game: POKEMON_PLACEHOLDER_LOGO,

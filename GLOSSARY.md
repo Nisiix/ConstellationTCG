@@ -59,7 +59,8 @@ Solana through a DAS endpoint or the public RPC, declared cards. Providers never
 identity rules, relationships, theme, filters, attribution. Adding a game is adding an adapter.
 
 **Attribution** (`TCGDefinition.attribution`) — The credits a game's data requires: source and its
-terms, rights holders, disclaimer. Shown wherever the data is.
+terms (with the license notice when the data ships under one), rights holders, disclaimer. Shown
+wherever the data is.
 
 **Thread** (`filo`; `/thread/<a>/<b>`) — The path a person has travelled in this session, kept
 visible in the sky so the journey never resets. It lives in the session only; what is shared is the

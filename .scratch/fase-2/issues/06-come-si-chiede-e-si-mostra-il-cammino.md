@@ -2,7 +2,8 @@
 
 Type: grilling
 Status: open
-Blocked by: 03
+Blocked by: — (03 risolto: ponti di default, profondità 6/8 e risposta "nessun cammino" già
+raccomandati nella sua `## Answer`; qui si decide il gesto e la resa, non l'algoritmo)
 
 ## Question
 

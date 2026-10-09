@@ -7,16 +7,32 @@ the explorer read them from there, so a new game cannot ship without them.
 
 ## Pokémon Trading Card Game
 
-- **Data source**: [TCGdex](https://tcgdex.dev), an open, community-maintained Pokémon TCG database
-  and API. Card data and image links are used as provided by TCGdex, with attribution, and never
-  resold. Prices present in the source payloads are stripped at ingestion and never stored.
-- **Rights holders**: Pokémon, card names, artwork, set logos and symbols are © Nintendo, Creatures
-  Inc., GAME FREAK inc. and The Pokémon Company International.
-- **Disclaimer**: Constellation is an unofficial, non-commercial fan project. It is not affiliated
-  with, endorsed or sponsored by The Pokémon Company, Nintendo or TCGdex. No prices are shown and
-  nothing is sold.
-- **Images**: served from `assets.tcgdex.net` by link; the platform hosts no card images. A set
-  without a logo shows the classic Base Set logo as a stand-in, labelled as such in the data.
+- **Data source**: [TCGdex](https://tcgdex.dev), a free, community-maintained Pokémon TCG database
+  and API (no key, no published rate limits; local caching is what its FAQ asks for, and the
+  snapshot ingestion does exactly that). The card database is published under the **MIT License**:
+
+  > MIT License — Copyright (c) 2021 TCGdex
+  > ([full text](https://github.com/tcgdex/cards-database/blob/master/LICENSE))
+
+  Its only condition is that this notice stays with the data, which the platform redistributes in
+  substantial part through its API and graph; the notice therefore lives in the adapter
+  (`attribution.source.license`) and is shown in the footer and the help page. TCGdex has no written
+  terms beyond that license and its FAQ. Prices present in the source payloads are stripped at
+  ingestion and never stored.
+- **Images**: the MIT license covers the data repository only, not the card scans, which TCGdex hosts
+  separately and does not license. They stay the property of The Pokémon Company and are loaded by
+  link from `assets.tcgdex.net` at the sizes TCGdex publishes (`low`/`high`, WebP); the platform
+  stores and hosts no card image. A set without a logo shows the classic Base Set logo as a stand-in,
+  labelled as such in the data (that logo is itself a trademark).
+- **Rights holders**: ©1995–2026 Nintendo/Creatures Inc./GAME FREAK inc. Pokémon and Pokémon
+  character names are trademarks of Nintendo. Card images, set logos and symbols are the property of
+  The Pokémon Company International.
+- **Disclaimer**: Constellation is an unofficial, non-commercial fan project, not produced, endorsed,
+  supported or affiliated with Nintendo, Creatures Inc., GAME FREAK inc., The Pokémon Company
+  (International) or TCGdex. No prices are shown and nothing is sold.
+- **Research**: how these terms were established, with sources and the limits of the check, is in
+  the phase-2 research note on TCGdex terms and trademarks (`.scratch/fase-2/research/`, 9 October
+  2026). It is not legal advice.
 
 ## Ownership providers
 
@@ -36,6 +52,10 @@ the explorer read them from there, so a new game cannot ship without them.
 
 ## Before a public launch
 
-Per the master specification (chapter 105), confirm: TCGdex terms for redistribution of data and
-image links; trademark use in a non-commercial fan context; set symbols and logos; artist names;
-Blockscout and RPC providers' terms. Do not assume that a public API grants commercial rights.
+Per the master specification (chapter 105), confirm with a lawyer: trademark use in a
+non-commercial fan context; card images, set symbols and logos (no license covers them; the 2010
+dispute between The Pokémon Company International and Beckett shows that card images next to prices
+and a marketplace are the sensitive point, which this platform avoids by design); artist names;
+Blockscout and RPC providers' terms. TCGdex itself grants only the MIT license on the data: do not
+assume that a public API grants commercial rights, and tell TCGdex about the project and the expected
+image traffic before a launch (`contact@tcgdex.net` or its Discord). No disclaimer grants rights.

@@ -2,7 +2,8 @@
 
 Type: prototype
 Status: open
-Blocked by: 03, 06
+Blocked by: 06 (03 risolto: BFS bidirezionale in memoria, misure da fare elencate nella sua
+`## Answer`)
 
 ## Question
 
