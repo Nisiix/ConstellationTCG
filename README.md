@@ -92,7 +92,13 @@ The end-to-end suite starts its own server on port 3101 with a throwaway embedde
 - [API](docs/api/README.md)
 - [Adding a TCG adapter](docs/adapters/README.md)
 
-## License
+## License, data and credits
 
-Source code: MIT. Card data and images are provided by their respective sources (TCGdex) and
-remain subject to their licenses; verify licensing before any public launch.
+Source code: MIT. Pokémon card data and image links come from [TCGdex](https://tcgdex.dev), used
+with attribution and never resold; Pokémon, card names, artwork, set logos and symbols are
+© Nintendo, Creatures Inc., GAME FREAK inc. and The Pokémon Company International. Constellation is
+an unofficial, non-commercial fan project, not affiliated with or endorsed by them or by TCGdex.
+Every adapter declares its credits (`TCGDefinition.attribution`), shown in the footer of every
+page, in `/help#credits` and in the explorer. Details: [docs/legal/ATTRIBUTION.md](docs/legal/ATTRIBUTION.md);
+open-source dependencies: [docs/legal/THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md).
+Verify the terms before any public launch (master specification, chapter 105).

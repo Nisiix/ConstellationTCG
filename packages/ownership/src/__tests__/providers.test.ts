@@ -158,13 +158,17 @@ describe('Solana DAS provider', () => {
     token_info: { price_info: { price_per_token: 12, currency: 'USDC' }, supply: 1 },
   }
 
-  it('is unavailable without an endpoint and refuses to fetch', async () => {
-    const provider = createSolanaDasProvider({ env: {} })
-    expect(provider.availability()).toMatchObject({ available: false })
-    expect(provider.availability().reason).toMatch(/SOLANA_RPC_URL/)
-    await expect(
-      provider.fetchAssets('11111111111111111111111111111111', 'solana'),
-    ).rejects.toThrow(/not configured/)
+  it('uses the public RPC when no DAS endpoint is configured', async () => {
+    const methods: string[] = []
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      expect(String(input instanceof Request ? input.url : input)).toBe('https://api.mainnet-beta.solana.com')
+      methods.push((JSON.parse(String(init?.body)) as { method: string }).method)
+      return jsonResponse({ jsonrpc: '2.0', id: 1, result: { value: [] } })
+    })
+    const provider = createSolanaDasProvider({ env: {}, fetch: fetchMock as unknown as typeof fetch })
+    expect(provider.availability()).toMatchObject({ available: true })
+    expect(await provider.fetchAssets('11111111111111111111111111111111', 'solana')).toEqual([])
+    expect(methods).toEqual(['getTokenAccountsByOwner', 'getTokenAccountsByOwner'])
   })
 
   it('pages through getAssetsByOwner and strips price info', async () => {
@@ -233,8 +237,107 @@ describe('provider registry', () => {
     const list = registry.list()
     expect(list.map((p) => p.id)).toEqual(['evm', 'solana', 'manual'])
     expect(list.find((p) => p.id === 'evm')?.availability.available).toBe(true)
-    expect(list.find((p) => p.id === 'solana')?.availability.available).toBe(false)
+    expect(list.find((p) => p.id === 'solana')?.availability.available).toBe(true)
+    expect(list.find((p) => p.id === 'solana')?.availability.reason).toMatch(/public RPC/)
     expect(list.find((p) => p.id === 'evm')?.chains.map((c) => c.id)).toContain('ethereum')
     expect(() => registry.require('opensea')).toThrow(/Unknown provider/)
+  })
+})
+
+describe('Solana without a key (public RPC)', () => {
+  const OWNER = '11111111111111111111111111111111'
+  const MINT = 'So11111111111111111111111111111111111111112'
+  const AUTHORITY = 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+
+  it('derives program addresses deterministically, off the curve', async () => {
+    const { findProgramAddress, metadataAddress } = await import('../providers/solana-rpc')
+    const { base58 } = await import('@scure/base')
+    const a = metadataAddress(MINT)
+    const b = metadataAddress(MINT)
+    expect(a).toBe(b)
+    expect(base58.decode(a)).toHaveLength(32)
+    expect(a).not.toBe(MINT)
+    const { bump } = findProgramAddress([new TextEncoder().encode('metadata'), base58.decode(AUTHORITY), base58.decode(MINT)], base58.decode(AUTHORITY))
+    expect(bump).toBeGreaterThanOrEqual(0)
+    expect(bump).toBeLessThanOrEqual(255)
+  })
+
+  it('parses Metaplex metadata and ignores anything else', async () => {
+    const { encodeMetadataForTests, parseMetadata } = await import('../providers/solana-rpc')
+    const bytes = encodeMetadataForTests({ mint: MINT, updateAuthority: AUTHORITY, name: 'Charizard #4', symbol: 'PKMN', uri: 'https://meta.example/4.json' })
+    expect(parseMetadata(bytes)).toEqual({ mint: MINT, updateAuthority: AUTHORITY, name: 'Charizard #4', symbol: 'PKMN', uri: 'https://meta.example/4.json' })
+    expect(parseMetadata(new Uint8Array([1, 2, 3]))).toBeNull()
+    expect(parseMetadata(new Uint8Array(80))).toBeNull()
+  })
+
+  it('walks token accounts → metadata accounts → off-chain JSON through a plain RPC', async () => {
+    const { encodeMetadataForTests, fetchSolanaAssetsViaRpc, metadataAddress } = await import('../providers/solana-rpc')
+    const otherMint = 'Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS'
+    const calls: string[] = []
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input)
+      if (url === 'https://meta.example/4.json') {
+        return jsonResponse({ name: 'Charizard', image: 'https://img.example/4.png', attributes: [{ trait_type: 'Set', value: 'Base Set' }, { trait_type: 'Price', value: 9 }], collection: { name: 'Pokémon Cards' } })
+      }
+      const body = JSON.parse(String(init?.body)) as { method: string; params: unknown[] }
+      calls.push(body.method)
+      if (body.method === 'getTokenAccountsByOwner') {
+        const program = (body.params[1] as { programId: string }).programId
+        const value =
+          program === 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+            ? [
+                { account: { data: { parsed: { info: { mint: MINT, tokenAmount: { amount: '1', decimals: 0 } } } } } },
+                { account: { data: { parsed: { info: { mint: otherMint, tokenAmount: { amount: '1', decimals: 0 } } } } } },
+                { account: { data: { parsed: { info: { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', tokenAmount: { amount: '2500000', decimals: 6 } } } } } },
+              ]
+            : []
+        return jsonResponse({ jsonrpc: '2.0', id: 1, result: { value } })
+      }
+      if (body.method === 'getMultipleAccounts') {
+        const addresses = body.params[0] as string[]
+        const value = addresses.map((address) =>
+          address === metadataAddress(MINT)
+            ? { data: [Buffer.from(encodeMetadataForTests({ mint: MINT, updateAuthority: AUTHORITY, name: 'Charizard #4', symbol: 'PKMN', uri: 'https://meta.example/4.json' })).toString('base64'), 'base64'] }
+            : null,
+        )
+        return jsonResponse({ jsonrpc: '2.0', id: 1, result: { value } })
+      }
+      return jsonResponse({ jsonrpc: '2.0', id: 1, error: { code: -32601, message: 'Method not found' } })
+    })
+    const assets = await fetchSolanaAssetsViaRpc('https://rpc.example', OWNER, { fetch: fetchMock as unknown as typeof fetch })
+    expect(calls.filter((c) => c === 'getTokenAccountsByOwner')).toHaveLength(2)
+    expect(calls.filter((c) => c === 'getMultipleAccounts')).toHaveLength(1)
+    expect(assets).toHaveLength(2)
+    const charizard = assets.find((a) => a.tokenId === MINT)
+    expect(charizard).toMatchObject({
+      platform: 'solana',
+      chain: 'solana',
+      contractAddress: 'Pokémon Cards',
+      name: 'Charizard',
+      metadataUri: 'https://meta.example/4.json',
+      imageUri: 'https://img.example/4.png',
+      attributes: { Set: 'Base Set' },
+    })
+    expect(JSON.stringify(charizard?.rawMetadata)).not.toMatch(/price/i)
+    // A mint without metadata still counts, named by its mint only.
+    expect(assets.find((a) => a.tokenId === otherMint)).toMatchObject({ name: null, contractAddress: otherMint })
+  })
+
+  it('is available with nothing configured, and a non-DAS endpoint falls back to the plain RPC', async () => {
+    const provider = createSolanaDasProvider({ env: {} })
+    expect(provider.availability()).toMatchObject({ available: true })
+    expect(provider.availability().reason).toMatch(/public RPC/)
+    const methods: string[] = []
+    const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { method: string }
+      methods.push(body.method)
+      if (body.method === 'getAssetsByOwner') return jsonResponse({ jsonrpc: '2.0', id: 1, error: { code: -32601, message: 'Method not found' } })
+      return jsonResponse({ jsonrpc: '2.0', id: 1, result: { value: [] } })
+    })
+    const withPlainRpc = createSolanaDasProvider({ env: { SOLANA_RPC_URL: 'https://plain.example' }, fetch: fetchMock as unknown as typeof fetch })
+    const assets = await withPlainRpc.fetchAssets(OWNER, 'solana')
+    expect(assets).toEqual([])
+    expect(methods[0]).toBe('getAssetsByOwner')
+    expect(methods).toContain('getTokenAccountsByOwner')
   })
 })

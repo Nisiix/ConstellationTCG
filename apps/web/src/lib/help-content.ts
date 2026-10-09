@@ -29,6 +29,8 @@ export const HOW_IT_WORKS: HelpStep[] = [
 
 export const SHORTCUTS: Array<[key: string, label: string]> = [
   ['/', 'Search'],
+  ['← →', 'Walk the connections'],
+  ['Enter', 'Fly to the one in hand'],
   ['E', 'Widen the connections'],
   ['C', 'Direct connections only'],
   ['F', 'Filters'],

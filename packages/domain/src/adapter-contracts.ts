@@ -28,6 +28,21 @@ export interface TCGDefinition {
    * logo) or the image fails to load. Pokémon: the classic Base Set logo.
    */
   placeholderImages?: Partial<Record<NodeType, string>>
+  /** Where the data comes from and whose trademarks it shows: shown wherever the data is. */
+  attribution: Attribution
+}
+
+/**
+ * Credits an adapter owes. Third-party data is never shown without saying where it comes from,
+ * under which terms, and whose intellectual property the names, artwork and logos are.
+ */
+export interface Attribution {
+  /** The data source (name, link, how its terms are described). */
+  source: { name: string; url: string; terms: string; termsUrl?: string }
+  /** Whose trademarks and copyrights the game's names, artwork and logos are. */
+  rightsHolders: string
+  /** The disclaimer the interface shows (not affiliated, non-commercial, …). */
+  disclaimer: string
 }
 
 export interface SourceSeries {

@@ -15,7 +15,7 @@ const SECTIONS = [
   { id: 'views', label: 'Views' },
   { id: 'filters', label: 'Filters and sharing' },
   { id: 'keyboard', label: 'Keyboard' },
-  { id: 'data', label: 'Data and principles' },
+  { id: 'data', label: 'Data, credits and principles' },
   { id: 'faq', label: 'Questions' },
 ]
 
@@ -126,22 +126,32 @@ export default function HelpPage() {
             ))}
           </dl>
 
-          <h2 id="data">Data and principles</h2>
+          <h2 id="data">Data, credits and principles</h2>
           <ul>
             <li>
-              <strong>Source.</strong> Pokémon card data and images come from{' '}
+              <strong>Source.</strong> Pokémon card data and image links come from{' '}
               <a href="https://tcgdex.dev" rel="noreferrer" target="_blank">
                 TCGdex
               </a>
-              . Data is imported by a background job and projected into the graph; the site never queries the source while you browse.
+              , an open, community-maintained database, used with attribution and never resold. Data is imported by a background job
+              and projected into the graph; the site never queries the source while you browse.
+            </li>
+            <li>
+              <strong>Rights.</strong> Pokémon, card names, artwork, set logos and symbols are © Nintendo, Creatures Inc., GAME FREAK
+              inc. and The Pokémon Company International. Constellation is an unofficial, non-commercial fan project, not affiliated
+              with, endorsed or sponsored by them or by TCGdex. The full credits are in the footer of every page and in the{' '}
+              <a href="https://github.com/Nisiix/ConstellationTCG/blob/main/docs/legal/ATTRIBUTION.md" rel="noreferrer" target="_blank">
+                attribution notice
+              </a>
+              .
             </li>
             <li>
               <strong>No prices.</strong> Prices, market values and anything sold are stripped at the source and never stored, shown
               or implied.
             </li>
             <li>
-              <strong>No account.</strong> Search and exploration need no sign-up and no wallet. “My Constellation”, the overlay that
-              will highlight the cards you own, is a later milestone and will stay optional.
+              <strong>No account needed.</strong> Search and exploration need no sign-up and no wallet. “My Constellation” is optional:
+              sign in with an email link, link a wallet by signing a free message, or mark the cards you own; they glow gold in the sky.
             </li>
             <li>
               <strong>Open source.</strong> The code is on{' '}

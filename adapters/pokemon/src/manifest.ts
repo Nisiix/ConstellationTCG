@@ -127,6 +127,16 @@ export const POKEMON_DEFINITION: TCGDefinition = {
   nodeTypes: ['pokemon', 'attribute'],
   filters: POKEMON_FILTERS,
   theme: POKEMON_THEME,
+  attribution: {
+    source: {
+      name: 'TCGdex',
+      url: 'https://tcgdex.dev',
+      terms: 'Open, community-maintained Pokémon TCG database and API; card data and image links are used as provided by TCGdex, with attribution, and never resold.',
+      termsUrl: 'https://tcgdex.dev/',
+    },
+    rightsHolders: 'Pokémon, card names, artwork, set logos and symbols are © Nintendo, Creatures Inc., GAME FREAK inc. and The Pokémon Company International.',
+    disclaimer: 'Constellation is an unofficial, non-commercial fan project. It is not affiliated with, endorsed or sponsored by The Pokémon Company, Nintendo or TCGdex. No prices are shown and nothing is sold.',
+  },
   placeholderImages: {
     game: POKEMON_PLACEHOLDER_LOGO,
     series: POKEMON_PLACEHOLDER_LOGO,

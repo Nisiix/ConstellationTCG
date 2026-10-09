@@ -97,3 +97,26 @@ describe('createRandom', () => {
     expect(seq.every((v) => v >= 0 && v < 1)).toBe(true)
   })
 })
+
+describe('performance budget', () => {
+  it('lays out a crowded neighborhood (500 points, 1500 lines) with finite positions, quickly', () => {
+    const random = createRandom(7)
+    const nodes = Array.from({ length: 500 }, (_, i) => node(`n${i}`, i % 7 === 0 ? 'set' : 'card_printing'))
+    const edges: GraphEdge[] = []
+    for (let i = 1; i < 500; i += 1) edges.push(edge('n0', `n${i}`, 0.5 + random() * 0.5))
+    while (edges.length < 1500) {
+      const a = Math.floor(random() * 500)
+      const b = Math.floor(random() * 500)
+      if (a !== b) edges.push(edge(`n${a}`, `n${b}`, random()))
+    }
+    const distances: Record<string, number> = { n0: 0 }
+    for (let i = 1; i < 500; i += 1) distances[`n${i}`] = i < 120 ? 1 : 2
+    const started = performance.now()
+    const positions = computeLayout(nodes, edges, distances, 'n0')
+    const elapsed = performance.now() - started
+    expect(positions.size).toBe(500)
+    for (const p of positions.values()) expect(p.every((v) => Number.isFinite(v))).toBe(true)
+    // The budget (chapter 41): 100–500 visible points at interactive speed. Generous for slow CI.
+    expect(elapsed).toBeLessThan(2500)
+  })
+})

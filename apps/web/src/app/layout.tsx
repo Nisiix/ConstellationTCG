@@ -3,6 +3,7 @@ import { Figtree, Source_Serif_4 } from 'next/font/google'
 import type { ReactNode } from 'react'
 import { DEFAULT_THEME, themeCssText } from '@constellation/ui'
 import { AuthLinkCatcher } from '@/components/AuthLinkCatcher'
+import { ErrorReporter } from '@/components/ErrorReporter'
 import { ModeBoot } from '@/components/ModeBoot'
 import { MODE_BOOT_SCRIPT } from '@/lib/mode'
 import './globals.css'
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="antialiased">
         <ModeBoot />
         <AuthLinkCatcher />
+        <ErrorReporter />
         <a href="#main" className="skip-link">
           Skip to content
         </a>

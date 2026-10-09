@@ -15,5 +15,6 @@ export {
   mapBlockscoutItem,
   attributesToRecord,
 } from './providers/blockscout'
-export { createSolanaDasProvider, mapDasAsset, SOLANA_RPC_ENV } from './providers/solana-das'
+export { createSolanaDasProvider, mapDasAsset, SOLANA_RPC_ENV, SOLANA_PUBLIC_RPC_ENV } from './providers/solana-das'
+export { fetchSolanaAssetsViaRpc, findProgramAddress, metadataAddress, parseMetadata, PUBLIC_SOLANA_RPC } from './providers/solana-rpc'
 export { manualProvider, MANUAL_PLATFORM } from './providers/manual'

@@ -1,4 +1,5 @@
 import type {
+  Attribution,
   FilterDefinition,
   GraphNeighborhood,
   GraphNode,
@@ -211,6 +212,7 @@ export interface GameSummary {
   /** Stand-in images per node type (e.g. the classic Pokémon logo for sets without one). */
   placeholderImages: Partial<Record<NodeType, string>>
   available: boolean
+  attribution: Attribution
 }
 
 export function fetchGames(signal?: AbortSignal) {

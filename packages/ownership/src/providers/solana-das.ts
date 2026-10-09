@@ -1,9 +1,10 @@
 /**
- * Solana ownership through the Digital Asset Standard (DAS) JSON-RPC API.
+ * Solana ownership.
  *
- * DAS (`getAssetsByOwner`) is served by RPC providers (Helius, Triton, QuickNode, Shyft, …), not by
- * the public mainnet RPC: a DAS-capable endpoint has to be configured in `SOLANA_RPC_URL`. Without
- * it the provider reports itself unavailable and the interface says so instead of failing.
+ * With a DAS-capable endpoint in `SOLANA_RPC_URL` (Helius, Triton, QuickNode, Shyft, …) the
+ * Digital Asset Standard call `getAssetsByOwner` returns everything in a few pages. Without one,
+ * the public mainnet JSON-RPC is used instead (see `solana-rpc.ts`): no key, slower, rate limited.
+ * An endpoint that does not know DAS falls back to the plain RPC path on the same URL.
  *
  * Payloads may carry `token_info.price_info`: stripped before anything is kept.
  */
@@ -12,8 +13,11 @@ import { normalizeSolanaAddress } from '../address'
 import { stripMarketData } from '../sanitize'
 import type { FetchAssetsOptions, OwnershipProvider, ProviderAsset } from '../types'
 import { attributesToRecord } from './blockscout'
+import { PUBLIC_SOLANA_RPC, fetchSolanaAssetsViaRpc } from './solana-rpc'
 
 export const SOLANA_RPC_ENV = 'SOLANA_RPC_URL'
+/** Override the keyless fallback endpoint (defaults to Solana's public mainnet RPC). */
+export const SOLANA_PUBLIC_RPC_ENV = 'SOLANA_PUBLIC_RPC_URL'
 
 interface DasAsset {
   id?: string
@@ -50,34 +54,50 @@ export function createSolanaDasProvider(options: SolanaDasProviderOptions = {}):
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
   const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES
   const endpoint = () => env[SOLANA_RPC_ENV]?.trim() || null
+  const publicEndpoint = () => env[SOLANA_PUBLIC_RPC_ENV]?.trim() || PUBLIC_SOLANA_RPC
 
   return {
     id: 'solana',
     kind: 'solana',
     label: 'Solana wallet',
-    chains: [{ id: 'solana', label: 'Solana', source: 'DAS RPC (configured endpoint)' }],
+    chains: [{ id: 'solana', label: 'Solana', source: endpoint() ? 'DAS endpoint' : 'public RPC' }],
     availability: () =>
       endpoint()
         ? { available: true }
         : {
-            available: false,
-            reason: `Solana needs a DAS-capable RPC endpoint in ${SOLANA_RPC_ENV} (Helius, Triton, QuickNode, …).`,
+            available: true,
+            reason: `Using Solana's public RPC: slower and rate limited. For large wallets set a DAS endpoint in ${SOLANA_RPC_ENV}.`,
           },
     normalizeAddress: normalizeSolanaAddress,
     async fetchAssets(address, chain, fetchOptions: FetchAssetsOptions = {}) {
       if (chain !== 'solana')
         throw new ProviderError(`Unknown Solana chain: ${chain}`, { status: 400, chain })
-      const url = endpoint()
-      if (!url)
-        throw new ProviderError(`Solana provider is not configured (${SOLANA_RPC_ENV})`, {
-          status: 503,
-        })
       const owner = normalizeSolanaAddress(address)
       const doFetch = fetchOptions.fetch ?? options.fetch ?? globalThis.fetch
       const maxAssets = fetchOptions.maxAssets ?? DEFAULT_MAX_ASSETS
+      const url = endpoint()
+      if (!url)
+        return fetchSolanaAssetsViaRpc(publicEndpoint(), owner, {
+          fetch: doFetch,
+          signal: fetchOptions.signal,
+          maxAssets,
+        })
       const assets: ProviderAsset[] = []
       for (let page = 1; page <= maxPages; page += 1) {
-        const body = await rpc(doFetch, url, owner, page, pageSize, fetchOptions.signal)
+        let body: DasResponse
+        try {
+          body = await rpc(doFetch, url, owner, page, pageSize, fetchOptions.signal)
+        } catch (error) {
+          // Not a DAS endpoint after all: the plain RPC path knows the same URL.
+          if (error instanceof ProviderError && error.details.code === -32601 && page === 1) {
+            return fetchSolanaAssetsViaRpc(url, owner, {
+              fetch: doFetch,
+              signal: fetchOptions.signal,
+              maxAssets,
+            })
+          }
+          throw error
+        }
         const items = body.result?.items ?? []
         for (const item of items) {
           const asset = mapDasAsset(item)

@@ -1,6 +1,15 @@
 import Link from 'next/link'
+import { getRegistry } from '@/server/adapters'
 
+/**
+ * Every page ends with the credits the data requires: for each game, the source and its terms, the
+ * rights holders of names, artwork and logos, and the disclaimer. Read from the adapters, so a new
+ * game brings its own credits.
+ */
 export function SiteFooter() {
+  const games = getRegistry()
+    .list()
+    .map((adapter) => adapter.definition())
   return (
     <footer className="border-t border-ink/10">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-[13px] text-ink-dim md:flex-row md:items-center md:justify-between md:px-6">
@@ -15,18 +24,53 @@ export function SiteFooter() {
           <Link href="/explore" className="hover:text-ink">
             Explore
           </Link>
-          <a href="https://github.com/Nisiix/ConstellationTCG" className="hover:text-ink" rel="noreferrer" target="_blank">
-            Source on GitHub
-          </a>
-          <a href="https://tcgdex.dev" className="hover:text-ink" rel="noreferrer" target="_blank">
-            Card data: TCGdex
+          <Link href="/help#credits" className="hover:text-ink">
+            Data, credits and licenses
+          </Link>
+          <a
+            href="https://github.com/Nisiix/ConstellationTCG"
+            className="hover:text-ink"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Source on GitHub (MIT)
           </a>
         </nav>
       </div>
-      <p className="mx-auto max-w-6xl px-4 pb-8 text-[12px] leading-relaxed text-ink-dim/80 md:px-6">
-        Card names, artwork and set logos belong to their respective owners and are provided by their sources under their own
-        licenses. Constellation shows no prices and sells nothing.
-      </p>
+      <div
+        id="credits"
+        className="mx-auto max-w-6xl space-y-2 px-4 pb-8 text-[12px] leading-relaxed text-ink-dim/80 md:px-6"
+      >
+        {games.map((game) => (
+          <p key={game.slug}>
+            <strong className="font-semibold text-ink-dim">
+              {game.name.replace(' Trading Card Game', '')}:
+            </strong>{' '}
+            data and image links from{' '}
+            <a
+              href={game.attribution.source.url}
+              rel="noreferrer"
+              target="_blank"
+              className="underline decoration-ink/30 underline-offset-2 hover:text-ink"
+            >
+              {game.attribution.source.name}
+            </a>
+            . {game.attribution.rightsHolders} {game.attribution.disclaimer}
+          </p>
+        ))}
+        <p>
+          Code under the MIT license; the open-source packages it builds on are listed in the{' '}
+          <a
+            href="https://github.com/Nisiix/ConstellationTCG/blob/main/docs/legal/THIRD_PARTY_NOTICES.md"
+            rel="noreferrer"
+            target="_blank"
+            className="underline decoration-ink/30 underline-offset-2 hover:text-ink"
+          >
+            third-party notices
+          </a>
+          . Typefaces Figtree and Source Serif 4 under the SIL Open Font License.
+        </p>
+      </div>
     </footer>
   )
 }

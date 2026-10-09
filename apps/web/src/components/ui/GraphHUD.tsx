@@ -70,7 +70,16 @@ export function GraphHUD({ view }: { view: ViewMode }) {
 
   return (
     <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-4 px-4 py-3">
-      <div className="flex items-end gap-2">{view === '3d' ? <Legend /> : null}</div>
+      <div className="flex items-end gap-2">
+        {view === '3d' ? <Legend /> : null}
+        <a
+          href="/help#credits"
+          className="panel pill pointer-events-auto hidden px-3 py-2 text-[11.5px] text-ink-dim hover:text-ink md:inline-flex"
+          title="Where the data comes from and whose it is"
+        >
+          Data: TCGdex · © Pokémon
+        </a>
+      </div>
 
       <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">
         {!isUniverse ? (

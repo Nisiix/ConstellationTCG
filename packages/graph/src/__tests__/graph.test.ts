@@ -119,9 +119,9 @@ describe('neighborhood', () => {
   it('expands progressively with bounded depth and size', async () => {
     const charizard = await findNode('card_printing', 'Charizard')
     const d1 = await getNeighborhood(database.db, charizard.id, { depth: 1 })
-    const d2 = await getNeighborhood(database.db, charizard.id, { depth: 2, limit: 80 })
+    const d2 = await getNeighborhood(database.db, charizard.id, { depth: 2, limit: 40 })
     expect(d2.nodes.length).toBeGreaterThan(d1.nodes.length)
-    expect(d2.nodes.length).toBeLessThanOrEqual(80)
+    expect(d2.nodes.length).toBeLessThanOrEqual(40)
     expect(d2.meta.truncated).toBe(true)
     const d0 = await getNeighborhood(database.db, charizard.id, { depth: 0 })
     expect(d0.nodes).toHaveLength(1)
@@ -149,8 +149,10 @@ describe('neighborhood', () => {
   it('caps the fan-out of hub nodes', async () => {
     const set = await findNode('set', 'Base Set')
     const hood = await getNeighborhood(database.db, set.id, { depth: 1, perNodeLimit: 10 })
-    // focus + at most 10 neighbors (the series plus printings, best weight first)
-    expect(hood.nodes.length).toBeLessThanOrEqual(11)
+    // The budget is per kind of relationship: at most 10 printings, plus the series (its own kind).
+    expect(hood.nodes.filter((n) => n.nodeType === 'card_printing').length).toBeLessThanOrEqual(10)
+    expect(hood.nodes.some((n) => n.nodeType === 'series')).toBe(true)
+    expect(hood.nodes.length).toBeLessThanOrEqual(12)
     const full = await getNeighborhood(database.db, set.id, { depth: 1, perNodeLimit: 500 })
     expect(full.nodes.filter((n) => n.nodeType === 'card_printing')).toHaveLength(102)
   })
@@ -309,5 +311,19 @@ describe('relationship summary filters', () => {
     expect(cardsAndSets.some((s) => s.relationshipType === 'ILLUSTRATED_BY')).toBe(true)
     const onlyArtist = await getRelationshipSummary(database.db, charizard.id, { relationshipTypes: ['ILLUSTRATED_BY'] })
     expect(onlyArtist.map((s) => s.relationshipType)).toEqual(['ILLUSTRATED_BY'])
+  })
+})
+
+describe('per-node budget', () => {
+  it('spends it per kind of relationship, in collector-number order, so a set keeps its series and its first cards', async () => {
+    const baseSet = await findNode('set', 'Base Set')
+    const hood = await getNeighborhood(database.db, baseSet.id, { depth: 1, perNodeLimit: 10 })
+    const types = new Set(hood.nodes.map((n) => n.nodeType))
+    expect(types.has('series')).toBe(true)
+    const cards = hood.nodes.filter((n) => n.nodeType === 'card_printing')
+    expect(cards).toHaveLength(10)
+    const numbers = cards.map((n) => Number(n.metadata.collectorNumber)).sort((a, b) => a - b)
+    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(cards.some((n) => n.label === 'Charizard')).toBe(true)
   })
 })

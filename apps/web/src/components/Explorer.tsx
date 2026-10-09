@@ -34,6 +34,8 @@ export function Explorer() {
   const error = useGraphStore((s) => s.error)
   const revision = useGraphStore((s) => s.revision)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
+  const graphNodes = useGraphStore((s) => s.nodes)
+  const graphEdges = useGraphStore((s) => s.edges)
   const setLoading = useGraphStore((s) => s.setLoading)
   const setError = useGraphStore((s) => s.setError)
   const setNeighborhood = useGraphStore((s) => s.setNeighborhood)
@@ -190,6 +192,26 @@ export function Explorer() {
     return view ?? uiView
   }, [view, uiView, webgl])
 
+  // The sky from the keyboard: arrows walk the focus's direct connections (strongest first), Enter
+  // flies to the one in hand. The same hover state the pointer uses, so the point lights up and the
+  // live region below names it for screen readers.
+  const neighborIds = useMemo(() => {
+    if (!focusNodeId) return [] as string[]
+    const best = new Map<string, number>()
+    for (const e of graphEdges) {
+      const other = e.sourceNodeId === focusNodeId ? e.targetNodeId : e.targetNodeId === focusNodeId ? e.sourceNodeId : null
+      if (other) best.set(other, Math.max(best.get(other) ?? 0, e.weight))
+    }
+    const labels = new Map(graphNodes.map((n) => [n.id, n.label]))
+    return [...best.entries()]
+      .sort((a, b) => b[1] - a[1] || (labels.get(a[0]) ?? '').localeCompare(labels.get(b[0]) ?? ''))
+      .map(([id]) => id)
+  }, [focusNodeId, graphEdges, graphNodes])
+  const hoveredLabel = useMemo(() => {
+    const node = hoveredNodeId ? graphNodes.find((n) => n.id === hoveredNodeId) : undefined
+    return node ? `${node.label}${node.subtitle ? `, ${node.subtitle}` : ''}` : ''
+  }, [hoveredNodeId, graphNodes])
+
   // Keyboard shortcuts.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -205,6 +227,22 @@ export function Explorer() {
         return
       }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return
+      const arrow = event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'ArrowUp'
+      if (arrow && neighborIds.length > 0) {
+        event.preventDefault()
+        const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+        const index = hoveredNodeId ? neighborIds.indexOf(hoveredNodeId) : -1
+        const next = index < 0 ? (forward ? 0 : neighborIds.length - 1) : (index + (forward ? 1 : -1) + neighborIds.length) % neighborIds.length
+        const id = neighborIds[next]
+        if (id) setHovered(id, { x: window.innerWidth / 2, y: 72 })
+        return
+      }
+      if (event.key === 'Enter' && hoveredNodeId && hoveredNodeId !== focusNodeId) {
+        event.preventDefault()
+        navigation.goTo(hoveredNodeId, { follow: true })
+        setHovered(null)
+        return
+      }
       if (event.key === '?') {
         event.preventDefault()
         toggleHelp()
@@ -251,6 +289,9 @@ export function Explorer() {
       {!listMode ? <NodeTooltip /> : null}
       <HelpOverlay />
       <AccountPanel />
+      <p className="sr-only" aria-live="polite">
+        {hoveredLabel}
+      </p>
       {notice ? (
         <div role="status" className="panel fade-up absolute left-1/2 top-16 z-40 flex max-w-md -translate-x-1/2 items-center gap-3 px-4 py-2 text-[13px] text-ink">
           <span>{notice}</span>

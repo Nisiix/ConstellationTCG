@@ -22,7 +22,7 @@ export interface NeighborhoodOptions {
   depth?: number
   /** Maximum nodes returned (focus included). Default 300. */
   limit?: number
-  /** Maximum neighbors expanded per node, best weight first. Default 60. */
+  /** Connections kept per node *and per kind of relationship* (a set's cards, its series, …). */
   perNodeLimit?: number
   /** Only follow these relationship types. */
   relationshipTypes?: string[] | null
@@ -151,15 +151,26 @@ async function loadFrontierEdges(
   const typeFilter = relationshipTypes
     ? sql`and e.relationship_type in (${idList([...relationshipTypes])})`
     : sql``
+  // The per-node budget is spent per kind of relationship, so a set with 200 cards still shows its
+  // series and a card still shows every kind of connection it has. Within a kind the order is
+  // deterministic and readable: strongest first, then by collector number (digits by length, so 4
+  // comes before 102), then by name.
   const result = await db.execute(sql`
     select * from (
       select e.id, e.source_node_id, e.target_node_id, e.relationship_type, e.weight, e.direction, e.metadata,
-        case when e.source_node_id in (${list}) then e.source_node_id else e.target_node_id end as anchor,
+        a.anchor,
         row_number() over (
-          partition by case when e.source_node_id in (${list}) then e.source_node_id else e.target_node_id end
-          order by e.weight desc, e.id
+          partition by a.anchor, e.relationship_type
+          order by e.weight desc,
+            length(coalesce(n.metadata->>'collectorNumber', '')),
+            coalesce(n.metadata->>'collectorNumber', ''),
+            n.label, e.id
         ) as rn
       from graph_edges e
+      cross join lateral (
+        select case when e.source_node_id in (${list}) then e.source_node_id else e.target_node_id end as anchor
+      ) a
+      join graph_nodes n on n.id = case when e.source_node_id = a.anchor then e.target_node_id else e.source_node_id end
       where (e.source_node_id in (${list}) or e.target_node_id in (${list})) ${typeFilter}
     ) ranked
     where rn <= ${perNode}

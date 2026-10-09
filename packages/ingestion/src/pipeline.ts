@@ -515,6 +515,14 @@ async function ingestCard(
 }
 
 async function resolveIdentityId(ctx: Context, caches: Caches, card: NormalizedCard): Promise<string> {
+  // The same source card already stored (another language, or renamed at the source) keeps its
+  // identity: a card is one card whatever its printed name says.
+  const [known] = await ctx.db
+    .select({ identityId: cardPrintings.identityId })
+    .from(cardPrintings)
+    .where(and(eq(cardPrintings.sourceId, ctx.sourceId), eq(cardPrintings.externalId, card.externalId)))
+    .limit(1)
+  if (known) return known.identityId
   const identity = ctx.adapter.resolveIdentity(card)
   const key = `${identity.entityType}|${identity.normalizedName}`
   const cached = caches.identities.get(key)

@@ -57,6 +57,41 @@ export const BLOCKSCOUT_CHAINS: readonly BlockscoutChain[] = [
     host: 'https://optimism.blockscout.com',
     env: 'BLOCKSCOUT_OPTIMISM_URL',
   },
+  {
+    id: 'gnosis',
+    label: 'Gnosis',
+    source: 'gnosis.blockscout.com',
+    host: 'https://gnosis.blockscout.com',
+    env: 'BLOCKSCOUT_GNOSIS_URL',
+  },
+  {
+    id: 'zksync',
+    label: 'ZKsync Era',
+    source: 'zksync.blockscout.com',
+    host: 'https://zksync.blockscout.com',
+    env: 'BLOCKSCOUT_ZKSYNC_URL',
+  },
+  {
+    id: 'scroll',
+    label: 'Scroll',
+    source: 'scroll.blockscout.com',
+    host: 'https://scroll.blockscout.com',
+    env: 'BLOCKSCOUT_SCROLL_URL',
+  },
+  {
+    id: 'linea',
+    label: 'Linea',
+    source: 'explorer.linea.build',
+    host: 'https://explorer.linea.build',
+    env: 'BLOCKSCOUT_LINEA_URL',
+  },
+  {
+    id: 'immutable',
+    label: 'Immutable zkEVM',
+    source: 'explorer.immutable.com',
+    host: 'https://explorer.immutable.com',
+    env: 'BLOCKSCOUT_IMMUTABLE_URL',
+  },
 ]
 
 /** The parts of a Blockscout NFT instance we read. Everything else is kept (sanitised) as raw metadata. */

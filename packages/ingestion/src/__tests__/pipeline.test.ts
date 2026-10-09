@@ -169,3 +169,50 @@ describe('fixture ingestion (Base Set)', () => {
     }
   })
 })
+
+import {
+  cardIdentities as identitiesTable,
+  cardPrintings as printingsTable,
+  createPgliteDatabase as openFreshDatabase,
+  eq as whereEq,
+  runMigrations as migrateAgain,
+} from '@constellation/database'
+
+describe('identity across languages and renames', () => {
+  it('keeps a stored card on its identity when the source names it differently', async () => {
+    const fresh = await openFreshDatabase(':memory:')
+    const source = { name: 'tcgdex', type: 'api' as const, baseUrl: 'https://api.tcgdex.net/v2' }
+    try {
+      await migrateAgain(fresh)
+      const base = createPokemonFixtureAdapter('base1')
+      await runIngestion({ database: fresh, adapter: base, mode: 'fixture', source })
+      const before = await fresh.db.select({ id: identitiesTable.id }).from(identitiesTable)
+      // The same source card (base1-4) comes back under another printed name, as a French or Italian
+      // run would deliver it.
+      const renamed = new Proxy(base, {
+        get(target, property, receiver) {
+          if (property === 'listCards') {
+            return async (...args: Parameters<typeof base.listCards>) =>
+              (await target.listCards(...args)).map((card) =>
+                card.externalId === 'base1-4' ? { ...card, raw: { ...card.raw, name: 'Dracaufeu' } } : card,
+              )
+          }
+          const value = Reflect.get(target, property, receiver) as unknown
+          return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value
+        },
+      })
+      await runIngestion({ database: fresh, adapter: renamed, mode: 'full', source })
+      const after = await fresh.db.select({ id: identitiesTable.id, name: identitiesTable.canonicalName }).from(identitiesTable)
+      expect(after).toHaveLength(before.length)
+      expect(after.some((i: { name: string }) => i.name === 'Dracaufeu')).toBe(false)
+      const [printing] = await fresh.db
+        .select({ identityId: printingsTable.identityId })
+        .from(printingsTable)
+        .where(whereEq(printingsTable.externalId, 'base1-4'))
+      const charizard = after.find((i: { name: string }) => i.name === 'Charizard')
+      expect(printing?.identityId).toBe(charizard?.id)
+    } finally {
+      await fresh.close()
+    }
+  })
+})

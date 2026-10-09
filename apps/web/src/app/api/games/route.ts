@@ -1,5 +1,5 @@
 import { sql } from '@constellation/database'
-import type { NodeType, TCGTheme } from '@constellation/domain'
+import type { Attribution, NodeType, TCGTheme } from '@constellation/domain'
 import { DEFAULT_THEME } from '@constellation/ui'
 import { getDatabase } from '@/server/db'
 import { CACHE_PUBLIC, errorResponse, json } from '@/server/http'
@@ -17,6 +17,8 @@ export interface GameSummary {
   placeholderImages: Partial<Record<NodeType, string>>
   /** Whether the catalog has been ingested for this game. */
   available: boolean
+  /** Source, rights holders and disclaimer: shown wherever the data is. */
+  attribution: Attribution
 }
 
 function rows<T>(result: unknown): T[] {
@@ -46,6 +48,7 @@ export async function GET() {
         theme: def.theme ?? DEFAULT_THEME,
         placeholderImages: def.placeholderImages ?? {},
         available: ingested.has(def.slug),
+        attribution: def.attribution,
       }
     })
     return json({ games }, { cache: CACHE_PUBLIC })

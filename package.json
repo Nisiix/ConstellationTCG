@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Constellation TCG — a 3D semantic exploration platform for trading card game universes.",
+  "description": "Constellation TCG \u2014 a 3D semantic exploration platform for trading card game universes.",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=22"
@@ -22,7 +22,9 @@
     "graph:build": "pnpm --filter @constellation/worker-graph-builder start",
     "fixture:refresh": "pnpm --filter @constellation/adapter-pokemon fixture:refresh",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "catalog:refresh": "pnpm ingest && pnpm graph:build",
+    "licenses:notices": "pnpm licenses list --json | node scripts/third-party-notices.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
