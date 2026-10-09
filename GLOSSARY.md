@@ -60,3 +60,19 @@ identity rules, relationships, theme, filters, attribution. Adding a game is add
 
 **Attribution** (`TCGDefinition.attribution`) — The credits a game's data requires: source and its
 terms, rights holders, disclaimer. Shown wherever the data is.
+
+**Thread** (`filo`; `/thread/<a>/<b>`) — The path a person has travelled in this session, kept
+visible in the sky so the journey never resets. It lives in the session only; what is shared is the
+*path* between its two ends, recomputed when the link opens.
+
+**Path** (`cammino`) — The shortest chain of connections between two points, shown step by step
+with a sentence per connection. Asked for explicitly, between any two points; never stored.
+
+**Bridge card** (`carta ponte`) — A card, owned or not, that shares a connection (set, Pokémon,
+artist, card or reprint line) with two different constellations of a person and would therefore
+join them. Named by what it joins, never by a price or a completion percentage. Defined, not yet
+built.
+
+**Shared sky** (`cielo condiviso`) — A person's My Constellation made visible to others through a
+read-only, revocable link, under a chosen name: gold points and lines on the public sky, no list,
+no quantities, no email, no wallet address. Opt-in per sky. Defined, not yet built.

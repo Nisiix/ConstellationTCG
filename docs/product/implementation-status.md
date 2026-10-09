@@ -307,3 +307,14 @@ sparivano la serie e carte come Charizard (#4). Ora il budget è **per nodo e pe
 relazione**, in ordine deterministico e leggibile (peso, poi numero di collezione con le cifre per
 lunghezza, poi nome): un set mostra sempre la sua serie e le sue prime carte, una carta mostra ogni
 tipo di connessione che ha. Test di regressione in `packages/graph`.
+
+## Fase 2: la mappa (9 ottobre 2026)
+
+Le decisioni del grilling (due round, in `.scratch/fase-2/grilling.md`) fissano la destinazione:
+**il cielo come unico grafo continuo e navigabile**: ogni spostamento lascia un filo visibile nella
+sessione, e fra due punti qualsiasi si vede il cammino che li unisce, condivisibile come
+`/thread/<a>/<b>`. Carte ponte, cieli condivisi e cielo nel tempo restano definiti nel glossario ma
+fuori da questa fase. La mappa dei ticket di decisione è in `.scratch/fase-2/map.md`
+(convenzione `wayfinder`, tracker markdown locale): due task del proprietario (import completo,
+configurazione Auth), due ricerche (algoritmo del cammino, termini TCGdex e marchi), due grilling
+(come si vede il filo, come si chiede e si mostra il cammino), due prototipi e l'accettazione.
