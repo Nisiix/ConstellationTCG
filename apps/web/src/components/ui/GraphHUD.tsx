@@ -5,7 +5,6 @@ import { NODE_TYPES, type NodeType } from '@constellation/domain'
 import { NODE_TYPE_LABELS } from '@/lib/colors'
 import { nodeColor, useSceneTheme } from '@/lib/theme'
 import type { ViewMode } from '@/lib/url'
-import { useCameraStore } from '@/state/camera-store'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
@@ -64,40 +63,14 @@ function Legend() {
 
 export function GraphHUD({ view }: { view: ViewMode }) {
   const navigation = useExploreNavigation()
-  const focusNodeId = useGraphStore((s) => s.focusNodeId)
-  const nodes = useGraphStore((s) => s.nodes)
-  const edges = useGraphStore((s) => s.edges)
   const depth = useGraphStore((s) => s.depth)
-  const summary = useGraphStore((s) => s.summary)
   const isUniverse = useGraphStore((s) => s.isUniverse)
-  const transition = useCameraStore((s) => s.transition)
   const webgl = useUiStore((s) => s.webgl)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
-  const focus = nodes.find((n) => n.id === focusNodeId)
-  const relationships = summary.reduce((sum, s) => sum + s.count, 0)
 
   return (
     <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-4 px-4 py-3">
-      <div className="flex items-end gap-2">
-        <div className="panel pill pointer-events-auto flex items-center gap-3 px-4 py-2 text-[13px]">
-          <span
-            className={`dot ${transition === 'moving' ? 'dot-ping' : ''}`}
-            style={{ color: transition === 'moving' ? 'var(--c-primary)' : 'var(--c-text-dim)' }}
-            aria-hidden
-            title={transition === 'moving' ? 'Camera is flying' : 'Camera is idle'}
-          />
-          <span className="fade-up max-w-[18rem] truncate text-ink" key={focus?.id}>
-            {focus?.label ?? '—'}
-          </span>
-          <span className="text-ink-dim">
-            {isUniverse
-              ? `${nodes.length} points`
-              : `${relationships} connection${relationships === 1 ? '' : 's'} · ${nodes.length} point${nodes.length === 1 ? '' : 's'} shown`}
-          </span>
-          <span className="hidden text-ink-dim/70 lg:inline">· {edges.length} links</span>
-        </div>
-        {view === '3d' ? <Legend /> : null}
-      </div>
+      <div className="flex items-end gap-2">{view === '3d' ? <Legend /> : null}</div>
 
       <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">
         {!isUniverse ? (

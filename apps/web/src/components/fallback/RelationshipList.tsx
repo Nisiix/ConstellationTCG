@@ -97,45 +97,51 @@ export function RelationshipList() {
   return (
     <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-3">
       <div className="mx-auto w-full max-w-6xl">
-        {/* ── header: who is in focus and what you can do ── */}
-        <header className="panel fade-up flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <NodeBadge type={focus.nodeType} />
-            <div className="min-w-0">
-              <h1 className="title-reveal truncate text-[26px] leading-tight">{focus.label}</h1>
-              <p className="truncate text-[13px] text-ink-dim">
+        {isUniverse && universe ? (
+          <>
+            {/* ── the universe: one header, then the expansions newest first ── */}
+            <header className="panel fade-up flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <NodeBadge type={focus.nodeType} />
+                <div className="min-w-0">
+                  <h1 className="title-reveal truncate text-[26px] leading-tight">{focus.label}</h1>
+                  <p className="text-[13px] text-ink-dim">
+                    Universe · pick a series or a set, or search for a card above.
+                    {nodes.filter((n) => n.nodeType === 'set').length === 1
+                      ? ' Only the bundled Base Set is loaded for now: `pnpm ingest` then `pnpm graph:build` bring in every expansion and the reprints across sets.'
+                      : ''}
+                  </p>
+                </div>
+              </div>
+              <button type="button" onClick={share} className="btn btn-ghost flex-none">
+                {copied ? 'Link copied' : 'Share'}
+              </button>
+            </header>
+            <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
+          </>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-[19rem_1fr] md:items-start">
+            {/* ── left: the point itself — who it is, what you can do, its data — in one card ── */}
+            <section className="panel fade-up p-4 md:sticky md:top-20" aria-label="Details">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <NodeBadge type={focus.nodeType} />
+                <div className="flex flex-none items-center gap-1">
+                  <button type="button" onClick={navigation.back} className="btn btn-quiet text-[12.5px]" title="Go back (Backspace)">
+                    ← Back
+                  </button>
+                  <button type="button" onClick={share} className="btn btn-quiet text-[12.5px]" title="Copy a link to this view">
+                    {copied ? 'Link copied' : 'Share'}
+                  </button>
+                </div>
+              </div>
+              <h1 className="title-reveal text-[24px] leading-tight">{focus.label}</h1>
+              <p className="mb-3 text-[13px] text-ink-dim">
                 {focus.subtitle ? `${focus.subtitle} · ` : ''}
-                {isUniverse ? 'Universe' : DEPTH_LABEL[depth]}
+                {DEPTH_LABEL[depth]}
                 {truncated ? ' · partial' : ''}
                 {filtered ? ' · filtered' : ''}
               </p>
-            </div>
-          </div>
-          <div className="flex flex-none flex-wrap items-center gap-2">
-            <OwnButton node={focus} />
-            <button type="button" onClick={navigation.back} className="btn btn-ghost">
-              ← Back
-            </button>
-            <button type="button" onClick={share} className="btn btn-ghost">
-              {copied ? 'Link copied' : 'Share'}
-            </button>
-          </div>
-        </header>
-
-        {isUniverse && universe ? (
-          <>
-            <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
-            {nodes.filter((n) => n.nodeType === 'set').length === 1 ? (
-              <p className="panel fade-up mt-3 px-5 py-3 text-[13px] text-ink-dim">
-                Only the bundled Base Set is loaded, so every connection stays inside it. Import the whole catalog with{' '}
-                <code>pnpm ingest</code> and <code>pnpm graph:build</code> to see every expansion and the reprints across sets.
-              </p>
-            ) : null}
-          </>
-        ) : (
-          <div className="mt-3 grid gap-3 md:grid-cols-[18rem_1fr] md:items-start">
-            {/* ── left: the point itself, everything grouped in one panel ── */}
-            <section className="panel fade-up p-4 md:sticky md:top-20" aria-label="Details">
+              <OwnButton node={focus} className="mb-3" />
               {focus.imageUrl ? (
                 <div className="mb-3 flex justify-center">
                   <NodeImage

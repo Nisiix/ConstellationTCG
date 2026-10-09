@@ -173,3 +173,75 @@ Attacchi, abilità, HP e costi restano negli `attributes` della stampa (visibili
 Details) e non diventano entità, archi o filtri. L'adapter Pokémon non emette più nodi `mechanic`
 né archi `HAS_ABILITY`; eventuali collegamenti residui di ingestioni precedenti vengono ignorati dal
 graph builder. Il tipo di nodo `mechanic` resta disponibile nel core, agnostico, per altri TCG.
+
+## Revisione dell'interfaccia (9 ottobre 2026, seconda passata)
+
+Inventario delle card a schermo e decisioni prese, con il criterio "una card per elemento, niente
+rumore":
+
+| Vista | Prima | Dopo |
+| ----- | ----- | ---- |
+| 3D, in basso | pillola di stato (nome del focus, conteggi di connessioni / punti / linee, pallino "camera in volo") + legenda + controlli | solo legenda + controlli: il focus e i conteggi sono già nel pannello di destra |
+| 3D, pannello del focus | tre note impilate nell'universo (invito, avviso "solo Base Set", "passa sopra un gruppo…") | una sola frase; l'istruzione sul passaggio del mouse vive nell'help |
+| List, punto in focus | tre card: intestazione (nome, azioni), dettagli (immagine, dati), connessioni | due card: il punto (nome, azioni, immagine, dati, altre stampe) e le sue connessioni |
+| List, universo | intestazione + catalogo + avviso "solo Base Set" come card a parte | intestazione con l'avviso nella sottotitolazione + catalogo |
+| Link che non porta a nulla (`/card/...` sconosciuto) | si atterrava sull'universo senza spiegazione | un avviso discreto, chiudibile, poi l'universo |
+| Telefono con WebGL | cielo 3D con pannelli larghi 21 rem su 360 px | vista List di default sotto i 768 px (il 3D resta un tocco di distanza) |
+
+Rimangono volutamente: la landing (hero, come funziona, cosa è connesso, giochi, principi,
+invito) perché è una pagina di presentazione e non di dati; il pannello My Constellation come
+unica finestra con due sezioni (carte, wallet).
+
+### Parti ancora da fare
+
+1. Catalogo completo su Supabase e in locale: `pnpm ingest` + `pnpm graph:build` da una macchina
+   con rete (TCGdex non è raggiungibile da questo ambiente). Senza, ogni collegamento resta nel
+   Base Set e le ristampe non compaiono.
+2. Configurazione Auth nel dashboard Supabase (Site URL e `/auth/callback` nella allow list).
+3. Le 6 righe `mechanic` residue nel seed hosted (query nel messaggio precedente, o
+   `pnpm graph:build` sul progetto).
+4. Archi di variante (`ALTERNATE_PRINTING`, `SAME_VARIANT`): servono stampe distinte per
+   variante nel modello.
+5. Particelle orbitanti sui nodi posseduti (estetica).
+6. Secondo TCG; adapter per piattaforme proprietarie (Phygitals) se le API lo permettono.
+7. Accessibilità del cielo: la scena 3D non è navigabile da tastiera (la vista List lo è);
+   un "focus da tastiera" sui punti del vicinato sarebbe la prossima cosa giusta.
+
+## Funzionalità proponibili, costruite su quello che c'è e che altrove non esistono
+
+Il criterio: non replicare binder, scanner, deck builder, prezzi, completamento in percentuale,
+marketplace. Ognuna usa pezzi già presenti (grafo tipizzato, `REPRINT_OF`, date di uscita,
+statistiche di costellazione, resolver, overlay).
+
+1. **Follow the thread — il percorso fra due carte.** Cerchi due carte e il cielo mostra il
+   cammino più breve che le collega (carta → artista → carta → set …), volando tappa per tappa
+   con una riga di spiegazione a ogni passo. Grafo-nativo; nessun database di carte lo offre.
+   Serve: BFS sul grafo (query SQL ricorsiva), una modalità "percorso" della camera.
+2. **Il cielo nel tempo.** Un cursore sulla data di uscita: l'universo si popola set dopo set,
+   le ristampe si accendono quando arrivano, la propria costellazione cresce con `first_seen`.
+   Serve: `release_date` già nei nodi, animazione di rivelazione già esistente.
+3. **Lenti sul cielo.** La stessa costellazione riorganizzata per forza di relazione: lente
+   "artista" (le carte si raggruppano attorno a chi le ha disegnate), lente "evoluzione", lente
+   "ristampe". Serve: pesi per tipo di relazione nel layout `d3-force-3d`, già parametrico.
+4. **La biografia di una carta.** Dalla prima stampa a oggi, tutte le stampe in fila lungo una
+   linea di costellazione con anno, set, artista; le tue stampe in oro. Serve: `REPRINT_OF` +
+   `useOtherPrintings`, una pagina `/card/<gioco>/<nome>` a livello di identità.
+5. **Carte ponte.** Dato ciò che possiedi, le carte che unirebbero due delle tue costellazioni
+   (condividono set / Pokémon / artista con entrambe). Scoperta per struttura, non "ti manca il
+   3 %": nessun completamento, nessun prezzo. Serve: le componenti già calcolate in
+   `constellationStats`, una query sui vicini comuni.
+6. **Echi di un set.** Per un set, dove le sue carte sono state ristampate dopo: archi che
+   partono dall'originale verso gli altri set, con gli anni. Serve: `REPRINT_OF` in entrata
+   sulle stampe del set.
+7. **Universo con la tua luce.** Nella vista universo, serie e set brillano in proporzione alle
+   carte tue che contengono: nessun numero, solo luce. Serve: `nodeIds` dell'overlay + set delle
+   stampe (già nel grafo).
+8. **Modalità ambiente.** Lasciata ferma, la camera scivola da una carta a una connessione e poi
+   a un'altra, lentamente, come uno screensaver del cielo; un tocco riprende il controllo. Serve:
+   la modalità `follow` della camera e il vicinato precaricato.
+9. **Carta stellare da stampare.** La tua costellazione esportata come SVG/PNG (punti, linee,
+   nomi, niente quantità né valori) da appendere al muro. Serve: posizioni del layout, i nomi; un
+   render SVG lato client.
+10. **Cieli condivisi.** Il tuo cielo e quello di un'altra persona sovrapposti: dove si toccano,
+    cosa avete in comune, senza scambi né valori. **Richiede una decisione tua**: condividere
+    dati di possesso in pubblico è fra le scelte che spettano a te (`CLAUDE.md`).

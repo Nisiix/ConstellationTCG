@@ -20,6 +20,8 @@ export interface UiStoreState {
   tooltip: { nodeId: string; x: number; y: number } | null
   /** The first-visit welcome card is on screen (the universe focus panel steps aside). */
   welcomeVisible: boolean
+  /** A short, dismissible message (a link that led nowhere, …). */
+  notice: string | null
 
   setWelcomeVisible(visible: boolean): void
   setFiltersOpen(open: boolean): void
@@ -31,7 +33,8 @@ export interface UiStoreState {
   setHovered(nodeId: string | null, position?: { x: number; y: number }): void
   setHighlight(nodeIds: Iterable<string> | null): void
   setView(view: ViewMode): void
-  setCapabilities(caps: { reducedMotion: boolean; webgl: boolean }): void
+  setCapabilities(caps: { reducedMotion: boolean; webgl: boolean; narrow?: boolean }): void
+  setNotice(notice: string | null): void
 }
 
 export const useUiStore = create<UiStoreState>((set) => ({
@@ -45,6 +48,7 @@ export const useUiStore = create<UiStoreState>((set) => ({
   webgl: null,
   tooltip: null,
   welcomeVisible: false,
+  notice: null,
 
   setWelcomeVisible: (visible) => set({ welcomeVisible: visible }),
   setFiltersOpen: (open) => set({ filtersOpen: open }),
@@ -60,5 +64,7 @@ export const useUiStore = create<UiStoreState>((set) => ({
     }),
   setHighlight: (nodeIds) => set({ highlight: nodeIds ? new Set(nodeIds) : null }),
   setView: (view) => set({ view }),
-  setCapabilities: ({ reducedMotion, webgl }) => set({ reducedMotion, webgl, view: webgl ? '3d' : 'list' }),
+  // Phones get the list: the sky and its panels need room.
+  setCapabilities: ({ reducedMotion, webgl, narrow = false }) => set({ reducedMotion, webgl, view: webgl && !narrow ? '3d' : 'list' }),
+  setNotice: (notice) => set({ notice }),
 }))

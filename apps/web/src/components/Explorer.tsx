@@ -48,6 +48,8 @@ export function Explorer() {
   const toggleHelp = useUiStore((s) => s.toggleHelp)
   const setHelpOpen = useUiStore((s) => s.setHelpOpen)
   const setAccountOpen = useUiStore((s) => s.setAccountOpen)
+  const notice = useUiStore((s) => s.notice)
+  const setNotice = useUiStore((s) => s.setNotice)
   const refreshAccount = useAccountStore((s) => s.refreshAccount)
   const setHovered = useUiStore((s) => s.setHovered)
 
@@ -69,7 +71,7 @@ export function Explorer() {
 
   // Capabilities (WebGL, reduced motion) — client only.
   useEffect(() => {
-    setCapabilities({ reducedMotion: prefersReducedMotion(), webgl: detectWebGL() })
+    setCapabilities({ reducedMotion: prefersReducedMotion(), webgl: detectWebGL(), narrow: window.matchMedia('(max-width: 767px)').matches })
   }, [setCapabilities])
 
   // Who is signed in and what they own (an overlay: the graph loads regardless). Coming back
@@ -78,12 +80,23 @@ export function Explorer() {
     refreshAccount()
     const url = new URL(window.location.href)
     const marker = url.searchParams.get('account')
-    if (marker) {
-      setAccountOpen(true)
+    const missing = url.searchParams.get('missing')
+    if (marker) setAccountOpen(true)
+    // A readable address that named nothing: say so once, then show the universe.
+    if (missing) setNotice(`Nothing answers to “${missing}” in this catalog, so here is the whole universe.`)
+    if (marker || missing) {
       url.searchParams.delete('account')
+      url.searchParams.delete('missing')
       window.history.replaceState(window.history.state, '', url.toString())
     }
-  }, [refreshAccount, setAccountOpen])
+  }, [refreshAccount, setAccountOpen, setNotice])
+
+  // Notices fade out on their own.
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => setNotice(null), 9000)
+    return () => clearTimeout(timer)
+  }, [notice, setNotice])
 
   // Games and their themes.
   useEffect(() => {
@@ -238,6 +251,14 @@ export function Explorer() {
       {!listMode ? <NodeTooltip /> : null}
       <HelpOverlay />
       <AccountPanel />
+      {notice ? (
+        <div role="status" className="panel fade-up absolute left-1/2 top-16 z-40 flex max-w-md -translate-x-1/2 items-center gap-3 px-4 py-2 text-[13px] text-ink">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice(null)} className="btn btn-quiet" aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      ) : null}
       {status === 'loading' ? <LoadingState overlay label="Charting connections" /> : null}
       {status === 'error' ? <ErrorState message={error ?? 'Something went wrong'} /> : null}
     </div>

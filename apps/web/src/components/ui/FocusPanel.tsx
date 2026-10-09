@@ -120,18 +120,18 @@ export function FocusPanel() {
           </span>
         </div>
         {isUniverse ? (
-          <p className="mb-4 text-[13px] text-ink-dim">Pick a series or a set to dive in, or search for a card above.</p>
-        ) : null}
-        {isUniverse && setCount === 1 ? (
-          <p className="mb-4 rounded-lg bg-void/40 px-3 py-2 text-[12.5px] text-ink-dim">
-            Only the bundled Base Set is loaded, so every connection stays inside it. Import the whole catalog with{' '}
-            <code>pnpm ingest</code> and <code>pnpm graph:build</code> to see every expansion and the reprints across sets.
+          <p className="mb-4 text-[13px] text-ink-dim">
+            Pick a series or a set to dive in, or search for a card above.
+            {setCount === 1 ? (
+              <>
+                {' '}
+                Only the bundled Base Set is loaded for now: <code>pnpm ingest</code> then <code>pnpm graph:build</code> bring in every
+                expansion and the reprints across sets.
+              </>
+            ) : null}
           </p>
         ) : null}
         {groups.length === 0 ? <p className="text-sm text-ink-dim">No connections yet.</p> : null}
-        {groups.length > 0 ? (
-          <p className="mb-3 text-[12px] text-ink-dim">Hover a group or a row to light it up in the sky. Click to fly there.</p>
-        ) : null}
         <div className="space-y-4">
           {groups.map((group, i) => (
             <div key={group.key} className="pop-in" style={{ '--i': i } as React.CSSProperties}>
