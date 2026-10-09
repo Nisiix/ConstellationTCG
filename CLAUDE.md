@@ -73,6 +73,7 @@ pnpm db:migrate            # apply SQL migrations to the configured database
 pnpm ingest:fixture        # ingest the bundled Base Set fixture (offline)
 pnpm ingest                # ingest the full Pokémon catalog from TCGdex (network)
 pnpm graph:build           # rebuild graph_nodes / graph_edges
+pnpm path:measure          # time paths between points on the configured catalog (limits: ticket 09)
 pnpm dev                   # start the web app
 ```
 

@@ -6,7 +6,8 @@
   "description": "CLI worker: rebuild the graph projection (graph_nodes / graph_edges) from the catalog.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "start": "tsx src/main.ts"
+    "start": "tsx src/main.ts",
+    "measure-paths": "tsx src/measure-paths.ts"
   },
   "dependencies": {
     "@constellation/adapter-pokemon": "workspace:*",

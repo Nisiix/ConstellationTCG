@@ -1,5 +1,5 @@
 /**
- * Prepares a throwaway embedded database with the Base Set fixture (migrate → ingest → graph) and
+ * Prepares a throwaway embedded database with the committed fixtures (migrate → ingest → graph) and
  * starts the production server on the given port. Used by Playwright's webServer.
  */
 import { spawn, spawnSync } from 'node:child_process'
@@ -30,7 +30,20 @@ function run(args) {
 
 rmSync(dataDir, { recursive: true, force: true })
 mkdirSync(dataDir, { recursive: true })
-run(['--filter', '@constellation/worker-ingestion', 'start', '--', 'ingest', '--fixture', 'base1'])
+// Base Set always; Base Set 2 too when its fixture is committed (two sets: paths across sets and
+// reprints). E2E_FIXTURES overrides the list.
+const fixtures = (process.env.E2E_FIXTURES ?? 'base1,base2').split(',').map((f) => f.trim()).filter(Boolean)
+for (const fixture of fixtures) {
+  if (!existsSync(path.join(repoRoot, 'adapters', 'pokemon', 'fixtures', fixture, 'cards.json'))) {
+    if (fixture === 'base1') {
+      console.error('e2e: the base1 fixture is missing')
+      process.exit(1)
+    }
+    console.warn(`e2e: fixture ${fixture} not committed, skipped`)
+    continue
+  }
+  run(['--filter', '@constellation/worker-ingestion', 'start', '--', 'ingest', '--fixture', fixture])
+}
 run(['--filter', '@constellation/worker-graph-builder', 'start'])
 
 const server = spawn(path.join(appDir, 'node_modules', '.bin', 'next'), ['start', '--port', port], {

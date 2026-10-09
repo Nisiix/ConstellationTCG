@@ -20,6 +20,7 @@
     "ingest": "pnpm --filter @constellation/worker-ingestion start",
     "ingest:fixture": "pnpm --filter @constellation/worker-ingestion start -- --fixture base1",
     "graph:build": "pnpm --filter @constellation/worker-graph-builder start",
+    "path:measure": "pnpm --filter @constellation/worker-graph-builder measure-paths --",
     "fixture:refresh": "pnpm --filter @constellation/adapter-pokemon fixture:refresh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -30,9 +30,12 @@ test.describe('readable addresses', () => {
     expect(fallback.searchParams.get('missing')).toBe('nothing-here-9')
   })
 
-  test('the list view explains that only the bundled set is loaded and shows element icons', async ({ page }) => {
+  test('the list view says when only the bundled set is loaded and shows element icons', async ({ page, request }) => {
+    const universe = (await (await request.get('/api/graph/universe?game=pokemon')).json()) as { nodes: Array<{ nodeType: string }> }
+    const sets = universe.nodes.filter((n) => n.nodeType === 'set').length
     await page.goto('/explore?view=list')
-    await expect(page.getByText(/Only the bundled Base Set is loaded/)).toBeVisible()
+    // the note is there with the Base Set alone, and gone once a second set is loaded
+    await expect(page.getByText(/Only the bundled Base Set is loaded/)).toHaveCount(sets === 1 ? 1 : 0)
     await page.getByRole('link', { name: /Base Set/ }).first().click()
     await page.getByRole('link', { name: /Charizard/ }).first().click()
     await expect(page.getByRole('region', { name: 'Details' }).locator('svg.el-fire')).toHaveCount(1)

@@ -49,6 +49,9 @@ di stato e la voce nell'help.
   ultime 12 tappe accese, le vecchie sfumano; il vicinato precedente scompare; ritorno dal pannello
   "Il tuo filo" (Backspace invariato); filtri e profondità non toccano il filo; in List la stessa
   sezione.
+- [Grilling 09, accettazione](./issues/09-accettazione-filo-e-cammino.md): e2e del viaggio con una
+  fixture a due set nel repo (Base Set + Base Set 2); p95 ≤ 300 ms a caldo, ≤ 3 s a freddo; 6 tappe,
+  8 su richiesta; "fatto" = e2e + stato + help + misure sul catalogo completo dentro i limiti.
 - [Grilling 06, come si chiede e si mostra il cammino](./issues/06-come-si-chiede-e-si-mostra-il-cammino.md):
   "Connect to…" nel pannello; il cammino appare intero e poi si percorre; etichette compatte;
   ponti fissi; "Search further" fino a 8; `/thread/<a>/<b>` con i soli estremi e la vista; in List
@@ -56,14 +59,15 @@ di stato e la voce nell'help.
 
 ## Frontier (prossima sessione)
 
-- **07** prototipo del filo: fatto, da guardare insieme nel cielo 3D. **08** prototipo del cammino:
-  fatto sul fixture, restano le misure a catalogo completo (dopo 01).
-- **09** accettazione (grilling): si apre guardando insieme i prototipi; i test e2e del viaggio sul
-  fixture esistono già (`apps/web/e2e/thread.spec.ts`), manca il caso "due set diversi" che richiede
-  il catalogo completo.
-- **01** import completo: ora automatico dentro Supabase (Edge Function + pg_cron, ticket
-  `claimed`); si chiude con i conteggi del primo run. **02** configurazione Auth: resta del
-  proprietario (solo dalla dashboard Supabase).
+La mappa è finita: tutti i ticket di decisione sono chiusi e la via alla destinazione è fissata
+dal ticket 09. Restano solo lavori del proprietario e una misura:
+
+- **Fixture Base Set 2** (09): `pnpm --filter @constellation/adapter-pokemon fixture:refresh base2`
+  da una macchina con rete, poi commit; i due test e2e fra set diversi smettono di essere saltati.
+- **01** import completo: riparte da solo quando cade la restrizione dell'organizzazione Supabase.
+- **08** (resta `claimed`): `pnpm path:measure` sul catalogo completo, dentro i limiti del 09;
+  con quello filo e cammino sono "fatti".
+- **02** configurazione Auth: dalla dashboard Supabase.
 
 ## Not yet specified
 

@@ -49,7 +49,7 @@ test.describe('the path between two points', () => {
 
     await page.getByRole('button', { name: 'Connect to…' }).click()
     await page.getByRole('combobox', { name: 'Connect Charizard to…' }).fill('Pikachu')
-    await page.getByRole('option', { name: /^Pikachu Base Set/ }).click()
+    await page.getByRole('option', { name: /^Pikachu Base Set · 58/ }).click()
 
     const steps = page.getByRole('list', { name: 'Steps of the path' })
     await expect(steps.getByRole('button')).toHaveCount(3)
@@ -86,6 +86,64 @@ test.describe('the path between two points', () => {
       /Base Set/,
       /Pikachu/,
     ])
+  })
+})
+
+/** Printings whose subtitle starts with the set's name ("Base Set 2 · 4/130"). */
+async function printingIn(request: APIRequestContext, q: string, title: string, setName: string): Promise<string | null> {
+  const res = await request.get(`/api/search?q=${encodeURIComponent(q)}&type=card_printing&limit=12`)
+  const body = (await res.json()) as { results: Array<{ nodeId: string; title: string; subtitle?: string }> }
+  const hit = body.results.find((r) => r.title === title && (r.subtitle ?? '').startsWith(`${setName} ·`))
+  return hit?.nodeId ?? null
+}
+
+/** Ticket 09: paths across sets need the second fixture (Base Set 2), committed from a machine with network. */
+test.describe('paths across sets (Base Set + Base Set 2)', () => {
+  test.beforeEach(async ({ request }) => {
+    const universe = (await (await request.get('/api/graph/universe?game=pokemon')).json()) as { nodes: Array<{ nodeType: string; label: string }> }
+    const sets = universe.nodes.filter((n) => n.nodeType === 'set').map((n) => n.label)
+    test.skip(!sets.includes('Base Set 2'), 'Base Set 2 fixture not committed: pnpm --filter @constellation/adapter-pokemon fixture:refresh base2')
+  })
+
+  test('a reprint is one step: Charizard (Base Set) → Charizard (Base Set 2)', async ({ request }) => {
+    const first = await printingIn(request, 'charizard', 'Charizard', 'Base Set')
+    const reprint = await printingIn(request, 'charizard', 'Charizard', 'Base Set 2')
+    expect(first && reprint).toBeTruthy()
+    const res = await request.get(`/api/graph/path?from=${encodeURIComponent(first!)}&to=${encodeURIComponent(reprint!)}`)
+    const path = (await res.json()) as { found: boolean; edges: Array<{ relationshipType: string }> }
+    expect(path.found).toBe(true)
+    expect(path.edges.map((e) => e.relationshipType)).toEqual(['REPRINT_OF'])
+  })
+
+  test('two cards of different sets: the path is found, readable and walkable', async ({ page, request }) => {
+    const from = await printingIn(request, 'pikachu', 'Pikachu', 'Base Set')
+    const to = await printingIn(request, 'blastoise', 'Blastoise', 'Base Set 2')
+    expect(from && to).toBeTruthy()
+    const started = Date.now()
+    const res = await request.get(`/api/graph/path?from=${encodeURIComponent(from!)}&to=${encodeURIComponent(to!)}`)
+    const elapsed = Date.now() - started
+    const path = (await res.json()) as {
+      found: boolean
+      nodes: Array<{ id: string; label: string; subtitle: string | null }>
+      edges: Array<{ sourceNodeId: string; targetNodeId: string }>
+    }
+    expect(path.found).toBe(true)
+    expect(path.edges.length).toBeLessThanOrEqual(6)
+    path.edges.forEach((edge, i) => {
+      expect([edge.sourceNodeId, edge.targetNodeId].sort()).toEqual([path.nodes[i]!.id, path.nodes[i + 1]!.id].sort())
+    })
+    // accepted limit (ticket 09): 3 s cold, request included
+    expect(elapsed).toBeLessThan(3000)
+
+    await page.goto(`/thread/${encodeURIComponent(from!)}/${encodeURIComponent(to!)}?view=list`)
+    const steps = page.getByRole('list', { name: 'Steps of the path' })
+    await expect(steps.getByRole('button')).toHaveCount(path.nodes.length)
+    await expect(page.getByTestId('path-step-label')).toHaveCount(path.edges.length)
+    for (let i = 1; i < path.nodes.length; i += 1) {
+      await page.keyboard.press('ArrowRight')
+      await expect(steps.locator('[aria-current="step"]')).toContainText(path.nodes[i]!.label)
+    }
+    await expect(steps.locator('[aria-current="step"]')).toContainText('Blastoise')
   })
 })
 
