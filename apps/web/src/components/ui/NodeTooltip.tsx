@@ -34,9 +34,12 @@ export function NodeTooltip() {
         <span className="dot" style={{ color }} aria-hidden />
         {elementOfNode(node) ? <ElementIcon element={elementOfNode(node) as NonNullable<ReturnType<typeof elementOfNode>>} /> : null}
         <span className="text-ink">{node.label}</span>
-        <span className="text-[12px]" style={{ color }}>
-          {NODE_TYPE_LABELS[node.nodeType]}
-        </span>
+        {/* a printing's subtitle ("Base Set · 4/102") already says what it is */}
+        {node.nodeType !== 'card_printing' ? (
+          <span className="text-[12px]" style={{ color }}>
+            {NODE_TYPE_LABELS[node.nodeType]}
+          </span>
+        ) : null}
       </div>
       {node.subtitle ? <div className="mt-0.5 text-ink-dim">{node.subtitle}</div> : null}
       {relations.length > 0 && focus ? (
@@ -48,8 +51,6 @@ export function NodeTooltip() {
             </span>
           ))}
         </div>
-      ) : node.id !== focusNodeId ? (
-        <div className="mt-1 text-[11.5px] text-ink-dim/80">Click to fly here</div>
       ) : null}
     </div>
   )

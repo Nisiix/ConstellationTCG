@@ -643,47 +643,80 @@ button:hover > .brand-orb {
   text-underline-offset: 3px;
 }
 
-/* ── facts: small tiles instead of a table ── */
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.fact {
+/* ── details: one compact block — a headline, then label/value pairs in two tight columns ── */
+.details {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 8px;
   min-width: 0;
-  max-width: 100%;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: color-mix(in oklab, var(--c-text) 5%, transparent);
-  border: 1px solid var(--c-line);
-  transition:
-    transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1.3),
-    border-color 180ms ease;
 }
 
-.fact:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in oklab, var(--c-brand-ink) 45%, transparent);
+/* "Base Set · 4/102 · Rare · Holo": where a card is printed, in one line. */
+.details-head {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
 }
 
-.fact dt {
+.details-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 3px;
+  align-items: baseline;
+}
+
+/* Groups (what it shows, its edition) are set apart by a hairline, not by boxes. */
+.details-list + .details-list {
+  padding-top: 7px;
+  border-top: 1px solid var(--c-line);
+}
+
+.details-list dt {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--c-text-dim);
 }
 
-.fact dd {
+.details-list dd {
+  min-width: 0;
   font-size: 13.5px;
   color: var(--c-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+/* A value that is another point (the set, the series, the artist): a link in the brand ink. */
+.details-link {
+  color: var(--c-brand-ink);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--c-primary) 45%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 160ms ease;
+}
+
+.details-link:hover {
+  text-decoration-color: var(--c-brand-ink);
+}
+
+/* A language: the flag of its country at text height, then its code. */
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.lang-flag {
+  flex: none;
+  height: 0.8em;
+  width: auto;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--c-line);
 }
 
 /* ── a description with a voice ── */
@@ -891,6 +924,26 @@ button:hover > .brand-orb {
 
 .drift {
   animation: drift 9s ease-in-out infinite alternate;
+}
+
+/* ── touch: on a coarse pointer every control reaches a 44px target; nothing changes under a mouse ── */
+@media (pointer: coarse) {
+  .btn,
+  .row-link,
+  .nav-link,
+  .field {
+    min-height: 44px;
+  }
+
+  .btn {
+    min-width: 44px;
+  }
+
+  .chip {
+    min-height: 36px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
 .skip-link {

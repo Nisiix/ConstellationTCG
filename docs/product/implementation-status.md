@@ -153,9 +153,12 @@
 
 ## Cosa manca, in ordine di valore
 
-1. **Catalogo Pokémon completo su Supabase** — eseguire da una macchina con rete
-   `DATABASE_URL=<supabase> pnpm ingest && pnpm graph:build` (il MCP non regge l'import completo).
-   Oggi il progetto hosted ha schema, RLS, hardening e il seed Base Set (102 printing, 295 nodi).
+1. **Catalogo Pokémon completo su Supabase** — ora lo fa il progetto stesso: la Edge Function
+   `catalog-import` esegue l'import come coda di job piccoli (`plan` → un job per set → passi del
+   grafo), chiamata da pg_cron ogni 20 s finché c'è lavoro e ogni domenica per il refresh
+   incrementale; nessuna password configurata a mano (`SUPABASE_DB_URL` della piattaforma, token
+   generato in Vault). Si chiede con `select catalog_import_request('pokemon', true)` e si segue con
+   `catalog_import_status('pokemon')`. Resta da chiudere il primo run completo (ticket 01).
 2. **Configurazione Auth nel dashboard Supabase** — Site URL pubblico e `<sito>/auth/callback`
    nella allow list dei redirect (più `http://localhost:3000/**` in sviluppo). Senza, Supabase
    rimanda al Site URL: l'app intercetta comunque il codice e completa l'accesso
@@ -338,3 +341,34 @@ configurazione Auth), due ricerche (algoritmo del cammino, termini TCGdex e marc
   mai archiviate, riga ufficiale dei titolari, disclaimer nella forma "not produced, endorsed,
   supported or affiliated". Nessun disclaimer concede diritti: prima di un annuncio pubblico serve
   la conferma di un legale e conviene avvisare TCGdex del progetto.
+
+## Import lato server e interfaccia (9 ottobre 2026, pomeriggio)
+
+**Import del catalogo dentro Supabase** (scelta del proprietario fra "lancio io dal PC" e "costruisci
+l'import lato server"): `packages/catalog-import` trasforma l'import in una coda di job piccoli e
+ripristinabili (`catalog_import_jobs`): `plan` elenca i set alla fonte e mette in coda un job per
+ogni set cambiato, poi i passi del grafo. Il builder del grafo è stato diviso in `compose.ts`
+(composizione pura) + `incremental.ts` (`runGraphStep`: scaffold, pagine di identità, un passo per
+set, pagine di ristampe, finish, con `build_id` per cancellare alla fine ciò che non c'è più); un
+test dimostra che i passi producono esattamente la proiezione del builder in un colpo solo. Misura
+che ha deciso la divisione: sul fixture moltiplicato a 20.786 nodi e 133.529 archi il solo
+`composeGame` costa ~3 s di CPU, oltre i 2 s per richiesta di una Edge Function. La funzione
+`supabase/functions/catalog-import` (Deno, bundle esbuild con i pacchetti npm esterni) esegue un job
+per chiamata, usa `SUPABASE_DB_URL` e verifica un token generato in Vault; pg_cron la chiama ogni
+20 s finché c'è lavoro (`catalog_import_tick`) e chiede un refresh incrementale ogni domenica. CLI
+equivalente `pnpm catalog:import`. L'adapter ora accetta `listSets({ externalIds })` e la pipeline
+`refreshSeries: false`, così un job di set non rilegge tutto il catalogo.
+
+**Interfaccia** (richieste del proprietario, eseguite da un agente dedicato): nella lista "Further
+away" è sezionata per ponte ("Through the artist · …", "Same set · …", "Same Pokémon · …"); il gruppo
+"Part of" sparisce dalle connessioni (set e serie restano link nei dettagli); via la riga "Imported";
+tutte le date in `dd-MM-yyyy` (`lib/dates.ts`); dettagli compatti in un blocco strutturato (riga
+"Base Set · 4/102 · Rare · Holo" + liste a due colonne, `components/ui/Details.tsx`); lingua in
+maiuscolo con bandiera a sinistra (`country-flag-icons`, MIT, SVG inline); il chip "Printing" tolto
+dove ridondante (intestazioni, tooltip), mantenuto nei risultati di ricerca e nella legenda. Poi una
+passata UX contro Material Design 3: ordine di tabulazione (barra in alto prima nel DOM), bersagli
+touch ≥ 44 px, pannelli che non superano lo schermo, una sola azione primaria per vista, rimozione
+di testi e componenti fini a sé stessi (chip duplicati nella landing, didascalie decorative, slogan
+nel footer, suggerimenti ridondanti). Raccomandazioni non eseguite (cambi di architettura): pannello
+del focus come bottom sheet su telefono, controllo di profondità dentro il pannello connessioni,
+suggerimenti dentro la casella di ricerca, filtri ancorati alla lista.

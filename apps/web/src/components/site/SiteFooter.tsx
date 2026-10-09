@@ -15,7 +15,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-[13px] text-ink-dim md:flex-row md:items-center md:justify-between md:px-6">
         <div className="flex items-center gap-2.5">
           <span className="brand-orb" style={{ width: 16, height: 16 }} aria-hidden />
-          <span>Constellation TCG · explore the TCG universe, follow relationships.</span>
+          <span>Constellation TCG</span>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Link href="/help" className="hover:text-ink">

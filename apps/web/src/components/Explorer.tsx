@@ -279,9 +279,10 @@ export function Explorer() {
 
   return (
     <div id="main" className="explorer-shell relative w-full bg-void" data-theme={theme.id} data-mode={theme.mode}>
+      {/* the app bar comes first in the document, so search is the first stop for the keyboard */}
+      <TopBar />
       {!listMode && webgl ? <ConstellationCanvas /> : null}
       {listMode ? <RelationshipList /> : null}
-      <TopBar />
       <FilterPanel />
       {!listMode ? <FocusPanel /> : null}
       {!listMode ? <WelcomeCard /> : null}

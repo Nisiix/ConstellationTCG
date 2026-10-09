@@ -1,4 +1,6 @@
 export * from './builder'
+export * from './compose'
+export * from './incremental'
 export * from './neighborhood'
 export * from './universe'
 export * from './node'

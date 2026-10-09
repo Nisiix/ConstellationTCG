@@ -33,7 +33,8 @@ export function TopBar() {
         title="Back to the universe (U)"
       >
         <span className="brand-orb" aria-hidden />
-        <span className="serif text-[19px] text-ink">Constellation</span>
+        {/* on a phone the orb alone marks the way back: the search field needs the room */}
+        <span className="serif hidden text-[19px] text-ink sm:inline">Constellation</span>
       </button>
 
       <div className="pointer-events-auto mx-auto w-full max-w-xl">
@@ -72,6 +73,7 @@ export function TopBar() {
           onClick={toggleAccount}
           className={`btn pill whitespace-nowrap ${accountOpen ? 'btn-on' : 'btn-ghost'}`}
           title={accountStatus === 'signed-in' ? 'My Constellation: your wallets and the cards you own' : 'My Constellation: sign in to mark the cards you own'}
+          aria-label="My Constellation"
           aria-expanded={accountOpen}
           aria-haspopup="dialog"
         >

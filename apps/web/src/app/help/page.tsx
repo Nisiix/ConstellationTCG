@@ -25,7 +25,7 @@ export default function HelpPage() {
       <SiteHeader active="help" />
       <main id="main" className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[14rem_1fr] md:px-6 md:py-16">
         <aside className="md:sticky md:top-24 md:self-start">
-          <p className="eyebrow mb-3">Help</p>
+          <p className="eyebrow mb-3">On this page</p>
           <nav aria-label="Sections">
             <ul className="space-y-1">
               {SECTIONS.map((s) => (

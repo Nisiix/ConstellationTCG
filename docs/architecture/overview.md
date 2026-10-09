@@ -38,7 +38,8 @@
 | `packages/database`     | Drizzle schema (mirror of `supabase/migrations`), SQL migrator, PGlite / PostgreSQL client              |
 | `packages/adapters`     | `AdapterRegistry`, content hashing, concurrency and retry helpers                                       |
 | `packages/ingestion`    | The pipeline (`runIngestion`), bootstrap of game/source rows, zod validation                           |
-| `packages/graph`        | `buildGraphProjection`, `getNeighborhood`, `getUniverse`, `getRelationshipSummary`, stats              |
+| `packages/graph`        | `buildGraphProjection` (one shot) and `runGraphStep` (the same projection in bounded steps), `getNeighborhood`, `getUniverse`, `getRelationshipSummary`, stats |
+| `packages/catalog-import` | The import as a queue of resumable jobs (`plan` → one `set` job per changed set → graph steps), claimed one at a time by any worker; HTTP handler for the Edge Function |
 | `packages/search`       | `search()` — exact / prefix / word / fuzzy (pg_trgm) over `graph_nodes.search_text`                    |
 | `packages/filters`      | Universal + per-game `FilterDefinition`s, value computation, SQL predicates, query parsing              |
 | `packages/ui`           | Theme presets, `resolveTheme`, CSS variable helpers, mode resolution (framework-free)                   |
@@ -46,8 +47,9 @@
 | `packages/ownership`    | My Constellation: signed-challenge wallet linking, providers (Blockscout, Solana DAS, manual), sync    |
 | `packages/testing`      | In-memory PGlite seeded with the Base Set fixture                                                       |
 | `adapters/pokemon`      | TCGdex client, price stripping, normalizer, identity resolver, relationships, manifest, fixtures        |
-| `workers/ingestion`     | CLI: `migrate`, `ingest --fixture base1`, `ingest` (live)                                              |
+| `workers/ingestion`     | CLI: `migrate`, `ingest --fixture base1`, `ingest` (live), `catalog --request --loop` (the job queue)   |
 | `workers/graph-builder` | CLI: rebuild `graph_nodes` / `graph_edges`                                                             |
+| `supabase/functions/catalog-import` | Edge Function: one import job per call, driven by pg_cron + pg_net, `SUPABASE_DB_URL`, token from Vault |
 
 Dependency direction is strictly downward: `domain` imports nothing; the web app imports
 everything; adapters never import the web app or the graph package.
@@ -59,11 +61,16 @@ everything; adapters never import the web app or the graph package.
    resolved to a `card_identity` (by normalized name + kind) and upserted as a `card_printing`.
    Unchanged records (same content hash) are skipped, which makes full and incremental imports the
    same code path. Any failure is recorded in `ingestion_errors` and never aborts the run.
-2. **Projection** (`workers/graph-builder`): the catalog becomes `graph_nodes` (one per game,
-   series, set, identity, printing, artist, entity) and `graph_edges`. Universal edges
-   (`PART_OF`) come from the core; everything card-specific comes from the adapter's
-   `buildRelationships`. Sets and series without an image get the game's placeholder image
-   (`TCGDefinition.placeholderImages`), flagged with `metadata.imagePlaceholder`.
+2. **Projection** (`workers/graph-builder`, or the graph steps of the import queue): the catalog
+   becomes `graph_nodes` (one per game, series, set, identity, printing, artist, entity) and
+   `graph_edges`. Universal edges (`PART_OF`, `REPRINT_OF`) come from the core; everything
+   card-specific comes from the adapter's `buildRelationships`. Sets and series without an image
+   get the game's placeholder image (`TCGDefinition.placeholderImages`), flagged with
+   `metadata.imagePlaceholder`. The one-shot builder and the stepwise one share the composition
+   code and produce the same rows; every row carries the `build_id` that wrote it, so a stepwise
+   build updates the live projection in place and deletes what the catalog no longer has at the end.
+   On the hosted project the whole import (series, sets, cards, projection) runs inside Supabase:
+   pg_cron calls the `catalog-import` Edge Function every few seconds while jobs are queued.
 3. **Exploration** (`apps/web`): the browser only talks to `/api/*` (rate limited, `Server-Timing`). The universe (game → series →
    sets) is shown before any search; a focus request returns a bounded neighborhood (depth ≤ 3,
    node and fan-out caps) plus a relationship summary; schema-driven filters narrow which printings

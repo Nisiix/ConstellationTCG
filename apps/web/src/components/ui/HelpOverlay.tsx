@@ -14,10 +14,7 @@ export function HelpOverlay() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-void/60 p-4 backdrop-blur-sm" onMouseDown={() => setOpen(false)} role="presentation">
       <div role="dialog" aria-modal="true" aria-label="Help" className="panel panel-strong fade-up w-full max-w-lg p-6" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow mb-1">How it works</p>
-            <h2 className="serif text-[24px] leading-tight">Explore by following connections</h2>
-          </div>
+          <h2 className="serif text-[24px] leading-tight">Explore by following connections</h2>
           <button type="button" onClick={() => setOpen(false)} className="btn btn-quiet" aria-label="Close help">
             ×
           </button>

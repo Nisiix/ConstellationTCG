@@ -41,13 +41,21 @@ of it. Identity resolution normalizes names (case, accents, whitespace) so `CHAR
 Every imported row carries `source_id` and a content hash (`raw_hash` / `raw_data_hash`) of the
 stripped source record. `source_snapshots` keeps the last raw payload per record for debugging and
 re-normalization; `ingestion_runs` and `ingestion_errors` record every run and every failed record.
+`catalog_import_jobs` is the queue of the resumable import: one `plan` job per run (`run_id`),
+one `set` job per set that changed at the source, then `graph` jobs for the projection steps, each
+with its `status`, `attempts`, `payload`, `result` and `error`; `catalog_import_request`,
+`catalog_import_status` and `catalog_import_retry_failed` are the SQL helpers shared by pg_cron,
+the Edge Function and the CLI.
 
 ## Graph projection (derived)
 
 | Table         | Purpose                                                                                           |
 | ------------- | ------------------------------------------------------------------------------------------------- |
-| `graph_nodes` | `id` = `<node_type>:<entity_id>` (URL-addressable), `label`, `subtitle`, `image_url`, `search_text`, `metadata` |
-| `graph_edges` | `id` = `<source>|<RELATIONSHIP>|<target>`, `weight` (layout proximity, neighbor ranking), `direction`, `metadata` |
+| `graph_nodes` | `id` = `<node_type>:<entity_id>` (URL-addressable), `label`, `subtitle`, `image_url`, `search_text`, `metadata`, `build_id` |
+| `graph_edges` | `id` = `<source>|<RELATIONSHIP>|<target>`, `weight` (layout proximity, neighbor ranking), `direction`, `metadata`, `build_id` |
+
+`build_id` names the projection build that last wrote the row: a stepwise build upserts its rows
+and, in its last step, deletes the rows of the game that carry another build's id.
 
 Node types: `game`, `series`, `set`, `card_identity`, `card_printing`, `pokemon`, `artist`,
 `mechanic`, `attribute`, `digital_asset`.

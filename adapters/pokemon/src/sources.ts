@@ -23,10 +23,15 @@ export interface FetchCardsOptions {
   onCardError?: (cardId: string, error: unknown) => void
 }
 
+export interface FetchSetsOptions {
+  /** Only these set ids (one set at a time in resumable imports); default: every set. */
+  ids?: string[]
+}
+
 export interface PokemonSource {
   readonly language: string
   fetchSeries(): Promise<TCGdexSerie[]>
-  fetchSets(): Promise<TCGdexSet[]>
+  fetchSets(options?: FetchSetsOptions): Promise<TCGdexSet[]>
   fetchCards(options?: FetchCardsOptions): Promise<TCGdexCard[]>
 }
 
@@ -53,10 +58,10 @@ export class TCGdexLiveSource implements PokemonSource {
     return full.map((s) => stripForbiddenFields(s))
   }
 
-  async fetchSets(): Promise<TCGdexSet[]> {
-    const brief = await this.client.listSets()
-    const full = await mapConcurrent(brief, this.concurrency, (s) => this.getSet(s.id))
-    return full
+  async fetchSets(options: FetchSetsOptions = {}): Promise<TCGdexSet[]> {
+    // Known ids: no need to list the whole catalog first, one request per requested set.
+    const ids = options.ids ?? (await this.client.listSets()).map((s) => s.id)
+    return mapConcurrent(ids, this.concurrency, (id) => this.getSet(id))
   }
 
   private async getSet(id: string): Promise<TCGdexSet> {
@@ -116,8 +121,9 @@ export class FixtureSource implements PokemonSource {
     return this.read('series.json')
   }
 
-  fetchSets(): Promise<TCGdexSet[]> {
-    return this.read('sets.json')
+  async fetchSets(options: FetchSetsOptions = {}): Promise<TCGdexSet[]> {
+    const sets = await this.read<TCGdexSet[]>('sets.json')
+    return options.ids ? sets.filter((s) => options.ids?.includes(s.id)) : sets
   }
 
   async fetchCards(options: FetchCardsOptions = {}): Promise<TCGdexCard[]> {

@@ -56,7 +56,6 @@ function Legend() {
           {focusOnOwned ? 'only yours' : 'yours'}
         </button>
       ) : null}
-      <span className="hidden xl:inline">· lines = relationships</span>
     </div>
   )
 }
@@ -84,7 +83,7 @@ export function GraphHUD({ view }: { view: ViewMode }) {
       <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">
         {!isUniverse ? (
           <div className="flex items-center gap-1 pl-2 pr-1" role="group" aria-label="How far to explore">
-            <span className="eyebrow mr-1">Connections</span>
+            <span className="eyebrow mr-1 hidden sm:inline">Connections</span>
             {DEPTHS.map((d) => (
               <button key={d.value} type="button" aria-pressed={depth === d.value} onClick={() => navigation.setDepth(d.value)} className={`btn pill ${depth === d.value ? 'btn-on' : 'btn-quiet'}`} title={d.title}>
                 {d.label}

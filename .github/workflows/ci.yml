@@ -25,6 +25,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Edge Function bundle is up to date
+        run: pnpm functions:build && git diff --exit-code -- supabase/functions
       - name: Install Playwright's Chromium
         run: pnpm --filter @constellation/web exec playwright install --with-deps chromium
       - name: End-to-end (production build, bundled Base Set fixture)

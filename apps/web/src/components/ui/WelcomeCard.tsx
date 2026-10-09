@@ -68,7 +68,6 @@ export function WelcomeCard() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center px-4 md:justify-start md:pl-6">
       <section aria-label="Welcome" className="panel panel-strong fade-up pointer-events-auto w-full max-w-md p-6">
-        <p className="eyebrow mb-1">Welcome</p>
         <h2 className="serif title-reveal text-[26px] leading-tight">Every card is a point. Every relationship is a line.</h2>
         <p className="mt-3 text-[14px] leading-relaxed text-ink/85">
           Search a card, fly to it, then follow its connections: the set it belongs to, the Pokémon it shows, the artist who drew it, what it
@@ -82,10 +81,7 @@ export function WelcomeCard() {
             </button>
           ))}
         </div>
-        <div className="mt-5 flex items-center justify-between gap-2 text-[12.5px] text-ink-dim">
-          <span>
-            Press <kbd>/</kbd> to search, <kbd>?</kbd> for help.
-          </span>
+        <div className="mt-5 flex justify-end">
           <button type="button" onClick={dismiss} className="btn btn-ghost">
             Got it
           </button>

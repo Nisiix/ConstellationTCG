@@ -16,6 +16,7 @@ import {
   type SyncSummary,
   type WalletRecord,
 } from '@/lib/account-api'
+import { formatDateTime } from '@/lib/dates'
 import { useTheme } from '@/lib/theme'
 import {
   browserWallets,
@@ -66,10 +67,7 @@ export function AccountPanel() {
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow mb-1">My Constellation</p>
-            <h2 className="serif text-[24px] leading-tight">Your cards, in the sky</h2>
-          </div>
+          <h2 className="serif text-[24px] leading-tight">My Constellation</h2>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -268,9 +266,7 @@ function SignedIn() {
         )}
         {stats && stats.ownedCards > 0 ? (
           <p className="mt-1 text-[12.5px] text-ink-dim">
-            {stats.ownedCards} owned card{stats.ownedCards === 1 ? '' : 's'} · {stats.connected}{' '}
-            connected point
-            {stats.connected === 1 ? '' : 's'} · {stats.constellations} constellation
+            {stats.connected} connected point{stats.connected === 1 ? '' : 's'} · {stats.constellations} constellation
             {stats.constellations === 1 ? '' : 's'}
           </p>
         ) : null}
@@ -313,7 +309,7 @@ function statusLabel(wallet: WalletRecord): { text: string; tone: string } {
   if (wallet.syncStatus === 'error') return { text: 'Last sync failed', tone: 'text-rose-500' }
   if (!wallet.lastSyncedAt) return { text: 'Verified · not synced yet', tone: 'text-ink-dim' }
   return {
-    text: `${wallet.assetCount} asset${wallet.assetCount === 1 ? '' : 's'} · synced ${new Date(wallet.lastSyncedAt).toLocaleString()}`,
+    text: `${wallet.assetCount} asset${wallet.assetCount === 1 ? '' : 's'} · synced ${formatDateTime(wallet.lastSyncedAt)}`,
     tone: 'text-ink-dim',
   }
 }

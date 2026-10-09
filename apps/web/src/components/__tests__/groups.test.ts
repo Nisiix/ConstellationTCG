@@ -1,6 +1,6 @@
-import type { GraphNode } from '@constellation/domain'
+import type { GraphEdge, GraphNode } from '@constellation/domain'
 import { describe, expect, it } from 'vitest'
-import { sortGroupItems } from '../useRelationshipGroups'
+import { buildRelationshipGroups, sortGroupItems } from '../useRelationshipGroups'
 
 function node(id: string, nodeType: GraphNode['nodeType'], metadata: Record<string, unknown> = {}): GraphNode {
   return { id, gameId: 'g', nodeType, entityId: id, label: id, subtitle: null, imageUrl: null, metadata }
@@ -42,5 +42,40 @@ describe('relationship group ordering', () => {
     const focus = node('card_printing:x', 'card_printing')
     const items = [item(node('b', 'attribute'), 0.3), item(node('a', 'attribute'), 0.3), item(node('c', 'attribute'), 0.9)]
     expect(sortGroupItems(items, focus).map((i) => i.node.id)).toEqual(['c', 'a', 'b'])
+  })
+})
+
+function edge(sourceNodeId: string, relationshipType: string, targetNodeId: string): GraphEdge {
+  return { id: `${sourceNodeId}|${relationshipType}|${targetNodeId}`, sourceNodeId, targetNodeId, relationshipType, weight: 1, direction: 'directed', metadata: {} }
+}
+
+describe('relationship groups', () => {
+  const set = node('set:base1', 'set')
+  const series = node('series:base', 'series')
+  const card = node('p:1', 'card_printing')
+  const edges = [edge('set:base1', 'PART_OF', 'series:base'), edge('p:1', 'BELONGS_TO', 'set:base1')]
+
+  it('hides "Part of": the parent is named (and linked) in the details', () => {
+    const { groups } = buildRelationshipGroups(
+      'set:base1',
+      [set, series, card],
+      edges,
+      [
+        { relationshipType: 'PART_OF', direction: 'out', count: 1 },
+        { relationshipType: 'BELONGS_TO', direction: 'in', count: 102 },
+      ],
+    )
+    expect(groups.map((g) => g.label)).toEqual(['Cards'])
+    expect(groups[0]?.total).toBe(102)
+  })
+
+  it('keeps "Contains": what a series holds is a connection worth listing', () => {
+    const { groups } = buildRelationshipGroups('series:base', [set, series], edges, [])
+    expect(groups.map((g) => [g.label, g.items.map((i) => i.node.id)])).toEqual([['Contains', ['set:base1']]])
+  })
+
+  it('does not resurrect a hidden group from the summary alone', () => {
+    const { groups } = buildRelationshipGroups('series:base', [series], [], [{ relationshipType: 'PART_OF', direction: 'out', count: 1 }])
+    expect(groups).toEqual([])
   })
 })

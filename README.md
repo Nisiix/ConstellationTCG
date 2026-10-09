@@ -44,13 +44,24 @@ The dedicated Supabase project **ConstellationTCG** carries the same schema (`su
 applied in order, recorded in `schema_migrations`), the Base Set seed and its graph projection, and
 row level security: the catalog and the graph are readable with the publishable key, provenance
 tables are private, wallets and ownership are visible to their owner only. The app itself connects
-with `DATABASE_URL` (table owner, unaffected by RLS). To load the full catalog there, run the
-ingestion from a networked machine against the project:
+with `DATABASE_URL` (table owner, unaffected by RLS).
 
-```bash
-DATABASE_URL=<supabase connection string> pnpm ingest
-DATABASE_URL=<supabase connection string> pnpm graph:build
+The full catalog is imported **by the project itself**: the `catalog-import` Edge Function
+(`supabase/functions/catalog-import`) runs the import as a queue of small jobs (`plan` → one job
+per set → the graph projection in bounded steps; `packages/catalog-import`), called by pg_cron
+through pg_net every 20 seconds while there is work and every Sunday night for an incremental
+refresh (only the sets that changed at the source). It connects with the platform's own
+`SUPABASE_DB_URL` and authenticates its caller with a token generated inside the database (Vault),
+so no password or key is configured by hand. Ask for a run and follow it from the SQL editor:
+
+```sql
+select catalog_import_request('pokemon', true);   -- full import; later: catalog_import_request('pokemon')
+select catalog_import_status('pokemon');          -- progress of the latest run
 ```
+
+The same queue runs from a networked machine with `DATABASE_URL` set (`pnpm catalog:import`
+requests a run and works through every job); `pnpm catalog:refresh` remains the one-shot path
+(`pnpm ingest && pnpm graph:build`).
 
 ### Accounts and wallets (My Constellation)
 

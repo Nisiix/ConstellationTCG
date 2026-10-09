@@ -1,0 +1,20 @@
+{
+  "name": "@constellation/edge-catalog-import",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Supabase Edge Function that runs the catalog import one job per call (source in src/, bundle in index.ts via `pnpm functions:build`).",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@constellation/adapter-pokemon": "workspace:*",
+    "@constellation/adapters": "workspace:*",
+    "@constellation/catalog-import": "workspace:*",
+    "@constellation/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3"
+  }
+}

@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
 import { NODE_TYPE_LABELS } from '@/lib/colors'
+import { groupFarNodes, type FarSection } from '@/lib/connections'
+import { formatDate } from '@/lib/dates'
 import { detailRows } from '@/lib/details'
 import { prettySharePath } from '@/lib/pretty-url'
 import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
@@ -13,14 +15,24 @@ import { useExploreNavigation } from '../navigation'
 import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { ElementIcon, elementOfNode } from '../ui/ElementIcon'
-import { Facts, Prose } from '../ui/Facts'
+import { Details, Prose } from '../ui/Details'
 import { NodeBadge } from '../ui/NodeBadge'
 import { NodeImage } from '../ui/NodeImage'
 import { OwnButton } from '../ui/OwnButton'
 
-const DEPTH_LABEL: Record<number, string> = { 1: 'Direct connections', 2: 'Extended connections', 3: 'Deep connections' }
-
 type Go = (id: string, follow?: boolean) => (e: React.MouseEvent) => void
+
+/** `Base Set` + `1999-01-09` → `Base Set · 09-01-1999`; no date, no suffix. */
+function withDate(label: string, date: unknown): string {
+  const formatted = formatDate(typeof date === 'string' ? date : null)
+  return formatted ? `${label} · ${formatted}` : label
+}
+
+/** What a chip says on hover: the kind (unless the chip's picture and subtitle already say it), the subtitle, ownership. */
+function chipTitle(node: GraphNode, owned: boolean): string {
+  const parts = [node.nodeType === 'card_printing' ? null : NODE_TYPE_LABELS[node.nodeType], node.subtitle, owned ? 'in your constellation' : null]
+  return parts.filter((part): part is string => Boolean(part)).join(' · ')
+}
 
 /**
  * List view: the same exploration as the sky, without WebGL. Two panels and no more: the point
@@ -34,7 +46,6 @@ export function RelationshipList() {
   const nodes = useGraphStore((s) => s.nodes)
   const edges = useGraphStore((s) => s.edges)
   const distances = useGraphStore((s) => s.distances)
-  const depth = useGraphStore((s) => s.depth)
   const isUniverse = useGraphStore((s) => s.isUniverse)
   const truncated = useGraphStore((s) => s.truncated)
   const filtered = useGraphStore((s) => s.filtered)
@@ -63,14 +74,8 @@ export function RelationshipList() {
     return { series, bySeries, orphanSets: bySeries.get('other') ?? [] }
   }, [isUniverse, nodes, edges])
 
-  const farther = useMemo(
-    () =>
-      Object.entries(distances)
-        .filter(([, d]) => d >= 2)
-        .map(([id]) => nodes.find((n) => n.id === id))
-        .filter((n): n is GraphNode => Boolean(n)),
-    [distances, nodes],
-  )
+  // Two or three steps away, sectioned by the direct connection that leads there.
+  const farSections = useMemo(() => (focus ? groupFarNodes(nodes, edges, distances, focus.id) : []), [focus, nodes, edges, distances])
 
   if (!focus) return null
 
@@ -91,8 +96,12 @@ export function RelationshipList() {
   }
 
   const isCard = focus.nodeType === 'card_printing' || focus.nodeType === 'card_identity'
-  const details = detailRows(focus)
+  const details = detailRows(focus, edges)
+  // A card's headline ("Base Set · 4/102 · Rare · Holo") says what its subtitle would repeat.
+  const hasHeadline = details.some((row) => row.group === 'print')
   const description = typeof focus.metadata.description === 'string' ? focus.metadata.description : null
+  // Under the name: the subtitle (unless the details headline says it) and only the flags that are not obvious.
+  const meta = [hasHeadline ? null : focus.subtitle, truncated ? 'partial' : null, filtered ? 'filtered' : null].filter(Boolean).join(' · ')
 
   return (
     <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-3">
@@ -124,8 +133,9 @@ export function RelationshipList() {
             {/* ── left: the point itself — who it is, what you can do, its data — in one card ── */}
             <section className="panel fade-up p-4 md:sticky md:top-20" aria-label="Details">
               <div className="mb-3 flex items-start justify-between gap-2">
-                <NodeBadge type={focus.nodeType} />
-                <div className="flex flex-none items-center gap-1">
+                {/* a card's picture and "Base Set · 4/102" already say it is a printing */}
+                {focus.nodeType !== 'card_printing' ? <NodeBadge type={focus.nodeType} /> : null}
+                <div className="ml-auto flex flex-none items-center gap-1">
                   <button type="button" onClick={navigation.back} className="btn btn-quiet text-[12.5px]" title="Go back (Backspace)">
                     ← Back
                   </button>
@@ -135,12 +145,13 @@ export function RelationshipList() {
                 </div>
               </div>
               <h1 className="title-reveal text-[24px] leading-tight">{focus.label}</h1>
-              <p className="mb-3 text-[13px] text-ink-dim">
-                {focus.subtitle ? `${focus.subtitle} · ` : ''}
-                {DEPTH_LABEL[depth]}
-                {truncated ? ' · partial' : ''}
-                {filtered ? ' · filtered' : ''}
-              </p>
+              {meta ? (
+                <p className="mb-3 text-[13px] text-ink-dim" title={truncated ? 'Large hubs are capped: not every connection is listed' : undefined}>
+                  {meta}
+                </p>
+              ) : (
+                <div className="mb-3" aria-hidden />
+              )}
               <OwnButton node={focus} className="mb-3" />
               {focus.imageUrl ? (
                 <div className="mb-3 flex justify-center">
@@ -152,7 +163,7 @@ export function RelationshipList() {
                   />
                 </div>
               ) : null}
-              <Facts rows={details} />
+              <Details rows={details} hrefFor={hrefFor} onSelect={(id) => navigation.goTo(id)} />
               {description ? <Collapsible label="In the words of the card">{description}</Collapsible> : null}
               {focus.nodeType === 'card_printing' && other.status !== 'idle' ? (
                 <div className="mt-3 border-t border-ink/10 pt-3">
@@ -169,7 +180,7 @@ export function RelationshipList() {
                     hrefFor={hrefFor}
                     go={go}
                     limit={8}
-                    label={(n) => `${String(n.metadata.setName ?? n.subtitle ?? '')}${typeof n.metadata.releaseDate === 'string' ? ` · ${n.metadata.releaseDate.slice(0, 4)}` : ''}`}
+                    label={(n) => withDate(String(n.metadata.setName ?? n.subtitle ?? ''), n.metadata.releaseDate)}
                   />
                   {other.identityNodeId ? (
                     <a href={hrefFor(other.identityNodeId)} onClick={go(other.identityNodeId)} className="btn btn-quiet mt-1 text-[12.5px]">
@@ -182,24 +193,23 @@ export function RelationshipList() {
 
             {/* ── right: every connection, grouped, as chips ── */}
             <section className="panel fade-up p-4" aria-label="Connections">
-              <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="serif text-[18px]">Connections</h2>
-                <span className="text-[12px] text-ink-dim">
-                  {groups.reduce((n, g) => n + g.total, 0)} · click any to make it the focus
-                </span>
-              </div>
+              <h2 className="serif mb-2 text-[18px]">Connections</h2>
               {groups.length === 0 ? <p className="text-[14px] text-ink-dim">No connections yet.</p> : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 {groups.map((group, i) => (
                   <ConnectionGroup key={group.key} group={group} index={i} hrefFor={hrefFor} go={go} />
                 ))}
               </div>
-              {farther.length > 0 ? (
+              {farSections.length > 0 ? (
                 <div className="mt-3 border-t border-ink/10 pt-3">
-                  <h3 className="eyebrow mb-1.5">
+                  <h3 className="eyebrow mb-2">
                     Further away <span className="font-normal">· two or three steps from {focus.label}</span>
                   </h3>
-                  <ChipList nodes={farther} hrefFor={hrefFor} go={go} limit={24} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {farSections.map((section, i) => (
+                      <FarSectionView key={section.key} section={section} index={i} hrefFor={hrefFor} go={go} />
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </section>
@@ -234,7 +244,7 @@ function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; o
       href={href}
       onClick={onClick}
       className={`chip max-w-full text-[13px] ${owned ? 'chip-owned' : ''}`}
-      title={`${NODE_TYPE_LABELS[node.nodeType]}${node.subtitle ? ` · ${node.subtitle}` : ''}${owned ? ' · in your constellation' : ''}`}
+      title={chipTitle(node, owned)}
     >
       <NodeImage
         node={node}
@@ -306,9 +316,28 @@ function ConnectionGroup({ group, index, hrefFor, go }: { group: RelationshipGro
       />
       {group.total > group.items.length ? (
         <p className="mt-1 text-[12px] text-ink-dim">
-          {group.items.length} of {group.total} shown — widen to Extended or Deep (bottom right) or use filters for the rest
+          {group.items.length} of {group.total} shown · more with Extended or Deep
         </p>
       ) : null}
+    </section>
+  )
+}
+
+/** A far section: the bridge and the kind of connection in the heading (with the color of its lines), the points as chips. */
+function FarSectionView({ section, index, hrefFor, go }: { section: FarSection; index: number; hrefFor: (id: string) => string; go: Go }) {
+  const theme = useTheme()
+  const lineColor = edgeColor(theme, section.relationshipType)
+  const wide = section.nodes.length > 8
+  return (
+    <section className={`pop-in min-w-0 ${wide ? 'sm:col-span-2' : ''}`} style={{ '--i': Math.min(index, 14) } as React.CSSProperties} aria-label={section.label}>
+      <h4 className="eyebrow mb-1.5 flex items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="inline-block h-[2px] w-4 flex-none rounded-full" style={{ background: lineColor }} aria-hidden />
+          <span className="truncate">{section.label}</span>
+        </span>
+        <span className="count">{section.nodes.length}</span>
+      </h4>
+      <ChipList nodes={section.nodes} hrefFor={hrefFor} go={go} limit={wide ? 24 : 12} />
     </section>
   )
 }
@@ -331,11 +360,12 @@ function UniverseCatalog({
     <section className="panel fade-up mt-3 p-4" aria-label="Series and sets">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="serif text-[18px]">Series and sets</h2>
-        <span className="text-[12px] text-ink-dim">newest first · pick a set to see its cards</span>
+        <span className="text-[12px] text-ink-dim">newest first</span>
       </div>
       <div className="space-y-4">
         {series.map((s, i) => {
           const sets = bySeries.get(s.id) ?? []
+          const since = formatDate(typeof s.metadata.releaseDate === 'string' ? s.metadata.releaseDate : null)
           return (
             <section key={s.id} className="pop-in" style={{ '--i': Math.min(i, 20) } as React.CSSProperties} aria-label={s.label}>
               <a href={hrefFor(s.id)} onClick={go(s.id)} className="mb-1.5 flex min-w-0 items-center gap-2">
@@ -343,7 +373,7 @@ function UniverseCatalog({
                 <span className="serif truncate text-[17px]">{s.label}</span>
                 <span className="text-[12px] text-ink-dim">
                   {sets.length} {sets.length === 1 ? 'set' : 'sets'}
-                  {typeof s.metadata.releaseDate === 'string' ? ` · since ${s.metadata.releaseDate.slice(0, 4)}` : ''}
+                  {since ? ` · since ${since}` : ''}
                 </span>
               </a>
               <ChipList
@@ -351,7 +381,7 @@ function UniverseCatalog({
                 hrefFor={hrefFor}
                 go={go}
                 limit={30}
-                label={(set) => `${set.label}${typeof set.metadata.releaseDate === 'string' ? ` · ${set.metadata.releaseDate.slice(0, 4)}` : ''}`}
+                label={(set) => withDate(set.label, set.metadata.releaseDate)}
               />
             </section>
           )

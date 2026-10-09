@@ -3,9 +3,13 @@
  *
  *   tsx src/main.ts migrate
  *   tsx src/main.ts ingest [--game pokemon] [--fixture base1] [--sets base1,base2] [--mode full|incremental]
+ *   tsx src/main.ts catalog [--game pokemon] [--request [--full]] [--loop] [--max-ticks N]
  *
  * Without --fixture the live source (TCGdex) is used; without --sets the whole catalog is imported.
+ * `catalog` drives the resumable import queue (the same one the Supabase Edge Function runs):
+ * `--request` asks for an import, then one job per tick is run, all of them with `--loop`.
  */
+import { getCatalogImportStatus, requestCatalogImport, runCatalogImportTick } from '@constellation/catalog-import'
 import { createDatabase, runMigrations, type Database } from '@constellation/database'
 import { runIngestion } from '@constellation/ingestion'
 import { loadEnv, readEnv } from './env'
@@ -17,10 +21,24 @@ interface Args {
   fixture: string | null
   sets: string[] | null
   mode: 'full' | 'incremental' | 'fixture'
+  request: boolean
+  full: boolean
+  loop: boolean
+  maxTicks: number
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { command: argv[0] ?? 'ingest', game: 'pokemon', fixture: null, sets: null, mode: 'incremental' }
+  const args: Args = {
+    command: argv[0] ?? 'ingest',
+    game: 'pokemon',
+    fixture: null,
+    sets: null,
+    mode: 'incremental',
+    request: false,
+    full: false,
+    loop: false,
+    maxTicks: 10_000,
+  }
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i]
     const next = () => {
@@ -43,6 +61,18 @@ function parseArgs(argv: string[]): Args {
         if (mode === 'full' || mode === 'incremental' || mode === 'fixture') args.mode = mode
         break
       }
+      case '--request':
+        args.request = true
+        break
+      case '--full':
+        args.full = true
+        break
+      case '--loop':
+        args.loop = true
+        break
+      case '--max-ticks':
+        args.maxTicks = Number(next() ?? args.maxTicks) || args.maxTicks
+        break
       case '--':
         break
       default:
@@ -69,8 +99,13 @@ async function main() {
     console.log(`migrations: ${migrations.applied.length} applied, ${migrations.skipped.length} already present`)
     if (args.command === 'migrate') return
 
+    if (args.command === 'catalog') {
+      await runCatalog(database, args, env)
+      return
+    }
+
     if (args.command !== 'ingest') {
-      throw new Error(`unknown command "${args.command}" (expected: migrate | ingest)`)
+      throw new Error(`unknown command "${args.command}" (expected: migrate | ingest | catalog)`)
     }
 
     const registry = createRegistry(env, args.fixture)
@@ -114,6 +149,39 @@ async function main() {
   } finally {
     await database.close()
   }
+}
+
+/** The resumable import: request (optional), then run jobs until the queue is idle. */
+async function runCatalog(database: Database, args: Args, env: ReturnType<typeof readEnv>) {
+  const registry = createRegistry(env, args.fixture)
+  if (args.request) {
+    const id = await requestCatalogImport(database.db, args.game, { full: args.full })
+    console.log(id ? `requested ${args.full ? 'full ' : ''}import ${id}` : 'an import is already in progress')
+  }
+  const runtime = {
+    database,
+    registry,
+    gameSlug: args.game,
+    source: { name: 'tcgdex', type: 'api' as const, baseUrl: env.tcgdexBaseUrl ?? 'https://api.tcgdex.net/v2' },
+    log: (message: string) => console.log(`  ${message}`),
+  }
+  let ticks = 0
+  for (;;) {
+    const result = await runCatalogImportTick(runtime)
+    if (result.idle) {
+      console.log(ticks === 0 ? 'queue idle: nothing to do' : 'queue idle')
+      break
+    }
+    ticks += 1
+    const step = (result.job.payload.step as { kind?: string } | undefined)?.kind
+    console.log(
+      `${result.job.kind}${result.job.setExternalId ? ` ${result.job.setExternalId}` : step ? ` ${step}` : ''} → ${result.outcome}` +
+        ` (${Math.round(result.durationMs / 1000)}s)` +
+        (result.error ? `: ${result.error}` : ''),
+    )
+    if (!args.loop || ticks >= args.maxTicks) break
+  }
+  console.log(JSON.stringify(await getCatalogImportStatus(database.db, args.game)))
 }
 
 main().catch((error) => {

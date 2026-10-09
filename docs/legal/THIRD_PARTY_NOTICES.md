@@ -5,7 +5,7 @@ as reported by `pnpm licenses list`. Each package keeps its own license text in 
 
 Regenerate with: `pnpm licenses list --json` (summarised by `scripts/third-party-notices.mjs`).
 
-## MIT (131)
+## MIT (132)
 
 - `@alloc/quick-lru` 5.3.0 — https://github.com/aleclarson/quick-lru#readme
 - `@babel/runtime` 7.29.10 — https://babel.dev/docs/en/next/babel-runtime
@@ -69,6 +69,7 @@ Regenerate with: `pnpm licenses list --json` (summarised by `scripts/third-party
 - `chai` 6.3.0 — http://chaijs.com
 - `client-only` 0.0.1 — https://reactjs.org/
 - `cookie` 1.1.1 — https://github.com/jshttp/cookie#readme
+- `country-flag-icons` 1.6.20 — https://gitlab.com/catamphetamine/country-flag-icons#readme
 - `cross-env` 7.0.3 — https://github.com/kentcdodds/cross-env#readme
 - `cross-spawn` 7.0.6 — https://github.com/moxystudio/node-cross-spawn
 - `csstype` 3.2.3 — https://github.com/frenic/csstype#readme

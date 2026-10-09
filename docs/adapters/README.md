@@ -12,7 +12,7 @@ for a new game. The Pokémon adapter (`adapters/pokemon`) is the reference imple
 interface TCGAdapter {
   definition(): TCGDefinition
   listSeries(): Promise<SourceSeries[]>
-  listSets(): Promise<SourceSet[]>
+  listSets(options?: ListSetsOptions): Promise<SourceSet[]>
   listCards(options?: ListCardsOptions): Promise<SourceCard[]>
   normalizeCard(card: SourceCard): NormalizedCard
   resolveIdentity(card: NormalizedCard): IdentityResolution
@@ -24,8 +24,9 @@ interface TCGAdapter {
   node types the adapter emits beyond the universal set, its `filters` (schema-driven, game scope),
   its `theme` and its `placeholderImages`.
 - **`listSeries` / `listSets` / `listCards`** — fetch from the source, already stripped of anything
-  the product must not store (prices, marketplace ids). `listCards` accepts `setExternalIds` to
-  limit the import (vertical slices, fixtures) and an `onProgress` callback.
+  the product must not store (prices, marketplace ids). `listSets` accepts `externalIds` and
+  `listCards` accepts `setExternalIds` to limit the import to some sets (vertical slices, fixtures,
+  one set per job in the resumable import); `listCards` also takes an `onProgress` callback.
 - **`normalizeCard`** — source record → `NormalizedCard`: identity name and kind, collector and
   printed number, rarity, variant, finish, artist, images, description, adapter-specific
   `attributes` (persisted as JSON on the printing), the semantic `entities` the card references

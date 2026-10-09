@@ -87,22 +87,9 @@ export default function HomePage() {
                   How it works
                 </Link>
               </div>
-              <ul className="stagger mt-6 flex flex-wrap gap-2" aria-label="Principles">
-                {['No account', 'No prices', 'No marketplace', 'Search first'].map((item) => (
-                  <li key={item} className="chip">
-                    {item}
-                  </li>
-                ))}
-              </ul>
             </div>
             <div className="panel fade-up p-3 md:p-5" aria-hidden>
               <ConstellationArt className="h-auto w-full" />
-              <div className="flex items-center justify-between px-2 pb-1 pt-2 text-[12.5px] text-ink-dim">
-                <span className="flex items-center gap-2">
-                  <span className="dot" style={{ color: 'var(--c-brand-ink)' }} /> Charizard · Base Set
-                </span>
-                <span>14 connections</span>
-              </div>
             </div>
           </div>
         </section>
@@ -176,12 +163,7 @@ export default function HomePage() {
               <article key={game.slug} className="panel flex items-start gap-4 p-5" style={brandTone(game.theme.primary)}>
                 <span className="feature-mark mt-1 flex-none" style={{ color: 'var(--brand)' }} aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="serif text-[22px]">{game.name.replace(' Trading Card Game', '')}</h3>
-                    <span className="chip text-[11.5px]" style={{ color: 'var(--brand)', borderColor: 'color-mix(in oklab, var(--brand) 55%, transparent)' }}>
-                      Available
-                    </span>
-                  </div>
+                  <h3 className="serif text-[22px]">{game.name.replace(' Trading Card Game', '')}</h3>
                   <p className="mt-1 text-[14px] text-ink-dim">
                     {game.publisher ?? ''} · data from TCGdex · sets, cards, Pokémon, artists, evolutions and types.
                   </p>
@@ -194,10 +176,7 @@ export default function HomePage() {
             <article className="panel flex items-start gap-4 p-5 opacity-80" style={brandTone(ONE_PIECE_THEME.primary)}>
               <span className="feature-mark mt-1 flex-none" style={{ color: 'var(--brand)' }} aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="serif text-[22px]">One Piece</h3>
-                  <span className="chip text-[11.5px]">Next</span>
-                </div>
+                <h3 className="serif text-[22px]">One Piece</h3>
                 <p className="mt-1 text-[14px] text-ink-dim">
                   The second adapter. Then Magic: The Gathering, Yu-Gi-Oh!, Lorcana. Adding a game never changes the core: the graph,
                   the search, the filters and the camera are shared.
@@ -226,12 +205,7 @@ export default function HomePage() {
         {/* ── final call ── */}
         <section className="mx-auto max-w-6xl px-4 pb-20 pt-6 md:px-6">
           <div className="panel panel-strong flex flex-col items-start justify-between gap-5 p-7 md:flex-row md:items-center md:p-9">
-            <div>
-              <h2 className="serif text-[28px] leading-tight">Ready? Open the constellation.</h2>
-              <p className="mt-1 text-[15px] text-ink-dim">
-                Start from the universe, pick a series or a set, or search straight for a card. Press <kbd>?</kbd> inside for help.
-              </p>
-            </div>
+            <h2 className="serif text-[28px] leading-tight">Ready? Open the constellation.</h2>
             <Link href="/explore" className="btn btn-cta pill flex-none text-[15px]">
               Explore
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

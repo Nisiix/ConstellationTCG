@@ -254,6 +254,8 @@ export const graphNodes = pgTable(
     imageUrl: text('image_url'),
     searchText: text('search_text').notNull(),
     metadata: jsonb('metadata').$type<Json>().notNull().default({}),
+    /** The projection build that last wrote the row; rows of an older build are stale. */
+    buildId: text('build_id'),
     ...timestamps,
   },
   (t) => [
@@ -276,6 +278,7 @@ export const graphEdges = pgTable(
     weight: real('weight').notNull().default(1),
     direction: text('direction').notNull().default('directed'),
     metadata: jsonb('metadata').$type<Json>().notNull().default({}),
+    buildId: text('build_id'),
     createdAt: timestamps.createdAt,
   },
   (t) => [
@@ -455,6 +458,35 @@ export const ingestionErrors = pgTable(
   (t) => [index('ingestion_errors_run_idx').on(t.runId), index('ingestion_errors_source_idx').on(t.sourceId)],
 )
 
+/**
+ * The catalog import as a queue of small, resumable jobs: a `plan` job lists the sets and decides
+ * which changed, one `set` job per set runs the pipeline for that set, then `graph` jobs rebuild
+ * the projection in bounded steps. Each step fits a serverless worker; the CLI drives the same
+ * queue. `run_id` is the id of the plan job that spawned the run.
+ */
+export const catalogImportJobs = pgTable(
+  'catalog_import_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id'),
+    gameSlug: text('game_slug').notNull(),
+    kind: text('kind').notNull(),
+    status: text('status').notNull().default('pending'),
+    priority: integer('priority').notNull().default(0),
+    position: integer('position').notNull().default(0),
+    attempts: integer('attempts').notNull().default(0),
+    setExternalId: text('set_external_id'),
+    payload: jsonb('payload').$type<Json>().notNull().default({}),
+    result: jsonb('result').$type<Json>().notNull().default({}),
+    error: text('error'),
+    ingestionRunId: uuid('ingestion_run_id').references(() => ingestionRuns.id, { onDelete: 'set null' }),
+    claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'string' }),
+    finishedAt: timestamp('finished_at', { withTimezone: true, mode: 'string' }),
+    ...timestamps,
+  },
+  (t) => [index('catalog_import_jobs_queue_idx').on(t.gameSlug, t.status, t.priority, t.position)],
+)
+
 export const sourceSnapshots = pgTable(
   'source_snapshots',
   {
@@ -499,6 +531,7 @@ export const schema = {
   assetResolutionCandidates,
   ingestionRuns,
   ingestionErrors,
+  catalogImportJobs,
   sourceSnapshots,
 }
 

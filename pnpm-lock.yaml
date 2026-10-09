@@ -11,6 +11,9 @@ importers:
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -99,6 +102,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.117.3
         version: 2.117.3
+      country-flag-icons:
+        specifier: ^1.6.20
+        version: 1.6.20
       d3-force-3d:
         specifier: ^3.0.6
         version: 3.0.6
@@ -161,6 +167,43 @@ importers:
         specifier: workspace:*
         version: link:../domain
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.4
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@26.6.4)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/catalog-import:
+    dependencies:
+      '@constellation/adapters':
+        specifier: workspace:*
+        version: link:../adapters
+      '@constellation/database':
+        specifier: workspace:*
+        version: link:../database
+      '@constellation/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@constellation/graph':
+        specifier: workspace:*
+        version: link:../graph
+      '@constellation/ingestion':
+        specifier: workspace:*
+        version: link:../ingestion
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
+    devDependencies:
+      '@constellation/adapter-pokemon':
+        specifier: workspace:*
+        version: link:../../adapters/pokemon
+      '@constellation/testing':
+        specifier: workspace:*
+        version: link:../testing
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -426,6 +469,28 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@types/node@26.6.4)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  supabase/functions/catalog-import:
+    dependencies:
+      '@constellation/adapter-pokemon':
+        specifier: workspace:*
+        version: link:../../../adapters/pokemon
+      '@constellation/adapters':
+        specifier: workspace:*
+        version: link:../../../packages/adapters
+      '@constellation/catalog-import':
+        specifier: workspace:*
+        version: link:../../../packages/catalog-import
+      '@constellation/database':
+        specifier: workspace:*
+        version: link:../../../packages/database
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.4
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   workers/graph-builder:
     dependencies:
       '@constellation/adapter-pokemon':
@@ -462,6 +527,9 @@ importers:
       '@constellation/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
+      '@constellation/catalog-import':
+        specifier: workspace:*
+        version: link:../../packages/catalog-import
       '@constellation/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -1294,6 +1362,9 @@ packages:
   cookie@1.1.1:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
+
+  country-flag-icons@1.6.20:
+    resolution: {integrity: sha512-py8JiEKzjhYw6HPJ0L7SxLgCYim36UPRTZX43/kqGueUCZLSvnrqAiwW8HtQibur7mdkFQUkjOgdK+o/9FBtaw==}
 
   cross-env@7.0.3:
     resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
@@ -2650,6 +2721,8 @@ snapshots:
   client-only@0.0.1: {}
 
   cookie@1.1.1: {}
+
+  country-flag-icons@1.6.20: {}
 
   cross-env@7.0.3:
     dependencies:

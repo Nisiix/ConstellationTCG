@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import type { GraphNode } from '@constellation/domain'
-import { detailRows } from '@/lib/details'
+import { formatDate } from '@/lib/dates'
+import { detailRows, type DetailRow } from '@/lib/details'
 import { prettySharePath } from '@/lib/pretty-url'
 import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
@@ -12,17 +13,21 @@ import { useExploreNavigation } from '../navigation'
 import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { ElementIcon, elementOfNode } from './ElementIcon'
-import { Facts, Prose } from './Facts'
+import { Details, Prose } from './Details'
 import { NodeBadge } from './NodeBadge'
 import { NodeImage } from './NodeImage'
 import { OwnButton } from './OwnButton'
 
-const DEPTH_LABEL: Record<number, string> = { 1: 'direct connections', 2: 'extended connections', 3: 'deep connections' }
+/** ` · 09-01-1999` when there is a date to show, nothing otherwise. */
+function dateSuffix(value: unknown): string {
+  const formatted = formatDate(typeof value === 'string' ? value : null)
+  return formatted ? ` · ${formatted}` : ''
+}
 
 export function FocusPanel() {
   const navigation = useExploreNavigation()
   const { focus, groups } = useRelationshipGroups()
-  const depth = useGraphStore((s) => s.depth)
+  const edges = useGraphStore((s) => s.edges)
   const isUniverse = useGraphStore((s) => s.isUniverse)
   const setCount = useGraphStore((s) => s.nodes.reduce((n, node) => n + (node.nodeType === 'set' ? 1 : 0), 0))
   const truncated = useGraphStore((s) => s.truncated)
@@ -38,7 +43,9 @@ export function FocusPanel() {
   if (!focus || (welcomeVisible && isUniverse)) return null
 
   const isCard = focus.nodeType === 'card_printing' || focus.nodeType === 'card_identity'
-  const details = detailRows(focus)
+  const details = detailRows(focus, edges)
+  // A card's details open with "Base Set · 4/102 · Rare · Holo": the subtitle would only repeat it.
+  const hasHeadline = details.some((row) => row.group === 'print')
 
   const share = async () => {
     try {
@@ -56,14 +63,15 @@ export function FocusPanel() {
     <aside
       id="focus-panel"
       aria-label="Focus"
-      className="panel scroll-thin fade-up absolute right-4 top-16 z-30 flex max-h-[calc(100vh-9rem)] w-[21rem] flex-col overflow-y-auto"
+      className="panel scroll-thin fade-up absolute right-4 top-16 z-30 flex max-h-[calc(100vh-9rem)] w-[21rem] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
       key={focus.id}
       onMouseLeave={() => setHighlight(null)}
     >
       <div className="p-5 pb-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <NodeBadge type={focus.nodeType} />
-          <div className="flex items-center gap-1">
+          {/* a card's picture and "Base Set · 4/102" already say it is a printing */}
+          {focus.nodeType !== 'card_printing' ? <NodeBadge type={focus.nodeType} /> : null}
+          <div className="ml-auto flex items-center gap-1">
             {view === 'details' ? (
               <button type="button" onClick={() => setView('connections')} className="btn btn-quiet text-[12.5px]" title="Back to the connections">
                 ← Back
@@ -79,7 +87,7 @@ export function FocusPanel() {
           </div>
         </div>
         <h1 className="title-reveal text-[24px] leading-tight text-ink">{focus.label}</h1>
-        {focus.subtitle ? <p className="mt-0.5 text-[14px] text-ink-dim">{focus.subtitle}</p> : null}
+        {focus.subtitle && !(view === 'details' && hasHeadline) ? <p className="mt-0.5 text-[14px] text-ink-dim">{focus.subtitle}</p> : null}
         {view === 'connections' && (details.length > 0 || isCard) ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => setView('details')} className="btn btn-ghost pill text-[12.5px]" title="Open the details of this point">
@@ -113,11 +121,12 @@ export function FocusPanel() {
       <div className="border-t border-ink/10 px-5 py-4">
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="serif text-[17px]">Connections</h2>
-          <span className="text-[12px] text-ink-dim">
-            {DEPTH_LABEL[depth] ?? ''}
-            {truncated ? ' · partial' : ''}
-            {filtered ? ' · filtered' : ''}
-          </span>
+          {/* the depth itself is the pressed button in the HUD; only what is not obvious is said here */}
+          {truncated || filtered ? (
+            <span className="text-[12px] text-ink-dim" title={truncated ? 'Large hubs are capped: not every connection is listed' : undefined}>
+              {[truncated ? 'partial' : null, filtered ? 'filtered' : null].filter(Boolean).join(' · ')}
+            </span>
+          ) : null}
         </div>
         {isUniverse ? (
           <p className="mb-4 text-[13px] text-ink-dim">
@@ -155,7 +164,7 @@ function DetailsView({
   onSelect,
 }: {
   focus: GraphNode
-  details: Array<[string, string]>
+  details: DetailRow[]
   other: ReturnType<typeof useOtherPrintings>
   isCard: boolean
   onSelect: (nodeId: string) => void
@@ -175,7 +184,7 @@ function DetailsView({
       {details.length > 0 ? (
         <section className="border-t border-ink/10 px-5 py-4" aria-label="Details">
           <h2 className="serif mb-2 text-[17px]">Details</h2>
-          <Facts rows={details} />
+          <Details rows={details} onSelect={onSelect} />
         </section>
       ) : null}
       {typeof meta.description === 'string' && meta.description ? (
@@ -241,7 +250,7 @@ function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; 
         </button>
       ) : group.total > group.items.length ? (
         <p className="mt-1 px-2 text-[12px] text-ink-dim">
-          {group.items.length} of {group.total} shown — widen to Extended or Deep (bottom right) or use filters to see the rest
+          {group.items.length} of {group.total} shown · more with Extended or Deep
         </p>
       ) : null}
     </section>
@@ -282,7 +291,7 @@ function OtherPrintingsView({ other, onSelect }: { other: ReturnType<typeof useO
                   <span className="block truncate text-[13.5px]">{String(node.metadata.setName ?? node.subtitle ?? '')}</span>
                   <span className="block truncate text-[12px] text-ink-dim">
                     {String(node.metadata.printedNumber ?? node.metadata.collectorNumber ?? '')}
-                    {typeof node.metadata.releaseDate === 'string' ? ` · ${node.metadata.releaseDate.slice(0, 4)}` : ''}
+                    {dateSuffix(node.metadata.releaseDate)}
                     {typeof node.metadata.rarity === 'string' ? ` · ${node.metadata.rarity}` : ''}
                   </span>
                 </span>

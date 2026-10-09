@@ -5,7 +5,8 @@ export type SitePage = 'home' | 'help'
 
 /**
  * Menu of the site pages: Home, Help, and Explore — the way into the platform, so it is the one
- * button drawn in the brand color.
+ * button drawn in the brand color. On the landing page the hero carries that call to action, and
+ * the menu's Explore steps back so one primary action is on screen at a time.
  */
 export function SiteHeader({ active }: { active: SitePage }) {
   return (
@@ -22,7 +23,7 @@ export function SiteHeader({ active }: { active: SitePage }) {
           <Link href="/help" className="nav-link" aria-current={active === 'help' ? 'page' : undefined}>
             Help
           </Link>
-          <Link href="/explore" className="btn btn-cta pill ml-1" title="Open the constellation">
+          <Link href="/explore" className={`btn pill ml-1 ${active === 'home' ? 'btn-ghost' : 'btn-cta'}`} title="Open the constellation">
             Explore
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 12h14M13 6l6 6-6 6" />

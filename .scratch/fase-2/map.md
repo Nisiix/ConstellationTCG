@@ -50,8 +50,9 @@ di stato e la voce nell'help.
 
 - **05** come si vede il filo (grilling) → poi 07.
 - **06** come si chiede e si mostra il cammino (grilling, sbloccato da 03) → poi 08.
-- **01** import completo e **02** configurazione Auth: task del proprietario (serve `DATABASE_URL`
-  con la password del database e una macchina con rete; Auth solo dalla dashboard Supabase).
+- **01** import completo: ora automatico dentro Supabase (Edge Function + pg_cron, ticket
+  `claimed`); si chiude con i conteggi del primo run. **02** configurazione Auth: resta del
+  proprietario (solo dalla dashboard Supabase).
 
 ## Not yet specified
 

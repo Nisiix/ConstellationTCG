@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { compareCollectorNumbers, type GraphNode } from '@constellation/domain'
+import { compareCollectorNumbers, type GraphEdge, type GraphNode, type RelationshipSummary } from '@constellation/domain'
 import { RELATIONSHIP_ORDER, relationshipLabel } from '@/lib/colors'
 import { useGraphStore } from '@/state/graph-store'
 
@@ -48,70 +48,88 @@ export function sortGroupItems(items: Item[], focus: GraphNode | null): Item[] {
   return sorted
 }
 
+/**
+ * The groups that are not connections worth listing: the set a card belongs to is a connection
+ * ("Set"), but what a set or a series is "part of" (its series, the game) is already named in its
+ * details, where it is a link. The reverse ("Contains") stays.
+ */
+function hidden(relationshipType: string, direction: 'out' | 'in'): boolean {
+  return relationshipType === 'PART_OF' && direction === 'out'
+}
+
+/** Direct relationships of the focus node, grouped by type and direction (pure; the hook below memoizes it). */
+export function buildRelationshipGroups(
+  focusNodeId: string | null,
+  nodes: readonly GraphNode[],
+  edges: readonly GraphEdge[],
+  summary: readonly RelationshipSummary[],
+): { focus: GraphNode | null; groups: RelationshipGroup[] } {
+  if (!focusNodeId) return { focus: null, groups: [] }
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const focus = byId.get(focusNodeId) ?? null
+  const groups = new Map<string, RelationshipGroup>()
+  for (const edge of edges) {
+    let direction: 'out' | 'in'
+    let otherId: string
+    if (edge.sourceNodeId === focusNodeId) {
+      direction = 'out'
+      otherId = edge.targetNodeId
+    } else if (edge.targetNodeId === focusNodeId) {
+      direction = 'in'
+      otherId = edge.sourceNodeId
+    } else continue
+    if (hidden(edge.relationshipType, direction)) continue
+    const other = byId.get(otherId)
+    if (!other) continue
+    const key = `${edge.relationshipType}:${direction}`
+    const group =
+      groups.get(key) ??
+      ({
+        key,
+        relationshipType: edge.relationshipType,
+        direction,
+        label: relationshipLabel(edge.relationshipType, direction),
+        total: 0,
+        items: [],
+      } satisfies RelationshipGroup)
+    group.items.push({ node: other, weight: edge.weight, metadata: edge.metadata })
+    groups.set(key, group)
+  }
+  for (const s of summary) {
+    if (hidden(s.relationshipType, s.direction)) continue
+    const key = `${s.relationshipType}:${s.direction}`
+    const group = groups.get(key)
+    if (group) group.total = s.count
+    else if (s.count > 0) {
+      groups.set(key, {
+        key,
+        relationshipType: s.relationshipType,
+        direction: s.direction,
+        label: relationshipLabel(s.relationshipType, s.direction),
+        total: s.count,
+        items: [],
+      })
+    }
+  }
+  const order = new Map(RELATIONSHIP_ORDER.map((t, i) => [t, i]))
+  const list = [...groups.values()]
+  for (const g of list) {
+    g.items = sortGroupItems(g.items, focus)
+    if (g.total < g.items.length) g.total = g.items.length
+  }
+  list.sort(
+    (a, b) =>
+      (order.get(a.relationshipType) ?? 99) - (order.get(b.relationshipType) ?? 99) ||
+      a.direction.localeCompare(b.direction),
+  )
+  return { focus, groups: list }
+}
+
 /** Direct relationships of the focus node, grouped by type and direction. */
 export function useRelationshipGroups(): { focus: GraphNode | null; groups: RelationshipGroup[] } {
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const nodes = useGraphStore((s) => s.nodes)
   const edges = useGraphStore((s) => s.edges)
   const summary = useGraphStore((s) => s.summary)
-
-  return useMemo(() => {
-    if (!focusNodeId) return { focus: null, groups: [] }
-    const byId = new Map(nodes.map((n) => [n.id, n]))
-    const focus = byId.get(focusNodeId) ?? null
-    const groups = new Map<string, RelationshipGroup>()
-    for (const edge of edges) {
-      let direction: 'out' | 'in'
-      let otherId: string
-      if (edge.sourceNodeId === focusNodeId) {
-        direction = 'out'
-        otherId = edge.targetNodeId
-      } else if (edge.targetNodeId === focusNodeId) {
-        direction = 'in'
-        otherId = edge.sourceNodeId
-      } else continue
-      const other = byId.get(otherId)
-      if (!other) continue
-      const key = `${edge.relationshipType}:${direction}`
-      const group =
-        groups.get(key) ??
-        ({
-          key,
-          relationshipType: edge.relationshipType,
-          direction,
-          label: relationshipLabel(edge.relationshipType, direction),
-          total: 0,
-          items: [],
-        } satisfies RelationshipGroup)
-      group.items.push({ node: other, weight: edge.weight, metadata: edge.metadata })
-      groups.set(key, group)
-    }
-    for (const s of summary) {
-      const key = `${s.relationshipType}:${s.direction}`
-      const group = groups.get(key)
-      if (group) group.total = s.count
-      else if (s.count > 0) {
-        groups.set(key, {
-          key,
-          relationshipType: s.relationshipType,
-          direction: s.direction,
-          label: relationshipLabel(s.relationshipType, s.direction),
-          total: s.count,
-          items: [],
-        })
-      }
-    }
-    const order = new Map(RELATIONSHIP_ORDER.map((t, i) => [t, i]))
-    const list = [...groups.values()]
-    for (const g of list) {
-      g.items = sortGroupItems(g.items, focus)
-      if (g.total < g.items.length) g.total = g.items.length
-    }
-    list.sort(
-      (a, b) =>
-        (order.get(a.relationshipType) ?? 99) - (order.get(b.relationshipType) ?? 99) ||
-        a.direction.localeCompare(b.direction),
-    )
-    return { focus, groups: list }
-  }, [focusNodeId, nodes, edges, summary])
+  return useMemo(() => buildRelationshipGroups(focusNodeId, nodes, edges, summary), [focusNodeId, nodes, edges, summary])
 }

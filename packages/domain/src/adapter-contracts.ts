@@ -160,10 +160,18 @@ export interface ListCardsOptions {
   onProgress?: (fetched: number, total: number) => void
 }
 
+export interface ListSetsOptions {
+  /**
+   * Restrict to these set external ids. A resumable import asks for one set at a time, so an
+   * adapter should fetch only those instead of the whole catalog of sets.
+   */
+  externalIds?: string[]
+}
+
 export interface TCGAdapter {
   definition(): TCGDefinition
   listSeries(): Promise<SourceSeries[]>
-  listSets(): Promise<SourceSet[]>
+  listSets(options?: ListSetsOptions): Promise<SourceSet[]>
   listCards(options?: ListCardsOptions): Promise<SourceCard[]>
   normalizeCard(card: SourceCard): NormalizedCard
   resolveIdentity(card: NormalizedCard): IdentityResolution

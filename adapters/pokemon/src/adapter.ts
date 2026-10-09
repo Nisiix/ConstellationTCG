@@ -2,6 +2,7 @@ import type {
   GraphRelationship,
   IdentityResolution,
   ListCardsOptions,
+  ListSetsOptions,
   NormalizedCard,
   RelationshipContext,
   SourceCard,
@@ -34,8 +35,8 @@ export class PokemonAdapter implements TCGAdapter {
     return series.map((s) => toSourceSeries(s))
   }
 
-  async listSets(): Promise<SourceSet[]> {
-    const sets = await this.source.fetchSets()
+  async listSets(options: ListSetsOptions = {}): Promise<SourceSet[]> {
+    const sets = await this.source.fetchSets({ ids: options.externalIds })
     return sets.map((s) => toSourceSet(s))
   }
 

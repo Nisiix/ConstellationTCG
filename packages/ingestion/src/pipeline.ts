@@ -46,8 +46,16 @@ export interface IngestionOptions {
   adapter: TCGAdapter
   mode: IngestionMode
   source: { name: string; type: SourceType; baseUrl?: string | null; version?: string | null }
-  /** Restrict card ingestion to these set external ids (vertical slice / fixtures). */
+  /**
+   * Restrict set and card ingestion to these set external ids (vertical slice, fixtures, one set
+   * per job in resumable imports). An empty list imports series only.
+   */
   setExternalIds?: string[]
+  /**
+   * Refresh the series from the source (default). `false` reuses the series already stored for
+   * the game, so a job that imports a single set does not read every series again.
+   */
+  refreshSeries?: boolean
   log?: (message: string) => void
   /** Called with (done, total) while cards are fetched. */
   onProgress?: (done: number, total: number) => void
@@ -108,8 +116,9 @@ export async function runIngestion(options: IngestionOptions): Promise<Ingestion
   }
 
   try {
-    log('ingesting series')
-    const seriesMap = await ingestSeries(ctx, report.series)
+    log(options.refreshSeries === false ? 'reusing stored series' : 'ingesting series')
+    const seriesMap =
+      options.refreshSeries === false ? await existingSeries(ctx) : await ingestSeries(ctx, report.series)
     log(`series: ${describe(report.series)}`)
 
     log('ingesting sets')
@@ -247,6 +256,15 @@ function uniqueSlug(name: string, externalIdValue: string, taken: Map<string, st
 
 // ───────────────────────────── series ─────────────────────────────
 
+/** The series already stored for the game, keyed by external id (no source access). */
+async function existingSeries(ctx: Context): Promise<Map<string, string>> {
+  const rows = await ctx.db
+    .select({ id: tcgSeries.id, externalId: tcgSeries.externalId })
+    .from(tcgSeries)
+    .where(eq(tcgSeries.gameId, ctx.gameId))
+  return new Map(rows.map((r) => [r.externalId, r.id]))
+}
+
 async function ingestSeries(ctx: Context, counters: IngestionCounters): Promise<Map<string, string>> {
   const existing = await ctx.db
     .select({ id: tcgSeries.id, externalId: tcgSeries.externalId, rawHash: tcgSeries.rawHash, slug: tcgSeries.slug })
@@ -320,7 +338,8 @@ async function ingestSets(
   const map = new Map<string, { id: string; releaseDate: string | null }>()
   for (const row of existing) map.set(row.externalId, { id: row.id, releaseDate: row.releaseDate })
 
-  let list = await ctx.adapter.listSets()
+  // The adapter fetches only the requested sets; the filter stays as a safety net.
+  let list = await ctx.adapter.listSets(only ? { externalIds: only } : undefined)
   if (only) list = list.filter((s) => only.includes(s.externalId))
 
   for (const set of list) {
@@ -417,6 +436,8 @@ async function ingestCards(
   counters: IngestionCounters,
   options: IngestionOptions,
 ) {
+  // No sets requested: nothing to fetch (a series-only run).
+  if (options.setExternalIds && options.setExternalIds.length === 0) return
   const caches = await loadCaches(ctx)
   const cards = await ctx.adapter.listCards({
     setExternalIds: options.setExternalIds,

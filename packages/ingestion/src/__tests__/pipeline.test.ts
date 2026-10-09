@@ -178,6 +178,48 @@ import {
   runMigrations as migrateAgain,
 } from '@constellation/database'
 
+import { vi } from 'vitest'
+
+describe('one set at a time (resumable imports)', () => {
+  it('asks the adapter only for the requested sets and can reuse the stored series', async () => {
+    const fresh = await openFreshDatabase(':memory:')
+    const source = { name: 'tcgdex', type: 'api' as const, baseUrl: 'https://api.tcgdex.net/v2' }
+    try {
+      await migrateAgain(fresh)
+      const base = createPokemonFixtureAdapter('base1')
+      const listSets = vi.spyOn(base, 'listSets')
+      const listSeries = vi.spyOn(base, 'listSeries')
+      const listCards = vi.spyOn(base, 'listCards')
+
+      // A plan pass: series only. No set is requested, so no set and no card is fetched.
+      const plan = await runIngestion({ database: fresh, adapter: base, mode: 'incremental', source, setExternalIds: [] })
+      expect(plan.status).toBe('succeeded')
+      expect(plan.series.created).toBe(1)
+      expect(plan.sets.seen).toBe(0)
+      expect(plan.cards.seen).toBe(0)
+      expect(listSets).toHaveBeenLastCalledWith({ externalIds: [] })
+      expect(listCards).not.toHaveBeenCalled()
+
+      // A set pass: one set, the series come from the database.
+      const one = await runIngestion({
+        database: fresh,
+        adapter: base,
+        mode: 'incremental',
+        source,
+        setExternalIds: ['base1'],
+        refreshSeries: false,
+      })
+      expect(listSeries).toHaveBeenCalledTimes(1)
+      expect(listSets).toHaveBeenLastCalledWith({ externalIds: ['base1'] })
+      expect(one.series.seen).toBe(0)
+      expect(one.sets.created).toBe(1)
+      expect(one.cards.created).toBe(102)
+    } finally {
+      await fresh.close()
+    }
+  })
+})
+
 describe('identity across languages and renames', () => {
   it('keeps a stored card on its identity when the source names it differently', async () => {
     const fresh = await openFreshDatabase(':memory:')

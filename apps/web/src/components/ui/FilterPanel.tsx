@@ -48,7 +48,7 @@ export function FilterPanel() {
       <aside
         id="filter-panel"
         aria-label="Filters"
-        className={`panel scroll-thin absolute left-4 top-28 z-30 max-h-[calc(100vh-11rem)] w-80 overflow-y-auto p-4 ${
+        className={`panel scroll-thin absolute left-4 top-28 z-30 max-h-[calc(100vh-11rem)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto p-4 ${
           open ? 'fade-up' : 'pointer-events-none opacity-0'
         }`}
         hidden={!open}
@@ -66,7 +66,6 @@ export function FilterPanel() {
             </button>
           </div>
         </div>
-        <p className="mb-4 text-[12.5px] text-ink-dim">Filters narrow which cards appear around the focus. They stay in the link you share.</p>
         {status === 'loading' ? <p className="text-sm text-ink-dim">Loading filters…</p> : null}
         {status === 'error' ? <p className="text-sm text-rose-500">Filters are unavailable right now.</p> : null}
         <div className="space-y-5">

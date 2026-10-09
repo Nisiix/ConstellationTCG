@@ -51,6 +51,8 @@ test.describe('exploring (list view, no WebGL needed)', () => {
     await page.goto('/explore?view=list')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Pokémon/)
     await expect(page.getByRole('link', { name: /Base Set/ }).first()).toBeVisible()
+    // dates read dd-MM-yyyy everywhere, the universe included
+    await expect(page.getByRole('link', { name: /Base Set · \d{2}-\d{2}-\d{4}$/ })).toBeVisible()
   })
 
   test('search → focus a card → read its connections and other printings', async ({ page, request }) => {
@@ -62,6 +64,13 @@ test.describe('exploring (list view, no WebGL needed)', () => {
     const details = page.getByRole('region', { name: 'Details' })
     await expect(details.getByText('Rare')).toBeVisible()
     await expect(details.getByText('HP', { exact: true })).toHaveCount(0)
+    // the set is a link in the details (no "Part of" group needed), the language has its flag,
+    // and neither the "Imported" count nor the "Printing" chip is shown
+    await expect(details.getByRole('link', { name: 'Base Set', exact: true })).toBeVisible()
+    await expect(details.getByRole('img', { name: 'English' })).toBeVisible()
+    await expect(details.getByText('EN', { exact: true })).toBeVisible()
+    await expect(details.getByText('Imported')).toHaveCount(0)
+    await expect(details.getByText('Printing', { exact: true })).toHaveCount(0)
     // connection groups
     await expect(page.getByRole('region', { name: 'Set' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Evolves from' })).toBeVisible()

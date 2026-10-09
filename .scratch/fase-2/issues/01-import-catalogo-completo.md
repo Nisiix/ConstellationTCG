@@ -1,29 +1,50 @@
 # Import completo del catalogo Pokémon su Supabase
 
 Type: task
-Status: open
+Status: claimed
 Blocked by: —
-Owner: proprietario del repository (richiede una macchina con rete: TCGdex non è raggiungibile dall'ambiente degli agenti)
+Owner: il progetto Supabase stesso (Edge Function `catalog-import` + pg_cron); nessuna password in mano a nessuno
 
 ## Question
 
 Portare il catalogo Pokémon completo (tutte le serie, i set, le carte) nel database di produzione
 e ricostruire il grafo, così che filo e cammino si vedano su dati reali e non sul solo Base Set.
 
+## Come è stato risolto (9 ottobre 2026)
+
+Il proprietario ha scelto l'import **lato server** invece del comando dal PC. L'ambiente degli
+agenti non raggiunge TCGdex e il connettore non espone la password del database: la soluzione
+gira dentro Supabase, dove entrambe le cose sono disponibili.
+
+- `packages/catalog-import`: l'import come **coda di job piccoli e ripristinabili**
+  (`catalog_import_jobs`): un job `plan` elenca i set alla fonte e mette in coda un job `set` per
+  ogni set cambiato (o tutti, con `full`), poi job `graph` che ricostruiscono la proiezione a
+  passi limitati (scaffold, pagine di identità, un passo per set, pagine di ristampe, finish).
+  Ogni passo sta nei limiti di una Edge Function (2 s di CPU, 150 s di durata); un job fallito
+  torna in coda fino a 3 tentativi; un job il cui worker tace viene ripreso dopo 10 minuti.
+- `packages/graph`: `compose.ts` (composizione pura, condivisa) e `incremental.ts` (`runGraphStep`),
+  con il test che dimostra l'uguaglianza esatta con il builder in un colpo solo; colonna
+  `build_id` su nodi e archi per cancellare alla fine ciò che il catalogo non ha più.
+- `supabase/functions/catalog-import`: Edge Function Deno che esegue un job per chiamata, connessa
+  con `SUPABASE_DB_URL` (variabile della piattaforma) e autenticata con un token **generato nel
+  database** (Vault) e riletto dalla funzione. Bundle in `bundle.js` (`pnpm functions:build`), entry
+  `index.ts` che lo importa dal repository GitHub; CI verifica che il bundle sia aggiornato.
+- Migrazione `20261010000001_catalog_import.sql`: tabella, `catalog_import_request/status/
+  retry_failed` (portabili, anche su PGlite), `catalog_import_tick/schedule/unschedule` (solo
+  hosted: pg_net + pg_cron + Vault). Sul progetto: tick ogni 20 s finché c'è lavoro, refresh
+  incrementale ogni domenica alle 03:15 UTC.
+- CLI equivalente: `pnpm catalog:import` (con `DATABASE_URL`).
+
 ## Checklist
 
-1. Nel dashboard Supabase (progetto `xtebcuuipklenukpsoyp`, eu-west-1) copiare la connection
-   string "direct" (`db.xtebcuuipklenukpsoyp.supabase.co:5432`), con la password del database.
-2. Nel clone locale, in `.env`:
-   `DATABASE_URL=postgresql://postgres:<password>@db.xtebcuuipklenukpsoyp.supabase.co:5432/postgres`
-   (le chiavi pubbliche `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` sono già in
-   `.env.example`).
-3. `pnpm install`, poi `pnpm catalog:refresh` (= `pnpm ingest && pnpm graph:build`). Durata:
-   diversi minuti; gli errori finiscono in `ingestion_errors`, non interrompono.
-4. Verificare: `GET /api/health` del sito (o la query `select count(*) from card_printings`) deve
-   mostrare decine di migliaia di stampe; `/explore` deve elencare tutte le serie.
+1. ✅ Migrazione applicata e registrata su Supabase; `pg_net` e `pg_cron` attivati; token e URL in
+   Vault; cron `catalog-import-tick` (20 s) e `catalog-import-refresh` (domenica 03:15) schedulati.
+2. Deploy della funzione (`deploy_edge_function`, `verify_jwt: false`) dopo il push del bundle.
+3. `select catalog_import_request('pokemon', true)` e seguire `select catalog_import_status('pokemon')`.
+4. Verificare: `select count(*) from card_printings` nell'ordine delle decine di migliaia; `/explore`
+   deve elencare tutte le serie; `ingestion_errors` da leggere.
 5. Scrivere qui sotto, in `## Answer`, conteggi e data.
 
 ## Answer
 
-(da compilare alla chiusura)
+(da compilare alla chiusura: conteggi di serie, set, stampe, nodi, archi, errori, durata)
