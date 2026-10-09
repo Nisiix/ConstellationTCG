@@ -9,7 +9,31 @@ import { useCatalogStore } from '@/state/catalog-store'
 import { useExploreNavigation } from '../navigation'
 import { NodeImage } from './NodeImage'
 
-export function SearchBar() {
+export interface SearchBarProps {
+  /** What choosing a result does; flying to it by default. */
+  onPick?: (hit: SearchHit) => void
+  placeholder?: string
+  label?: string
+  autoFocus?: boolean
+  /** "/" focuses this search from anywhere (only the app bar's search). */
+  shortcut?: boolean
+  /** Results to leave out (the point a path starts from). */
+  exclude?: string[]
+  onEscape?: () => void
+  /** Results flow in the page (inside a panel) instead of floating over it. */
+  inline?: boolean
+}
+
+export function SearchBar({
+  onPick,
+  placeholder = 'Search a card, set, Pokémon or artist…',
+  label = 'Search a card, set, Pokémon or artist',
+  autoFocus = false,
+  shortcut = true,
+  exclude,
+  onEscape,
+  inline = false,
+}: SearchBarProps = {}) {
   const navigation = useExploreNavigation()
   const game = useCatalogStore((s) => s.game)
   const colorOf = useNodeColor()
@@ -34,8 +58,9 @@ export function SearchBar() {
     const timer = setTimeout(() => {
       fetchSearch(query, { game, limit: 12 }, controller.signal)
         .then((res) => {
-          setResults(res.results)
-          setEmpty(res.results.length === 0)
+          const hits = exclude?.length ? res.results.filter((hit) => !exclude.includes(hit.nodeId)) : res.results
+          setResults(hits)
+          setEmpty(hits.length === 0)
           setActive(0)
           setOpen(true)
         })
@@ -50,6 +75,7 @@ export function SearchBar() {
 
   // "/" focuses the search from anywhere.
   useEffect(() => {
+    if (!shortcut) return
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       if (event.key === '/' && target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
@@ -59,18 +85,26 @@ export function SearchBar() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [shortcut])
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus])
 
   const choose = (hit: SearchHit) => {
     setOpen(false)
     setQuery('')
     inputRef.current?.blur()
-    navigation.goTo(hit.nodeId)
+    if (onPick) onPick(hit)
+    else navigation.goTo(hit.nodeId)
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open || results.length === 0) {
-      if (event.key === 'Escape') (event.target as HTMLInputElement).blur()
+      if (event.key === 'Escape') {
+        ;(event.target as HTMLInputElement).blur()
+        onEscape?.()
+      }
       return
     }
     if (event.key === 'ArrowDown') {
@@ -103,8 +137,8 @@ export function SearchBar() {
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={open && results[active] ? `${listId}-${active}` : undefined}
-          aria-label="Search a card, set, Pokémon or artist"
-          placeholder="Search a card, set, Pokémon or artist…"
+          aria-label={label}
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
@@ -115,14 +149,14 @@ export function SearchBar() {
           spellCheck={false}
         />
         {loading ? <span className="h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden /> : null}
-        <kbd className="hidden md:block">/</kbd>
+        {shortcut ? <kbd className="hidden md:block">/</kbd> : null}
       </div>
 
       {open && (results.length > 0 || empty) ? (
         <ul
           id={listId}
           role="listbox"
-          className="panel panel-strong scroll-thin fade-up absolute inset-x-0 top-full z-40 mt-2 max-h-[60vh] overflow-y-auto p-1.5"
+          className={`panel panel-strong scroll-thin fade-up z-40 mt-2 overflow-y-auto p-1.5 ${inline ? 'relative max-h-[40vh]' : 'absolute inset-x-0 top-full max-h-[60vh]'}`}
         >
           {empty ? <li className="px-3 py-4 text-sm text-ink-dim">Nothing found for “{query}”. Try a card name, a set or an artist.</li> : null}
           {results.map((hit, index) => (

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo } from 'react'
 import { MAX_GRAPH_DEPTH } from '@constellation/domain'
-import { buildExploreUrl, parseExploreParams, type ExploreParams, type ViewMode } from '@/lib/url'
+import { buildExploreUrl, parseExploreParams, PATH_DEPTH_LIMIT, threadPath, type ExploreParams, type ViewMode } from '@/lib/url'
 import { useCameraStore } from '@/state/camera-store'
 
 export interface GoToOptions {
@@ -11,6 +11,8 @@ export interface GoToOptions {
   /** Keep the current camera framing and glide along the edge instead of re-framing. */
   follow?: boolean
   replace?: boolean
+  /** Stay in path mode (walking a path step by step). Any other move leaves it. */
+  keepPath?: boolean
 }
 
 export interface ExploreNavigation {
@@ -24,6 +26,12 @@ export interface ExploreNavigation {
   setFilters(filters: Record<string, string>): void
   back(): void
   shareUrl(): string
+  /** Show the path from one point to another (path mode, starting on the first end). */
+  startPath(from: string, to: string): void
+  /** No path within 6 steps: search again up to 8. */
+  searchFurther(): void
+  /** Leave path mode and explore from a point (the step in hand by default). */
+  leavePath(nodeId?: string): void
 }
 
 /**
@@ -52,7 +60,12 @@ export function useExploreNavigation(): ExploreNavigation {
   const goTo = useCallback(
     (nodeId: string, options: GoToOptions = {}) => {
       flyTo(nodeId, options.follow ? 'follow' : 'focus')
-      const url = buildExploreUrl({ ...current, node: nodeId, depth: options.depth ?? 1 })
+      const url = buildExploreUrl({
+        ...current,
+        node: nodeId,
+        depth: options.depth ?? 1,
+        ...(options.keepPath ? {} : { path: null, pathMax: null }),
+      })
       if (options.replace) router.replace(url)
       else router.push(url)
     },
@@ -61,7 +74,7 @@ export function useExploreNavigation(): ExploreNavigation {
 
   const goUniverse = useCallback(() => {
     resetCamera()
-    router.push(buildExploreUrl({ ...current, node: null, depth: 1 }))
+    router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null }))
   }, [current, resetCamera, router])
 
   const setDepth = useCallback(
@@ -92,7 +105,19 @@ export function useExploreNavigation(): ExploreNavigation {
     setView,
     setFilters,
     back: () => router.back(),
-    shareUrl: () =>
-      typeof window === 'undefined' ? buildExploreUrl(current) : `${window.location.origin}${buildExploreUrl(current)}`,
+    shareUrl: () => {
+      const local = current.path ? threadPath(current.path[0], current.path[1], current.view) : buildExploreUrl(current)
+      return typeof window === 'undefined' ? local : `${window.location.origin}${local}`
+    },
+    startPath: (from: string, to: string) => {
+      flyTo(from, 'focus')
+      router.push(buildExploreUrl({ ...current, node: from, depth: 1, path: [from, to], pathMax: null }))
+    },
+    searchFurther: () => {
+      if (current.path) router.replace(buildExploreUrl({ ...current, pathMax: PATH_DEPTH_LIMIT }))
+    },
+    leavePath: (nodeId?: string) => {
+      router.push(buildExploreUrl({ ...current, node: nodeId ?? current.node, depth: 1, path: null, pathMax: null }))
+    },
   }
 }

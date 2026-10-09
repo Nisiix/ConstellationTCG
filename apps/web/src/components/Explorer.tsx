@@ -1,15 +1,18 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchUniverse, prefetchFocus } from '@/lib/api'
+import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchPath, fetchUniverse, prefetchFocus } from '@/lib/api'
 import { connectionNodeTypes } from '@/lib/connections'
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
 import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
+import { neighbours, pathNeighborhood } from '@/lib/path-steps'
 import { filtersKey } from '@/lib/url'
 import { useAccountStore } from '@/state/account-store'
 import { useCameraStore } from '@/state/camera-store'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useGraphStore } from '@/state/graph-store'
+import { usePathStore } from '@/state/path-store'
+import { useThreadStore } from '@/state/thread-store'
 import { useUiStore } from '@/state/ui-store'
 import { RelationshipList } from './fallback/RelationshipList'
 import { setNavigator, useExploreNavigation } from './navigation'
@@ -22,13 +25,16 @@ import { GraphHUD } from './ui/GraphHUD'
 import { HelpOverlay } from './ui/HelpOverlay'
 import { LoadingState } from './ui/LoadingState'
 import { NodeTooltip } from './ui/NodeTooltip'
+import { PathPanel } from './ui/PathPanel'
+import { ThreadPanel } from './ui/ThreadPanel'
 import { TopBar } from './ui/TopBar'
 import { WelcomeCard } from './ui/WelcomeCard'
 
 export function Explorer() {
   const navigation = useExploreNavigation()
-  const { node, depth, view, game, filters } = navigation.current
+  const { node, depth, view, game, filters, path, pathMax } = navigation.current
   const filterKey = filtersKey(filters)
+  const pathKey = path ? `${path[0]},${path[1]},${pathMax ?? ''}` : null
 
   const status = useGraphStore((s) => s.status)
   const error = useGraphStore((s) => s.error)
@@ -65,11 +71,29 @@ export function Explorer() {
   const flyTo = useCameraStore((s) => s.flyTo)
   const cameraMode = useCameraStore((s) => s.mode)
 
-  // Wire the router into the module-level navigator used by canvas components.
+  const pathData = usePathStore((s) => s.data)
+  const setPathLoading = usePathStore((s) => s.setLoading)
+  const setPath = usePathStore((s) => s.setPath)
+  const setPathError = usePathStore((s) => s.setError)
+  const resetPath = usePathStore((s) => s.reset)
+  const hydrateThread = useThreadStore((s) => s.hydrate)
+  const recordThread = useThreadStore((s) => s.record)
+  const pathFound = pathData?.found && pathKey ? pathData : null
+
+  // Wire the router into the module-level navigator used by canvas components. On a path, clicking
+  // one of its points walks to that step instead of leaving the path.
   useEffect(() => {
-    setNavigator(navigation.goTo)
+    setNavigator((nodeId, options) => {
+      if (pathFound?.nodes.some((n) => n.id === nodeId)) navigation.goTo(nodeId, { ...options, keepPath: true, replace: true })
+      else navigation.goTo(nodeId, options)
+    })
     return () => setNavigator(null)
-  }, [navigation.goTo])
+  }, [navigation.goTo, pathFound])
+
+  // The thread kept for this tab.
+  useEffect(() => {
+    hydrateThread()
+  }, [hydrateThread])
 
   // Capabilities (WebGL, reduced motion) — client only.
   useEffect(() => {
@@ -135,15 +159,31 @@ export function Explorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, setSelection])
 
-  // Neighborhood or universe.
+  // Neighborhood, universe or path.
   useEffect(() => {
     const controller = new AbortController()
     setLoading()
-    const request = node
-      ? fetchFocus(node, { depth, filters, nodeTypes: connectionNodeTypes(filters) }, controller.signal).then((res) =>
-          setNeighborhood(res, { summary: res.summary, filtered: res.filtered }),
-        )
-      : fetchUniverse(game, controller.signal).then((res) => setNeighborhood(res, { isUniverse: true }))
+    const focusRequest = (id: string) =>
+      fetchFocus(id, { depth, filters, nodeTypes: connectionNodeTypes(filters) }, controller.signal).then((res) =>
+        setNeighborhood(res, { summary: res.summary, filtered: res.filtered }),
+      )
+    let request: Promise<unknown>
+    if (path && pathKey) {
+      // The sky shows the whole path around the step in hand; no path: the first end, and the
+      // panel says so and offers to search further.
+      setPathLoading(pathKey)
+      request = fetchPath(path[0], path[1], pathMax, controller.signal).then((res) => {
+        setPath(pathKey, res)
+        if (res.found) setNeighborhood(pathNeighborhood(res, node ?? path[0]))
+        else return focusRequest(node ?? path[0])
+      })
+      request.catch((err: unknown) => {
+        if ((err as Error).name !== 'AbortError') setPathError(pathKey, err instanceof ApiError ? err.message : 'Could not find a path.')
+      })
+    } else {
+      resetPath()
+      request = node ? focusRequest(node) : fetchUniverse(game, controller.signal).then((res) => setNeighborhood(res, { isUniverse: true }))
+    }
     request.catch((err: unknown) => {
       if ((err as Error).name === 'AbortError') return
       const message = err instanceof ApiError ? err.message : 'Could not load the constellation.'
@@ -151,7 +191,15 @@ export function Explorer() {
     })
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, depth, game, filterKey, setLoading, setError, setNeighborhood])
+  }, [node, depth, game, filterKey, pathKey, setLoading, setError, setNeighborhood])
+
+  // Every new focus is a step of the thread (the universe is not a place, it is the overview).
+  useEffect(() => {
+    if (revision === 0 || !focusNodeId) return
+    const { isUniverse, positions, nodeById } = useGraphStore.getState()
+    const focus = nodeById(focusNodeId)
+    if (!isUniverse && focus) recordThread(focus, positions)
+  }, [revision, focusNodeId, recordThread])
 
   // Every new neighborhood triggers a camera flight to its focus.
   useEffect(() => {
@@ -228,6 +276,14 @@ export function Explorer() {
       }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return
       const arrow = event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'ArrowUp'
+      // On a path, ← and → walk it step by step.
+      if (pathFound && focusNodeId && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+        event.preventDefault()
+        const { previous, next } = neighbours(pathFound, focusNodeId)
+        const target = event.key === 'ArrowRight' ? next : previous
+        if (target) navigation.goTo(target, { follow: true, keepPath: true, replace: true })
+        return
+      }
       if (arrow && neighborIds.length > 0) {
         event.preventDefault()
         const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown'
@@ -282,9 +338,12 @@ export function Explorer() {
       {/* the app bar comes first in the document, so search is the first stop for the keyboard */}
       <TopBar />
       {!listMode && webgl ? <ConstellationCanvas /> : null}
-      {listMode ? <RelationshipList /> : null}
+      {listMode && path ? <PathPanel variant="page" /> : null}
+      {listMode && !path ? <RelationshipList /> : null}
       <FilterPanel />
-      {!listMode ? <FocusPanel /> : null}
+      {!listMode && path ? <PathPanel variant="panel" /> : null}
+      {!listMode && !path ? <FocusPanel /> : null}
+      <ThreadPanel />
       {!listMode ? <WelcomeCard /> : null}
       <GraphHUD view={effectiveView} />
       {!listMode ? <NodeTooltip /> : null}

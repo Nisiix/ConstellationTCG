@@ -375,3 +375,21 @@ di testi e componenti fini a sé stessi (chip duplicati nella landing, didascali
 nel footer, suggerimenti ridondanti). Raccomandazioni non eseguite (cambi di architettura): pannello
 del focus come bottom sheet su telefono, controllo di profondità dentro il pannello connessioni,
 suggerimenti dentro la casella di ricerca, filtri ancorati alla lista.
+
+## Filo e cammino: prototipi (9 ottobre 2026, sera)
+
+Grilling 05 e 06 chiusi con il proprietario (risposte nei ticket), prototipi 07 e 08 su `main`:
+
+- **Il filo** — ogni punto visitato in questa sessione resta nel cielo come una scia di particelle
+  argento che scorre nel verso del viaggio, con una luce su ogni tappa (ultime 12 piene, le vecchie
+  sfumano); il vicinato precedente scompare. Il pannello **"Your thread"** (in basso a sinistra, in 3D e
+  in List) elenca le tappe e riporta il focus su quella scelta. Filtri e profondità non lo toccano; vive
+  solo nella scheda del browser (`sessionStorage`).
+- **Il cammino** — "Connect to…" nel pannello di un punto chiede il secondo estremo; il cielo mostra il
+  cammino più breve (BFS in memoria su indice per gioco, ponti fissi: carte, stampe, set, serie,
+  artista), un'etichetta compatta per arco, percorribile con ← → o un clic, condivisibile come
+  `/thread/<a>/<b>` e ricalcolato all'apertura. Nessun cammino entro 6: avviso e "Search further" fino a
+  8. Le tappe percorse entrano nel filo.
+- Verificato: test unitari (grafo sintetico e fixture, indice stantio, URL, etichette, filo) ed e2e del
+  viaggio (`apps/web/e2e/thread.spec.ts`); help aggiornato. Da guardare insieme: la resa della scia nel
+  3D; da misurare: il cammino sul catalogo completo (dopo l'import, ticket 01).

@@ -53,6 +53,8 @@ describe('pretty paths', () => {
     view: 'list' as const,
     game: 'pokemon',
     filters: { rarity: 'Rare' },
+    path: null,
+    pathMax: null,
   }
 
   it('addresses printings and sets, nothing else', () => {

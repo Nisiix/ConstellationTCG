@@ -62,6 +62,19 @@ with `PART_OF` edges. 404 when the game has not been ingested / projected.
 
 One node and its relationship summary: `{ node, summary }`.
 
+## `GET /api/graph/path?from=<node>&to=<node>[&max=8]`
+
+The shortest path between two points: `{ found, from, to, maxDepth, nodes, edges, visited, reason? }`,
+`nodes` in order from `from` to `to` and `edges[i]` joining `nodes[i]` and `nodes[i+1]`. Breadth-first
+search in memory over an adjacency index per game (loaded once, rebuilt when the projection changes).
+Only cards, printings, sets, series and artists are crossed, along `REPRINT_OF, EVOLVES_FROM,
+EVOLUTION_OF, ILLUSTRATED_BY, PRINTING_OF, BELONGS_TO, PART_OF`; the game, Pokémon species and energy
+types may only be ends. Among equally short paths the one preferring reprint, evolution, artist,
+card, set, series wins (then the node id), so the same ends always give the same path. `max` is 6
+by default and 8 at most; no path within it is a 200 with `found: false` and `reason: 'too-far'`
+(`'different-games'` when the ends belong to different games). 400 for malformed ids, 404 for
+unknown ones.
+
 ## `GET /api/filters?game=pokemon`
 
 `{ game, filters: FilterDefinition[] }` — universal filters (series, set, rarity, language, artist,
@@ -141,3 +154,7 @@ view and filters along:
 
 Unknown slugs land on the explorer's universe with `?missing=<slug>`. The Share button copies the
 readable form for printings and sets.
+
+A path has its own address: `/thread/<a>/<b>` (optionally `?view=list`) redirects to
+`/explore?node=<a>&path=<a>,<b>`. Only the two ends travel; the path is recomputed every time the
+link is opened. Inside the explorer `node` is the step in hand and `max=8` is set by "Search further".

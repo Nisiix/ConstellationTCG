@@ -17,6 +17,7 @@ import { Details, Prose } from './Details'
 import { NodeBadge } from './NodeBadge'
 import { NodeImage } from './NodeImage'
 import { OwnButton } from './OwnButton'
+import { ConnectTo } from './ConnectTo'
 
 /** ` · 09-01-1999` when there is a date to show, nothing otherwise. */
 function dateSuffix(value: unknown): string {
@@ -99,6 +100,7 @@ export function FocusPanel() {
             <OwnButton node={focus} />
           </div>
         ) : null}
+        {view === 'connections' && !isUniverse ? <ConnectTo node={focus} className="mt-3" /> : null}
       </div>
 
       {view === 'details' ? (

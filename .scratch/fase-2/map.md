@@ -45,11 +45,22 @@ di stato e la voce nell'help.
   [research/](./research/04-termini-tcgdex-e-marchi.md)): dati MIT con avviso da conservare,
   immagini senza licenza e solo linkate; attribuzioni aggiornate (adapter, footer, help, README,
   `docs/legal/ATTRIBUTION.md`). Prima dell'annuncio: conferma legale e avviso a TCGdex.
+- [Grilling 05, come si vede il filo](./issues/05-come-si-vede-il-filo.md): scia di particelle;
+  ultime 12 tappe accese, le vecchie sfumano; il vicinato precedente scompare; ritorno dal pannello
+  "Il tuo filo" (Backspace invariato); filtri e profondità non toccano il filo; in List la stessa
+  sezione.
+- [Grilling 06, come si chiede e si mostra il cammino](./issues/06-come-si-chiede-e-si-mostra-il-cammino.md):
+  "Connect to…" nel pannello; il cammino appare intero e poi si percorre; etichette compatte;
+  ponti fissi; "Search further" fino a 8; `/thread/<a>/<b>` con i soli estremi e la vista; in List
+  elenco numerato; il cammino percorso entra nel filo.
 
 ## Frontier (prossima sessione)
 
-- **05** come si vede il filo (grilling) → poi 07.
-- **06** come si chiede e si mostra il cammino (grilling, sbloccato da 03) → poi 08.
+- **07** prototipo del filo: fatto, da guardare insieme nel cielo 3D. **08** prototipo del cammino:
+  fatto sul fixture, restano le misure a catalogo completo (dopo 01).
+- **09** accettazione (grilling): si apre guardando insieme i prototipi; i test e2e del viaggio sul
+  fixture esistono già (`apps/web/e2e/thread.spec.ts`), manca il caso "due set diversi" che richiede
+  il catalogo completo.
 - **01** import completo: ora automatico dentro Supabase (Edge Function + pg_cron, ticket
   `claimed`); si chiude con i conteggi del primo run. **02** configurazione Auth: resta del
   proprietario (solo dalla dashboard Supabase).

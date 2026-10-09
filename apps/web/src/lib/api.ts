@@ -8,6 +8,7 @@ import type {
   TCGTheme,
 } from '@constellation/domain'
 import type { SearchHit } from '@constellation/search'
+import type { PathResponse } from './path-steps'
 
 export interface FocusResponse extends GraphNeighborhood {
   summary: RelationshipSummary[]
@@ -217,4 +218,15 @@ export interface GameSummary {
 
 export function fetchGames(signal?: AbortSignal) {
   return request<{ games: GameSummary[] }>('/api/games', signal)
+}
+
+export function pathUrl(from: string, to: string, maxDepth?: number | null): string {
+  const params = new URLSearchParams({ from, to })
+  if (maxDepth) params.set('max', String(maxDepth))
+  return `/api/graph/path?${params.toString()}`
+}
+
+/** The shortest path between two points (cached like the other graph responses). */
+export function fetchPath(from: string, to: string, maxDepth?: number | null, signal?: AbortSignal) {
+  return cached<PathResponse>(pathUrl(from, to, maxDepth), signal)
 }

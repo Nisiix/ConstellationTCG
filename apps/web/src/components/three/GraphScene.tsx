@@ -11,6 +11,7 @@ import { ParticleField } from './ParticleField'
 import { PostFX } from './PostFX'
 import { OwnershipEffects } from './OwnershipEffects'
 import { SelectionEffects } from './SelectionEffects'
+import { ThreadTrail } from './ThreadTrail'
 
 /** The constellation. Always on the dark sky: the interface mode changes the panels, not the map. */
 export function GraphScene() {
@@ -23,6 +24,7 @@ export function GraphScene() {
       <ParticleField />
       <EdgeRenderer />
       <EdgeSparks />
+      <ThreadTrail />
       <NodeRenderer />
       <NodeImages />
       <SelectionEffects />

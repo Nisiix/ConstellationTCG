@@ -20,6 +20,14 @@ export const HOW_IT_WORKS: HelpStep[] = [
     text: 'any connection by clicking it, in the scene or in the panel on the right: other cards (printings, reprints, evolutions), the sets and series they belong to, and the artist, who leads to the other cards they illustrated. Pokémon species and energy types stay out of the way unless the Node type filter asks for them. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
   },
   { title: 'Go wider', text: 'with Extended or Deep connections (bottom right) or narrow down with filters.' },
+  {
+    title: 'Keep your thread.',
+    text: 'The sky never resets: every point you visit leaves a trail of light behind you, the last twelve steps bright and older ones fading. Your thread (bottom left) lists them in order; pick one to go back there. It lives in this browser tab only and is never sent anywhere.',
+  },
+  {
+    title: 'Connect two points.',
+    text: 'Connect to… (in the panel of any point) asks for a second card, set or artist and shows the shortest path between them through cards, sets, series and artists, one line per connection. Walk it with ← → or a click; Search further looks up to eight steps away. Share the path as /thread/<a>/<b>: it is worked out again whenever the link is opened.',
+  },
   { title: 'Share', text: 'any view: the link holds the focus, the depth and the filters.' },
   {
     title: 'Make it yours.',
@@ -29,7 +37,7 @@ export const HOW_IT_WORKS: HelpStep[] = [
 
 export const SHORTCUTS: Array<[key: string, label: string]> = [
   ['/', 'Search'],
-  ['← →', 'Walk the connections'],
+  ['← →', 'Walk the connections (or the steps of a path)'],
   ['Enter', 'Fly to the one in hand'],
   ['E', 'Widen the connections'],
   ['C', 'Direct connections only'],

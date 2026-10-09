@@ -19,6 +19,7 @@ import { Details, Prose } from '../ui/Details'
 import { NodeBadge } from '../ui/NodeBadge'
 import { NodeImage } from '../ui/NodeImage'
 import { OwnButton } from '../ui/OwnButton'
+import { ConnectTo } from '../ui/ConnectTo'
 
 type Go = (id: string, follow?: boolean) => (e: React.MouseEvent) => void
 
@@ -53,7 +54,7 @@ export function RelationshipList() {
   const [copied, setCopied] = useState(false)
 
   const current = navigation.current
-  const hrefFor = (nodeId: string) => buildExploreUrl({ ...current, node: nodeId, depth: 1 })
+  const hrefFor = (nodeId: string) => buildExploreUrl({ ...current, path: null, pathMax: null, node: nodeId, depth: 1 })
 
   const universe = useMemo(() => {
     if (!isUniverse) return null
@@ -152,7 +153,10 @@ export function RelationshipList() {
               ) : (
                 <div className="mb-3" aria-hidden />
               )}
-              <OwnButton node={focus} className="mb-3" />
+              <div className="mb-3 flex flex-wrap items-start gap-2">
+                <OwnButton node={focus} />
+                <ConnectTo node={focus} className="min-w-0 flex-1" />
+              </div>
               {focus.imageUrl ? (
                 <div className="mb-3 flex justify-center">
                   <NodeImage

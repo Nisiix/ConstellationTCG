@@ -1,7 +1,7 @@
 # Come si vede il filo nel cielo
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Question
@@ -16,4 +16,16 @@ come lista di tappe.
 
 ## Answer
 
-(da compilare alla chiusura)
+Grilling del 9 ottobre 2026 (sera), risposte del proprietario:
+
+1. **Linea** → una **scia di particelle** che scorre lungo il filo nel verso del viaggio (non oro:
+   l'oro è di My Constellation), distinta dalle connessioni.
+2. **Tappe** → restano accese le **ultime 12**; le più vecchie sfumano, la scia resta.
+3. **Vicinato precedente** → **scompare**: in cielo restano il vicinato attuale, le tappe e la scia
+   (il budget di punti non cresce col viaggio).
+4. **Ritorno** → dal **pannello "Il tuo filo"** (elenco delle tappe, ognuna porta il focus lì).
+   Backspace / Indietro del browser **restano com'erano** (un passo indietro nella cronologia).
+5. **Profondità o filtro a metà filo** → il filo **resta intatto**; cambia solo il vicinato attuale.
+6. **Vista List** → la stessa sezione **"Il tuo filo"**, tappe in ordine e cliccabili.
+
+Dal grilling del ticket 06: le tappe di un cammino percorso **entrano nel filo**.

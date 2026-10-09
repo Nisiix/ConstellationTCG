@@ -9,6 +9,10 @@ export interface ExploreParams {
   game: string
   /** Raw filter values keyed by filter id. */
   filters: Record<string, string>
+  /** The two ends of a path being shown (`path=<a>,<b>`), or null outside path mode. */
+  path: [string, string] | null
+  /** How far the path search goes when asked to search further (`max=8`); null = default (6). */
+  pathMax: number | null
 }
 
 export const DEFAULT_GAME = 'pokemon'
@@ -25,14 +29,24 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
   for (const [key, value] of params.entries()) {
     if (key.startsWith('f.') && value) filters[key.slice(2)] = value
   }
+  const ends = (params.get('path') ?? '').split(',')
+  const path: [string, string] | null =
+    ends.length === 2 && parseNodeId(ends[0] ?? '') && parseNodeId(ends[1] ?? '') ? [ends[0]!, ends[1]!] : null
+  const maxRaw = Number(params.get('max'))
+  const pathMax = path && Number.isFinite(maxRaw) && maxRaw >= 1 ? Math.min(PATH_DEPTH_LIMIT, Math.floor(maxRaw)) : null
   return {
-    node: node && parseNodeId(node) ? node : null,
+    node: node && parseNodeId(node) ? node : path ? path[0] : null,
     depth,
     view,
     game: params.get('game') ?? DEFAULT_GAME,
     filters,
+    path,
+    pathMax,
   }
 }
+
+/** The deepest a path search may go (mirrors `PATH_MAX_DEPTH` in the graph package). */
+export const PATH_DEPTH_LIMIT = 8
 
 export function buildExploreUrl(params: Partial<ExploreParams>): string {
   const search = new URLSearchParams()
@@ -43,8 +57,18 @@ export function buildExploreUrl(params: Partial<ExploreParams>): string {
   for (const [id, value] of Object.entries(params.filters ?? {})) {
     if (value) search.set(`f.${id}`, value)
   }
+  if (params.path) {
+    search.set('path', params.path.join(','))
+    if (params.pathMax) search.set('max', String(params.pathMax))
+  }
   const query = search.toString()
   return query ? `/explore?${query}` : '/explore'
+}
+
+/** The shareable address of a path: its two ends, and the list view when that is what was open. */
+export function threadPath(from: string, to: string, view?: ViewMode | null): string {
+  const base = `/thread/${encodeURIComponent(from)}/${encodeURIComponent(to)}`
+  return view === 'list' ? `${base}?view=list` : base
 }
 
 /** Stable key of a filter record (used to detect changes). */
