@@ -158,7 +158,10 @@
    grafo), chiamata da pg_cron ogni 20 s finché c'è lavoro e ogni domenica per il refresh
    incrementale; nessuna password configurata a mano (`SUPABASE_DB_URL` della piattaforma, token
    generato in Vault). Si chiede con `select catalog_import_request('pokemon', true)` e si segue con
-   `catalog_import_status('pokemon')`. Resta da chiudere il primo run completo (ticket 01).
+   `catalog_import_status('pokemon')`. Il primo run è richiesto e in coda, ma **fermo per una
+   restrizione dell'organizzazione Supabase** (piano free, `exceed_db_size_quota` causata da un
+   altro progetto della stessa organizzazione: ogni chiamata alla funzione riceve 402); riparte da
+   solo appena la restrizione cade (ticket 01).
 2. **Configurazione Auth nel dashboard Supabase** — Site URL pubblico e `<sito>/auth/callback`
    nella allow list dei redirect (più `http://localhost:3000/**` in sviluppo). Senza, Supabase
    rimanda al Site URL: l'app intercetta comunque il codice e completa l'accesso

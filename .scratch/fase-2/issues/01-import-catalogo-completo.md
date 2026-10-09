@@ -45,6 +45,19 @@ gira dentro Supabase, dove entrambe le cose sono disponibili.
    deve elencare tutte le serie; `ingestion_errors` da leggere.
 5. Scrivere qui sotto, in `## Answer`, conteggi e data.
 
+## Stato (9 ottobre 2026, 16:20 UTC)
+
+- ✅ Funzione distribuita: `catalog-import` versione 1, entry pinnato al commit `1b36d7c`,
+  `verify_jwt` off (token in Vault). Cron attivo, run completo richiesto (plan
+  `1453539c-6f79-41e3-acc7-03dec9a88782`), job `plan` in coda.
+- ⛔ **Bloccato da Supabase, non dal codice**: ogni chiamata alla funzione riceve `402 Service for
+  this project is restricted due to the following violations: exceed_db_size_quota`. Il database di
+  ConstellationTCG è di 14 MB: la quota superata è dell'**organizzazione** "Nisiix" (piano free),
+  che contiene anche il progetto "SwapWish TCG"; Supabase limita tutti i progetti dell'organizzazione
+  finché l'uso non rientra o il piano non cambia. Dashboard → Organization → Usage/Billing.
+- Appena la restrizione cade, il tick (ogni 20 s) riparte da solo e il job `plan` viene eseguito:
+  nessun altro intervento richiesto. Verifica: `select catalog_import_status('pokemon')`.
+
 ## Answer
 
 (da compilare alla chiusura: conteggi di serie, set, stampe, nodi, archi, errori, durata)
