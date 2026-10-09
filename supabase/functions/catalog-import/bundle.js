@@ -26,10 +26,10 @@ var POKEMON_PLACEHOLDER_LOGO = "https://assets.tcgdex.net/en/base/base1/logo.web
     SAME_POKEMON: "contrast",
     EVOLVES_FROM: "contrast",
     EVOLUTION_OF: "contrast",
-    HAS_TYPE: "muted",
-    WEAK_TO: "muted",
-    RESISTS: "muted",
-    HAS_ATTRIBUTE: "muted"
+    COUNTERPART_OF: "contrast",
+    SHARED_SUBJECTS: "accent",
+    SHARED_ARTISTS: "accent",
+    SIMILAR_STRUCTURE: "accent"
   },
   modes: {
     dark: {
@@ -53,15 +53,7 @@ var POKEMON_PLACEHOLDER_LOGO = "https://assets.tcgdex.net/en/base/base1/logo.web
       particles: "#cdc3bc"
     }
   }
-}, POKEMON_RELATIONSHIPS = [
-  "EVOLVES_FROM",
-  "EVOLVES_TO",
-  "HAS_TYPE",
-  "WEAK_TO",
-  "RESISTS",
-  "SAME_POKEMON",
-  "SAME_EVOLUTION_LINE"
-], POKEMON_FILTERS = [
+}, POKEMON_RELATIONSHIPS = ["EVOLVES_FROM", "SAME_POKEMON"], POKEMON_FILTERS = [
   {
     id: "pokemon.species",
     label: "Pok\xE9mon",
@@ -108,7 +100,8 @@ var POKEMON_PLACEHOLDER_LOGO = "https://assets.tcgdex.net/en/base/base1/logo.web
   publisher: "The Pok\xE9mon Company",
   adapterKey: "pokemon",
   relationshipTypes: [...POKEMON_RELATIONSHIPS],
-  nodeTypes: ["pokemon", "attribute"],
+  nodeTypes: ["pokemon"],
+  subjectRelation: "SAME_POKEMON",
   filters: POKEMON_FILTERS,
   theme: POKEMON_THEME,
   attribution: {
@@ -1495,12 +1488,8 @@ var RELATIONSHIP_WEIGHTS = {
   SAME_POKEMON: 0.9,
   EVOLVES_FROM: 0.9,
   EVOLUTION_OF: 0.9,
-  ILLUSTRATED_BY: 0.8,
-  HAS_TYPE: 0.5,
-  HAS_ATTRIBUTE: 0.3,
-  WEAK_TO: 0.3,
-  RESISTS: 0.3
-}, ENTITY_RELATIONS = /* @__PURE__ */ new Set(["SAME_POKEMON", "HAS_TYPE", "WEAK_TO", "RESISTS", "HAS_ATTRIBUTE"]);
+  ILLUSTRATED_BY: 0.8
+}, ENTITY_RELATIONS = /* @__PURE__ */ new Set(["SAME_POKEMON"]);
 function buildRelationships(ctx) {
   let { printing } = ctx, out = [], add = (sourceNodeId, relationshipType, targetNodeId, metadata) => {
     out.push({
@@ -1517,8 +1506,13 @@ function buildRelationships(ctx) {
     ENTITY_RELATIONS.has(entity.relation) && add(printing.nodeId, entity.relation, entity.nodeId, entity.metadata);
   let evolveFrom = printing.attributes.evolveFrom;
   if (typeof evolveFrom == "string" && evolveFrom.trim()) {
-    let preIdentity = ctx.identityNodeIdByName(normalizeName(evolveFrom));
-    preIdentity && preIdentity !== printing.identityNodeId && (add(printing.nodeId, "EVOLVES_FROM", preIdentity, { evolveFrom }), add(printing.identityNodeId, "EVOLUTION_OF", preIdentity, { evolveFrom }));
+    let name = normalizeName(evolveFrom), preIdentity = ctx.identityNodeIdByName(name);
+    if (preIdentity && preIdentity !== printing.identityNodeId) {
+      let inSet = (ctx.setPrintingNodeIdsByName?.(name) ?? []).filter((id) => id !== printing.nodeId);
+      if (inSet.length > 0) for (let target of inSet) add(printing.nodeId, "EVOLVES_FROM", target, { evolveFrom });
+      else add(printing.nodeId, "EVOLVES_FROM", preIdentity, { evolveFrom });
+      add(printing.identityNodeId, "EVOLUTION_OF", preIdentity, { evolveFrom });
+    }
   }
   return out;
 }
@@ -2171,7 +2165,7 @@ import { sql as sql2, eq, and, or, inArray, desc, asc, ilike, count } from "npm:
 var JOB_PRIORITY = {
   plan: 0,
   set: 10,
-  graph: { scaffold: 20, identities: 21, printings: 22, reprints: 23, finish: 24 }
+  graph: { scaffold: 20, identities: 21, printings: 22, reprints: 23, similarity: 24, finish: 25 }
 }, DEFAULT_STALE_MS = 600 * 1e3, DEFAULT_MAX_ATTEMPTS = 3;
 async function requestCatalogImport(db, gameSlug, options = {}) {
   let result = await db.execute(
@@ -2465,6 +2459,19 @@ function searchTextFor(node) {
   let parts = [normalizeName(node.label)], m = node.metadata;
   return node.nodeType === "card_printing" && (typeof m.setName == "string" && parts.push(normalizeName(m.setName)), typeof m.collectorNumber == "string" && parts.push(m.collectorNumber.toLowerCase()), typeof m.printedNumber == "string" && parts.push(m.printedNumber.toLowerCase())), node.nodeType === "set" && typeof m.seriesName == "string" && parts.push(normalizeName(m.seriesName)), node.nodeType === "pokemon" && typeof m.dexId == "number" && parts.push(`#${m.dexId}`), node.subtitle && node.nodeType !== "card_printing" && parts.push(normalizeName(node.subtitle)), [...new Set(parts)].join(" ");
 }
+function projectedEntityKinds(adapter) {
+  return new Set(adapter.definition().nodeTypes);
+}
+function setPrintingIndex(printings, normalizedNameOf) {
+  let index2 = /* @__PURE__ */ new Map();
+  for (let p of [...printings].sort((a, b) => compareText(a.id, b.id))) {
+    let name = normalizedNameOf(p.identityId);
+    if (!name) continue;
+    let bySet = index2.get(p.setId) ?? /* @__PURE__ */ new Map();
+    bySet.set(name, [...bySet.get(name) ?? [], makeNodeId("card_printing", p.id)]), index2.set(p.setId, bySet);
+  }
+  return index2;
+}
 function identityNodeIdsByName(identities) {
   let sorted = [...identities].sort(
     (a, b) => +(b.entityType === "character") - +(a.entityType === "character") || compareText(a.id, b.id)
@@ -2504,7 +2511,8 @@ function relationshipsForPrinting(adapter, input) {
       metadata: link.metadata
     })),
     identityNodeIdByName: input.identityNodeIdByName,
-    entityNodeIdByKey: input.entityNodeIdByKey
+    entityNodeIdByKey: input.entityNodeIdByKey,
+    setPrintingNodeIdsByName: input.setPrintingNodeIdsByName
   };
   try {
     return adapter.buildRelationships(context);
@@ -2560,6 +2568,165 @@ var EdgeCollector = class {
   }
 };
 
+// packages/graph/src/similarity.ts
+var SET_NEIGHBOURS = 6, COUNTERPART_PREDECESSORS = 2, MIN_SHARED_SUBJECTS = 2, MIN_SHARED_ARTISTS = 2, MIN_JACCARD = 0.05, MIN_STRUCTURE = 0.6, MIN_SET_SIZE = 3;
+function compareText2(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+function newerFirst(a, b) {
+  return compareText2(b.releaseDate ?? NO_RELEASE, a.releaseDate ?? NO_RELEASE) || compareText2(b.externalId, a.externalId);
+}
+function round(value) {
+  return Math.round(value * 1e3) / 1e3;
+}
+function intersection(a, b) {
+  let [small, large] = a.size <= b.size ? [a, b] : [b, a], n = 0;
+  for (let v of small) large.has(v) && (n += 1);
+  return n;
+}
+function jaccard(a, b) {
+  let shared = intersection(a, b), union = a.size + b.size - shared;
+  return { shared, score: union === 0 ? 0 : shared / union };
+}
+function structureScore(a, b) {
+  if (a.size < MIN_SET_SIZE || b.size < MIN_SET_SIZE || a.norm === 0 || b.norm === 0) return 0;
+  let dot = 0;
+  for (let [feature, share] of a.structure) dot += share * (b.structure.get(feature) ?? 0);
+  return dot / (a.norm * b.norm) * Math.sqrt(Math.min(a.size, b.size) / Math.max(a.size, b.size));
+}
+function profiles(input) {
+  let out = /* @__PURE__ */ new Map();
+  for (let set of input.sets)
+    out.set(set.id, { set, subjects: /* @__PURE__ */ new Set(), artists: /* @__PURE__ */ new Set(), structure: /* @__PURE__ */ new Map(), norm: 0, size: 0 });
+  let setOfPrinting = /* @__PURE__ */ new Map();
+  for (let p of input.printings) {
+    let profile = out.get(p.setId);
+    if (profile) {
+      setOfPrinting.set(p.id, p.setId), profile.size += 1, p.artistId && profile.artists.add(p.artistId);
+      for (let feature of [p.category && `category:${p.category}`, p.stage && `stage:${p.stage}`, p.rarity && `rarity:${p.rarity}`])
+        feature && profile.structure.set(feature, (profile.structure.get(feature) ?? 0) + 1);
+    }
+  }
+  for (let link of input.subjects) {
+    let setId = setOfPrinting.get(link.printingId);
+    setId && out.get(setId)?.subjects.add(link.subjectId);
+  }
+  for (let profile of out.values()) {
+    let sum = 0;
+    for (let [feature, count2] of profile.structure) {
+      let share = count2 / Math.max(1, profile.size);
+      profile.structure.set(feature, share), sum += share * share;
+    }
+    profile.norm = Math.sqrt(sum);
+  }
+  return out;
+}
+function score(kind, a, b) {
+  if (kind === "SIMILAR_STRUCTURE") {
+    let s2 = structureScore(a, b);
+    return s2 >= MIN_STRUCTURE ? { other: b, score: s2, shared: 0 } : null;
+  }
+  let [mine, theirs, minimum] = kind === "SHARED_SUBJECTS" ? [a.subjects, b.subjects, MIN_SHARED_SUBJECTS] : [a.artists, b.artists, MIN_SHARED_ARTISTS], { shared, score: s } = jaccard(mine, theirs);
+  return shared >= minimum && s >= MIN_JACCARD ? { other: b, score: s, shared } : null;
+}
+function byCloseness(of) {
+  let day = (p) => Date.parse(p.set.releaseDate ?? "") || 0;
+  return (x, y) => y.score - x.score || Math.abs(day(x.other) - day(of)) - Math.abs(day(y.other) - day(of)) || compareText2(x.other.set.id, y.other.set.id);
+}
+function setRelationships(all, perSet) {
+  let out = [];
+  for (let kind of ["SHARED_SUBJECTS", "SHARED_ARTISTS", "SIMILAR_STRUCTURE"]) {
+    let chosen = /* @__PURE__ */ new Map();
+    for (let profile of all) {
+      let candidates = [];
+      for (let other of all) {
+        if (other === profile) continue;
+        let candidate = score(kind, profile, other);
+        candidate && candidates.push(candidate);
+      }
+      candidates.sort(byCloseness(profile));
+      for (let c of candidates.slice(0, perSet)) {
+        let [newer, older] = newerFirst(profile.set, c.other.set) <= 0 ? [profile, c.other] : [c.other, profile];
+        chosen.set(`${newer.set.id}|${older.set.id}`, { a: newer, b: older, score: c.score, shared: c.shared });
+      }
+    }
+    for (let { a, b, score: s, shared } of chosen.values())
+      out.push({
+        sourceNodeId: makeNodeId("set", a.set.id),
+        targetNodeId: makeNodeId("set", b.set.id),
+        relationshipType: kind,
+        weight: round(0.35 + 0.5 * s),
+        direction: "undirected",
+        metadata: kind === "SIMILAR_STRUCTURE" ? { score: round(s) } : { score: round(s), shared }
+      });
+  }
+  return out;
+}
+function counterpartRelationships(input, all, predecessors) {
+  let subjectsOf = /* @__PURE__ */ new Map();
+  for (let link of input.subjects) {
+    let set = subjectsOf.get(link.printingId) ?? /* @__PURE__ */ new Set();
+    set.add(link.subjectId), subjectsOf.set(link.printingId, set);
+  }
+  let order = (p) => ({
+    releaseDate: p.releaseDate ?? all.get(p.setId)?.set.releaseDate ?? null,
+    collectorNumber: p.collectorNumber,
+    externalId: p.externalId
+  }), sorted = [...input.printings].sort((a, b) => comparePrintings(order(a), order(b))), bySetSubject = /* @__PURE__ */ new Map();
+  for (let p of sorted) {
+    let subjects = subjectsOf.get(p.id);
+    if (!subjects) continue;
+    let index2 = bySetSubject.get(p.setId) ?? /* @__PURE__ */ new Map();
+    for (let subject of subjects) index2.set(subject, [...index2.get(subject) ?? [], p]);
+    bySetSubject.set(p.setId, index2);
+  }
+  let earlier = /* @__PURE__ */ new Map(), profilesList = [...all.values()];
+  for (let profile of profilesList) {
+    let date2 = profile.set.releaseDate;
+    if (!date2) continue;
+    let candidates = [];
+    for (let other of profilesList) {
+      if (!other.set.releaseDate || other.set.releaseDate >= date2) continue;
+      let { shared, score: s } = jaccard(profile.subjects, other.subjects);
+      shared !== 0 && candidates.push({ other, score: 0.5 * structureScore(profile, other) + 0.5 * s, shared });
+    }
+    candidates.sort(byCloseness(profile)), earlier.set(profile.set.id, candidates.slice(0, predecessors).map((c) => c.other));
+  }
+  let out = [];
+  for (let p of sorted) {
+    let subjects = subjectsOf.get(p.id);
+    if (subjects)
+      for (let predecessor of earlier.get(p.setId) ?? []) {
+        let index2 = bySetSubject.get(predecessor.set.id);
+        if (!index2) continue;
+        let best = null;
+        for (let subject of [...subjects].sort(compareText2))
+          for (let candidate of index2.get(subject) ?? []) {
+            if (candidate.identityId === p.identityId) continue;
+            let theirs = subjectsOf.get(candidate.id), exact = theirs !== void 0 && theirs.size === subjects.size && [...subjects].every((s) => theirs.has(s));
+            (!best || exact && !best.exact) && (best = { printing: candidate, exact });
+            break;
+          }
+        best && out.push({
+          sourceNodeId: makeNodeId("card_printing", p.id),
+          targetNodeId: makeNodeId("card_printing", best.printing.id),
+          relationshipType: "COUNTERPART_OF",
+          weight: 0.75,
+          direction: "directed",
+          metadata: {}
+        });
+      }
+  }
+  return out;
+}
+function similarityRelationships(input, options = {}) {
+  let all = profiles(input), ordered = [...all.values()].sort((a, b) => compareText2(a.set.id, b.set.id));
+  return [
+    ...setRelationships(ordered, options.perSet ?? SET_NEIGHBOURS),
+    ...counterpartRelationships(input, all, options.predecessors ?? COUNTERPART_PREDECESSORS)
+  ];
+}
+
 // packages/graph/src/builder.ts
 var WRITE_CHUNK = 400;
 function nodeRow(n, buildId, now) {
@@ -2609,6 +2776,8 @@ function describeGraphStep(step) {
       return `printings of set ${step.setId}`;
     case "reprints":
       return `reprints page ${step.page}`;
+    case "similarity":
+      return "set similarity and counterparts";
     case "finish":
       return "finish";
   }
@@ -2618,7 +2787,7 @@ async function planGraphBuild(db, gameId, options = {}) {
   for (let page = 0; page * identityPage2 < identities; page += 1) steps.push({ kind: "identities", page, pageSize: identityPage2 });
   for (let set of sets) steps.push({ kind: "printings", setId: set.id });
   for (let page = 0; page * reprintPage2 < identities; page += 1) steps.push({ kind: "reprints", page, pageSize: reprintPage2 });
-  return steps.push({ kind: "finish" }), steps;
+  return steps.push({ kind: "similarity" }), steps.push({ kind: "finish" }), steps;
 }
 async function runGraphStep(options) {
   let { step } = options, log = options.log ?? (() => {
@@ -2635,6 +2804,9 @@ async function runGraphStep(options) {
       break;
     case "reprints":
       await reprintPage(db, options, step, report);
+      break;
+    case "similarity":
+      await similarity(db, options, report);
       break;
     case "finish":
       await finish(db, options, report);
@@ -2689,9 +2861,10 @@ async function scaffold(db, options, report) {
   for (let series of seriesRows) nodes.push(composeSeriesNode(gameId, series, setsBySeries.get(series.id) ?? 0, placeholders));
   for (let set of setRows) nodes.push(composeSetNode(gameId, set, seriesById.get(set.seriesId), printingCounts.get(set.id) ?? 0, placeholders));
   for (let artist of artistRows) nodes.push(composeArtistNode(gameId, artist, artistCounts.get(artist.id) ?? 0, artistImages.get(artist.id) ?? null));
+  let kinds = projectedEntityKinds(adapter);
   for (let entity of entityRows) {
     let n = entityCounts.get(entity.id) ?? 0;
-    n !== 0 && nodes.push(composeEntityNode(gameId, entity, n, speciesImages.get(entity.id) ?? null));
+    n === 0 || !kinds.has(entity.kind) || nodes.push(composeEntityNode(gameId, entity, n, speciesImages.get(entity.id) ?? null));
   }
   let known = new Set(nodes.map((n) => n.id)), collector = new EdgeCollector((id) => known.has(id));
   collector.addAll(catalogRelationships(gameNode.id, seriesRows, setRows)), await upsertNodes(db, nodes, options.buildId), await upsertEdges(db, collector.list(), options.buildId), report.nodes = nodes.length, report.edges = collector.edges.size, report.skippedEdges = collector.skipped;
@@ -2745,9 +2918,10 @@ async function printingsOfSet(db, options, step, report) {
     known.add(makeNodeId("set", s.id)), known.add(makeNodeId("series", s.seriesId));
   for (let i of identityIndex) known.add(makeNodeId("card_identity", i.id));
   for (let a of usedArtists) known.add(makeNodeId("artist", a.artist_id));
-  for (let e of linkedEntities) known.add(makeNodeId(e.kind, e.id));
+  let kinds = projectedEntityKinds(adapter);
+  for (let e of linkedEntities) kinds.has(e.kind) && known.add(makeNodeId(e.kind, e.id));
   for (let p of printings) known.add(makeNodeId("card_printing", p.id));
-  let linksByPrinting = /* @__PURE__ */ new Map();
+  let inSet = setPrintingIndex(printings, (id) => identityById.get(id)?.normalizedName), linksByPrinting = /* @__PURE__ */ new Map();
   for (let link of links) {
     let list = linksByPrinting.get(link.printing_id) ?? [];
     list.push(link), linksByPrinting.set(link.printing_id, list);
@@ -2778,7 +2952,8 @@ async function printingsOfSet(db, options, step, report) {
           ] : [];
         }),
         identityNodeIdByName: (name) => byName.get(name) ?? null,
-        entityNodeIdByKey: (kind, key) => entityNodeIdByKey.get(`${kind}:${key}`) ?? null
+        entityNodeIdByKey: (kind, key) => entityNodeIdByKey.get(`${kind}:${key}`) ?? null,
+        setPrintingNodeIdsByName: (name) => inSet.get(p.setId)?.get(name) ?? []
       })
     );
   }
@@ -2806,6 +2981,36 @@ async function reprintPage(db, options, step, report) {
       )
     );
   await upsertEdges(db, collector.list(), options.buildId), report.edges = collector.edges.size;
+}
+async function similarity(db, options, report) {
+  let { gameId, adapter } = options, subjectRelation = adapter.definition().subjectRelation, sets = await db.select({ id: tcgSets.id, externalId: tcgSets.externalId, releaseDate: tcgSets.releaseDate }).from(tcgSets).where(eq(tcgSets.gameId, gameId)), printings = rows(
+    await db.execute(sql2`
+      select p.id, p.set_id, p.identity_id, p.artist_id, p.category, p.rarity,
+        case when jsonb_typeof(p.attributes->'stage') = 'string' and p.attributes->>'stage' <> '' then p.attributes->>'stage' end as stage,
+        p.collector_number, p.external_id, p.release_date::text as release_date
+      from card_printings p join tcg_sets s on s.id = p.set_id where s.game_id = ${gameId}`)
+  ), subjects = subjectRelation ? rows(
+    await db.execute(sql2`
+          select pe.printing_id, pe.entity_id from printing_entities pe
+          join card_printings p on p.id = pe.printing_id join tcg_sets s on s.id = p.set_id
+          where s.game_id = ${gameId} and pe.relation = ${subjectRelation}`)
+  ).map((r) => ({ printingId: r.printing_id, subjectId: r.entity_id })) : printings.map((p) => ({ printingId: p.id, subjectId: p.identity_id })), input = {
+    sets,
+    printings: printings.map((p) => ({
+      id: p.id,
+      setId: p.set_id,
+      identityId: p.identity_id,
+      artistId: p.artist_id,
+      category: p.category,
+      rarity: p.rarity,
+      stage: p.stage,
+      collectorNumber: p.collector_number,
+      externalId: p.external_id,
+      releaseDate: p.release_date
+    })),
+    subjects
+  }, collector = new EdgeCollector(() => !0);
+  collector.addAll(similarityRelationships(input)), await upsertEdges(db, collector.list(), options.buildId), report.edges = collector.edges.size;
 }
 async function finish(db, options, report) {
   let { gameId, buildId } = options;

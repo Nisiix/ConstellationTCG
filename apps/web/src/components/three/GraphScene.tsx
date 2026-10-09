@@ -9,6 +9,7 @@ import { NodeImages } from './NodeImages'
 import { NodeRenderer } from './NodeRenderer'
 import { ParticleField } from './ParticleField'
 import { PostFX } from './PostFX'
+import { SceneBoundary } from './SceneBoundary'
 import { OwnershipEffects } from './OwnershipEffects'
 import { SelectionEffects } from './SelectionEffects'
 import { ThreadTrail } from './ThreadTrail'
@@ -29,7 +30,9 @@ export function GraphScene() {
       <NodeImages />
       <SelectionEffects />
       <OwnershipEffects />
-      <Labels />
+      <SceneBoundary name="labels">
+        <Labels />
+      </SceneBoundary>
       <CameraController />
       <PostFX />
     </>

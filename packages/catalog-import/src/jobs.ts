@@ -20,7 +20,7 @@ export type CatalogJobStatus = 'pending' | 'running' | 'done' | 'failed'
 export const JOB_PRIORITY = {
   plan: 0,
   set: 10,
-  graph: { scaffold: 20, identities: 21, printings: 22, reprints: 23, finish: 24 },
+  graph: { scaffold: 20, identities: 21, printings: 22, reprints: 23, similarity: 24, finish: 25 },
 } as const
 
 export const DEFAULT_STALE_MS = 10 * 60 * 1000

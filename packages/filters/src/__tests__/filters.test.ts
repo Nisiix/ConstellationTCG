@@ -47,7 +47,7 @@ describe('filter definitions', () => {
 
     const depth = defs.find((d) => d.id === 'graphDepth')
     expect(depth?.min).toBe(1)
-    expect(depth?.max).toBe(3)
+    expect(depth?.max).toBe(2)
 
     const set = defs.find((d) => d.id === 'set')
     expect(set?.values).toHaveLength(1)

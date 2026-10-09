@@ -31,6 +31,10 @@ export const UNIVERSAL_RELATIONSHIPS = [
   'ILLUSTRATED_BY',
   'REPRESENTS_ASSET',
   'OWNED_BY',
+  'SHARED_SUBJECTS',
+  'SHARED_ARTISTS',
+  'SIMILAR_STRUCTURE',
+  'COUNTERPART_OF',
 ] as const
 
 export type UniversalRelationship = (typeof UNIVERSAL_RELATIONSHIPS)[number]
@@ -95,7 +99,18 @@ export interface RelationshipSummary {
   count: number
 }
 
-export const MAX_GRAPH_DEPTH = 3
+/**
+ * Two levels: Direct (what touches the focus) and Extended (what those connections lead to). Cards,
+ * sets and their relationships are direct edges, so a third hop only repeated hubs; a longer chain
+ * between two points is what a path ("Connect to…") is for.
+ */
+export const MAX_GRAPH_DEPTH = 2
+
+/**
+ * Points that hold others (a set its cards, a series its sets, the game its series). They open only
+ * when they are the focus: reaching a set from a card never fans out into the rest of the set.
+ */
+export const CONTAINER_NODE_TYPES: readonly NodeType[] = ['game', 'series', 'set']
 
 export function makeEdgeId(
   sourceNodeId: string,

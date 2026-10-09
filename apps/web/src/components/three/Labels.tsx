@@ -4,15 +4,26 @@ import { Billboard, Text } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import type * as THREE from 'three'
+import { configureTextBuilder } from 'troika-three-text'
 import type { GraphNode, NodeType } from '@constellation/domain'
 import { nodeRadius } from '@/lib/colors'
 import { useSceneTheme } from '@/lib/theme'
+import { skyLabel } from '@/lib/sky-label'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
 import { displayScales, drawnPosition } from './animated'
 
 const MAX_LABELS = 48
+
+/**
+ * Labels are typeset on the main thread with a font served by the app itself. The content security
+ * policy allows neither troika's blob-loaded worker scripts (`script-src` has no `blob:`) nor its
+ * default font CDN (`connect-src 'self'`); either one blanked the whole sky. A few dozen short
+ * labels cost next to nothing to lay out here.
+ */
+export const LABEL_FONT_URL = '/fonts/Figtree-Medium.ttf'
+configureTextBuilder({ useWorker: false, defaultFontURL: LABEL_FONT_URL })
 
 const PRIORITY: Record<NodeType, number> = {
   game: 0,
@@ -77,6 +88,7 @@ function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: bool
     <group ref={ref}>
       <Billboard follow>
         <Text
+          font={LABEL_FONT_URL}
           fontSize={size}
           color={isFocus ? theme.primary : theme.text}
           anchorX="center"
@@ -88,7 +100,7 @@ function NodeLabel({ node, isFocus, distance }: { node: GraphNode; isFocus: bool
           fillOpacity={dimmed ? 0.3 : isFocus ? 1 : 0.85}
           letterSpacing={0.02}
         >
-          {node.label}
+          {skyLabel(node.label)}
         </Text>
       </Billboard>
     </group>

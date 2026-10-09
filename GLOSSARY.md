@@ -8,10 +8,12 @@ identical for everyone, with or without an account. Not to be confused with *My 
 which only colors part of it.
 
 **Point** (`GraphNode`) — Anything that can be in focus: a card, a printing, a set, a series, the
-game, a Pokémon species, an artist, an energy type. Its contour color says what it is.
+game, a Pokémon species, an artist. Its contour color says what it is. Energy types, attacks and
+abilities are card data (and filters), never points.
 
 **Connection** (`GraphEdge`, `relationshipType`) — A typed line between two points: *belongs to*,
-*printing of*, *reprint of*, *evolution of*, *illustrated by*, *same Pokémon*, *has type*… The
+*printing of*, *reprint of*, *evolution of*, *illustrated by*, *same Pokémon*, *in earlier sets*
+(counterpart), *shared Pokémon* / *shared artists* / *similar make-up* (between sets)… The
 relationship is the product; a connection is never a statistic.
 
 **Card** (`card_identity`) — What a card *is*, whatever set it was printed in: Charizard, the Base
@@ -28,8 +30,13 @@ The first printing is the hub of all its reprints across sets.
 it (`?node=`), so a view can be shared.
 
 **Neighborhood** (`GraphNeighborhood`) — The focus and its connections up to a depth (Direct = 1,
-Extended = 2, Deep = 3), bounded so the sky never shows thousands of points. By default it holds
-cards, sets, series, the game and the artist; the *Node type* filter widens it.
+Extended = 2), bounded so the sky never shows thousands of points. Containers (a set, a series,
+the game) open only when they are the focus: a card's set is a connection, the rest of the set is
+not. By default it holds cards, sets, series, the game, the Pokémon and the artist; the *Node type*
+filter narrows it.
+
+**Show all** — A panel lists a few connections of each kind; *Show all* opens every one of them on a
+page of its own (`panel=list` in the URL), and Back returns to where it was opened.
 
 **Universe** — The top of the sky: the game, its series and its sets, newest first. No focus card.
 

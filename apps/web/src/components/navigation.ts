@@ -3,7 +3,15 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo } from 'react'
 import { MAX_GRAPH_DEPTH } from '@constellation/domain'
-import { buildExploreUrl, parseExploreParams, PATH_DEPTH_LIMIT, threadPath, type ExploreParams, type ViewMode } from '@/lib/url'
+import {
+  buildExploreUrl,
+  parseExploreParams,
+  PATH_DEPTH_LIMIT,
+  threadPath,
+  type ExplorePanel,
+  type ExploreParams,
+  type ViewMode,
+} from '@/lib/url'
 import { useCameraStore } from '@/state/camera-store'
 
 export interface GoToOptions {
@@ -32,7 +40,17 @@ export interface ExploreNavigation {
   searchFurther(): void
   /** Leave path mode and explore from a point (the step in hand by default). */
   leavePath(nodeId?: string): void
+  /** Open a page over the explorer (details, every connection of a kind): a new history entry. */
+  openPanel(panel: ExplorePanel): void
+  /** Back from that page to the explorer it was opened on. */
+  closePanel(): void
 }
+
+/**
+ * Whether the page in the URL was opened from the explorer in this tab: then closing it is a step
+ * back in history; when it came from a shared link, closing it replaces the entry instead.
+ */
+let panelOpenedHere = false
 
 /**
  * Components rendered inside the R3F canvas live in a separate React root and cannot use
@@ -64,6 +82,7 @@ export function useExploreNavigation(): ExploreNavigation {
         ...current,
         node: nodeId,
         depth: options.depth ?? 1,
+        panel: null,
         ...(options.keepPath ? {} : { path: null, pathMax: null }),
       })
       if (options.replace) router.replace(url)
@@ -74,7 +93,7 @@ export function useExploreNavigation(): ExploreNavigation {
 
   const goUniverse = useCallback(() => {
     resetCamera()
-    router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null }))
+    router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null, panel: null }))
   }, [current, resetCamera, router])
 
   const setDepth = useCallback(
@@ -111,13 +130,23 @@ export function useExploreNavigation(): ExploreNavigation {
     },
     startPath: (from: string, to: string) => {
       flyTo(from, 'focus')
-      router.push(buildExploreUrl({ ...current, node: from, depth: 1, path: [from, to], pathMax: null }))
+      router.push(buildExploreUrl({ ...current, node: from, depth: 1, path: [from, to], pathMax: null, panel: null }))
     },
     searchFurther: () => {
       if (current.path) router.replace(buildExploreUrl({ ...current, pathMax: PATH_DEPTH_LIMIT }))
     },
     leavePath: (nodeId?: string) => {
-      router.push(buildExploreUrl({ ...current, node: nodeId ?? current.node, depth: 1, path: null, pathMax: null }))
+      router.push(buildExploreUrl({ ...current, node: nodeId ?? current.node, depth: 1, path: null, pathMax: null, panel: null }))
+    },
+    openPanel: (panel: ExplorePanel) => {
+      panelOpenedHere = true
+      router.push(buildExploreUrl({ ...current, panel }))
+    },
+    closePanel: () => {
+      if (panelOpenedHere) {
+        panelOpenedHere = false
+        router.back()
+      } else router.replace(buildExploreUrl({ ...current, panel: null }))
     },
   }
 }

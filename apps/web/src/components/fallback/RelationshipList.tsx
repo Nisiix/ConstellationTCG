@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/dates'
 import { detailRows } from '@/lib/details'
 import { prettySharePath } from '@/lib/pretty-url'
 import { edgeColor, useNodeColor, useTheme } from '@/lib/theme'
-import { buildExploreUrl } from '@/lib/url'
+import { buildExploreUrl, type ExplorePanel } from '@/lib/url'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
 import { useExploreNavigation } from '../navigation'
@@ -20,8 +20,17 @@ import { NodeBadge } from '../ui/NodeBadge'
 import { NodeImage } from '../ui/NodeImage'
 import { OwnButton } from '../ui/OwnButton'
 import { ConnectTo } from '../ui/ConnectTo'
+import { ConnectionList } from '../ui/ConnectionList'
 
 type Go = (id: string, follow?: boolean) => (e: React.MouseEvent) => void
+
+/** "Show all": a link to the page that lists every connection of a kind (and Back returns here). */
+interface ShowAll {
+  href: string
+  open: (e: React.MouseEvent) => void
+  /** How many the page lists, when known (a far section only knows the few it reached). */
+  total: number | null
+}
 
 /** `Base Set` + `1999-01-09` → `Base Set · 09-01-1999`; no date, no suffix. */
 function withDate(label: string, date: unknown): string {
@@ -54,7 +63,15 @@ export function RelationshipList() {
   const [copied, setCopied] = useState(false)
 
   const current = navigation.current
-  const hrefFor = (nodeId: string) => buildExploreUrl({ ...current, path: null, pathMax: null, node: nodeId, depth: 1 })
+  const hrefFor = (nodeId: string) => buildExploreUrl({ ...current, path: null, pathMax: null, panel: null, node: nodeId, depth: 1 })
+  const showAll = (panel: Extract<ExplorePanel, { kind: 'list' }>, total: number | null): ShowAll => ({
+    href: buildExploreUrl({ ...current, panel }),
+    open: (e) => {
+      e.preventDefault()
+      navigation.openPanel(panel)
+    },
+    total,
+  })
 
   const universe = useMemo(() => {
     if (!isUniverse) return null
@@ -79,6 +96,16 @@ export function RelationshipList() {
   const farSections = useMemo(() => (focus ? groupFarNodes(nodes, edges, distances, focus.id) : []), [focus, nodes, edges, distances])
 
   if (!focus) return null
+
+  if (current.panel?.kind === 'list') {
+    return (
+      <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-3">
+        <div className="mx-auto w-full max-w-6xl">
+          <ConnectionList key={JSON.stringify(current.panel)} panel={current.panel} variant="page" />
+        </div>
+      </main>
+    )
+  }
 
   const go: Go = (nodeId, follow = false) => (e) => {
     e.preventDefault()
@@ -127,7 +154,14 @@ export function RelationshipList() {
                 {copied ? 'Link copied' : 'Share'}
               </button>
             </header>
-            <UniverseCatalog series={universe.series} bySeries={universe.bySeries} orphanSets={universe.orphanSets} hrefFor={hrefFor} go={go} />
+            <UniverseCatalog
+              series={universe.series}
+              bySeries={universe.bySeries}
+              orphanSets={universe.orphanSets}
+              hrefFor={hrefFor}
+              go={go}
+              showAllOf={(series, total) => showAll({ kind: 'list', relationshipType: 'PART_OF', direction: 'in', of: series.id }, total)}
+            />
           </>
         ) : (
           <div className="grid gap-3 md:grid-cols-[19rem_1fr] md:items-start">
@@ -185,6 +219,11 @@ export function RelationshipList() {
                     go={go}
                     limit={8}
                     label={(n) => withDate(String(n.metadata.setName ?? n.subtitle ?? ''), n.metadata.releaseDate)}
+                    showAll={
+                      other.identityNodeId
+                        ? showAll({ kind: 'list', relationshipType: 'PRINTING_OF', direction: 'in', of: other.identityNodeId }, other.printings.length + 1)
+                        : undefined
+                    }
                   />
                   {other.identityNodeId ? (
                     <a href={hrefFor(other.identityNodeId)} onClick={go(other.identityNodeId)} className="btn btn-quiet mt-1 text-[12.5px]">
@@ -201,17 +240,43 @@ export function RelationshipList() {
               {groups.length === 0 ? <p className="text-[14px] text-ink-dim">No connections yet.</p> : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 {groups.map((group, i) => (
-                  <ConnectionGroup key={group.key} group={group} index={i} hrefFor={hrefFor} go={go} />
+                  <ConnectionGroup
+                    key={group.key}
+                    group={group}
+                    index={i}
+                    hrefFor={hrefFor}
+                    go={go}
+                    showAll={showAll({ kind: 'list', relationshipType: group.relationshipType, direction: group.direction, of: null }, group.total)}
+                  />
                 ))}
               </div>
               {farSections.length > 0 ? (
                 <div className="mt-3 border-t border-ink/10 pt-3">
                   <h3 className="eyebrow mb-2">
-                    Further away <span className="font-normal">· two or three steps from {focus.label}</span>
+                    Further away <span className="font-normal">· two steps from {focus.label}</span>
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {farSections.map((section, i) => (
-                      <FarSectionView key={section.key} section={section} index={i} hrefFor={hrefFor} go={go} />
+                      <FarSectionView
+                        key={section.key}
+                        section={section}
+                        index={i}
+                        hrefFor={hrefFor}
+                        go={go}
+                        showAll={
+                          section.bridge && section.bridgeIs
+                            ? showAll(
+                                {
+                                  kind: 'list',
+                                  relationshipType: section.relationshipType,
+                                  direction: section.bridgeIs === 'target' ? 'in' : 'out',
+                                  of: section.bridge.id,
+                                },
+                                null,
+                              )
+                            : undefined
+                        }
+                      />
                     ))}
                   </div>
                 </div>
@@ -263,22 +328,28 @@ function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; o
   )
 }
 
+/**
+ * Chips for a handful of connections. Past `limit`, a "Show all" chip opens every one of them on a
+ * page of its own instead of growing the list in place.
+ */
 function ChipList({
   nodes,
   hrefFor,
   go,
   limit,
   label,
+  showAll,
 }: {
   nodes: GraphNode[]
   hrefFor: (id: string) => string
   go: Go
   limit: number
   label?: (n: GraphNode) => string
+  showAll?: ShowAll
 }) {
-  const [expanded, setExpanded] = useState(false)
-  const shown = expanded ? nodes : nodes.slice(0, limit)
+  const shown = nodes.slice(0, limit)
   if (nodes.length === 0) return null
+  const total = showAll?.total === null ? null : Math.max(showAll?.total ?? 0, nodes.length)
   return (
     <div className="flex flex-wrap gap-1.5">
       {shown.map((n, i) => (
@@ -286,16 +357,28 @@ function ChipList({
           <Chip node={n} href={hrefFor(n.id)} onClick={go(n.id, true)} label={label?.(n)} />
         </span>
       ))}
-      {nodes.length > limit ? (
-        <button type="button" onClick={() => setExpanded((e) => !e)} className="chip text-[12.5px]">
-          {expanded ? 'Show less' : `+${nodes.length - limit} more`}
-        </button>
+      {showAll && (total === null ? nodes.length > shown.length : total > shown.length) ? (
+        <a href={showAll.href} onClick={showAll.open} className="chip text-[12.5px]" title="Every one of them, on a page of its own">
+          {total === null ? 'Show all →' : `Show all ${total} →`}
+        </a>
       ) : null}
     </div>
   )
 }
 
-function ConnectionGroup({ group, index, hrefFor, go }: { group: RelationshipGroup; index: number; hrefFor: (id: string) => string; go: Go }) {
+function ConnectionGroup({
+  group,
+  index,
+  hrefFor,
+  go,
+  showAll,
+}: {
+  group: RelationshipGroup
+  index: number
+  hrefFor: (id: string) => string
+  go: Go
+  showAll: ShowAll
+}) {
   const theme = useTheme()
   const lineColor = edgeColor(theme, group.relationshipType)
   const wide = group.items.length > 8
@@ -317,18 +400,26 @@ function ConnectionGroup({ group, index, hrefFor, go }: { group: RelationshipGro
           const meta = group.items.find((i) => i.node.id === n.id)?.metadata
           return typeof meta?.value === 'string' ? `${n.label} ${meta.value}` : n.label
         }}
+        showAll={showAll}
       />
-      {group.total > group.items.length ? (
-        <p className="mt-1 text-[12px] text-ink-dim">
-          {group.items.length} of {group.total} shown · more with Extended or Deep
-        </p>
-      ) : null}
     </section>
   )
 }
 
 /** A far section: the bridge and the kind of connection in the heading (with the color of its lines), the points as chips. */
-function FarSectionView({ section, index, hrefFor, go }: { section: FarSection; index: number; hrefFor: (id: string) => string; go: Go }) {
+function FarSectionView({
+  section,
+  index,
+  hrefFor,
+  go,
+  showAll,
+}: {
+  section: FarSection
+  index: number
+  hrefFor: (id: string) => string
+  go: Go
+  showAll?: ShowAll
+}) {
   const theme = useTheme()
   const lineColor = edgeColor(theme, section.relationshipType)
   const wide = section.nodes.length > 8
@@ -341,7 +432,7 @@ function FarSectionView({ section, index, hrefFor, go }: { section: FarSection; 
         </span>
         <span className="count">{section.nodes.length}</span>
       </h4>
-      <ChipList nodes={section.nodes} hrefFor={hrefFor} go={go} limit={wide ? 24 : 12} />
+      <ChipList nodes={section.nodes} hrefFor={hrefFor} go={go} limit={wide ? 24 : 12} showAll={showAll} />
     </section>
   )
 }
@@ -353,12 +444,14 @@ function UniverseCatalog({
   orphanSets,
   hrefFor,
   go,
+  showAllOf,
 }: {
   series: GraphNode[]
   bySeries: Map<string, GraphNode[]>
   orphanSets: GraphNode[]
   hrefFor: (id: string) => string
   go: Go
+  showAllOf: (series: GraphNode, total: number) => ShowAll
 }) {
   return (
     <section className="panel fade-up mt-3 p-4" aria-label="Series and sets">
@@ -386,6 +479,7 @@ function UniverseCatalog({
                 go={go}
                 limit={30}
                 label={(set) => withDate(set.label, set.metadata.releaseDate)}
+                showAll={showAllOf(s, sets.length)}
               />
             </section>
           )

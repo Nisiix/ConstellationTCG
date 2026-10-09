@@ -21,7 +21,12 @@ if (!existsSync(path.join(appDir, '.next', 'BUILD_ID'))) {
 const env = { ...process.env, PGLITE_DATA_DIR: dataDir, DATABASE_URL: '' }
 
 function run(args) {
-  const result = spawnSync('pnpm', args, { cwd: repoRoot, env, stdio: 'inherit' })
+  // On Windows pnpm is a .cmd script, which Node only starts through a shell (the arguments here
+  // are plain words, nothing to escape).
+  const result =
+    process.platform === 'win32'
+      ? spawnSync(['pnpm', ...args].join(' '), { cwd: repoRoot, env, stdio: 'inherit', shell: true })
+      : spawnSync('pnpm', args, { cwd: repoRoot, env, stdio: 'inherit' })
   if (result.status !== 0) {
     console.error(`e2e: \`pnpm ${args.join(' ')}\` failed`)
     process.exit(result.status ?? 1)
@@ -46,7 +51,8 @@ for (const fixture of fixtures) {
 }
 run(['--filter', '@constellation/worker-graph-builder', 'start'])
 
-const server = spawn(path.join(appDir, 'node_modules', '.bin', 'next'), ['start', '--port', port], {
+// Next's own entry point under this Node, so no shell shim is needed on any platform.
+const server = spawn(process.execPath, [path.join(appDir, 'node_modules', 'next', 'dist', 'bin', 'next'), 'start', '--port', port], {
   cwd: appDir,
   env,
   stdio: 'inherit',

@@ -35,10 +35,10 @@ export const POKEMON_THEME: TCGTheme = {
     SAME_POKEMON: 'contrast',
     EVOLVES_FROM: 'contrast',
     EVOLUTION_OF: 'contrast',
-    HAS_TYPE: 'muted',
-    WEAK_TO: 'muted',
-    RESISTS: 'muted',
-    HAS_ATTRIBUTE: 'muted',
+    COUNTERPART_OF: 'contrast',
+    SHARED_SUBJECTS: 'accent',
+    SHARED_ARTISTS: 'accent',
+    SIMILAR_STRUCTURE: 'accent',
   },
   modes: {
     dark: {
@@ -64,16 +64,11 @@ export const POKEMON_THEME: TCGTheme = {
   },
 }
 
-/** Relationship types specific to Pokémon, emitted by this adapter. */
-export const POKEMON_RELATIONSHIPS = [
-  'EVOLVES_FROM',
-  'EVOLVES_TO',
-  'HAS_TYPE',
-  'WEAK_TO',
-  'RESISTS',
-  'SAME_POKEMON',
-  'SAME_EVOLUTION_LINE',
-] as const
+/**
+ * Relationship types specific to Pokémon, emitted by this adapter. Energy types, weaknesses and
+ * resistances are card data and filters, never connections.
+ */
+export const POKEMON_RELATIONSHIPS = ['EVOLVES_FROM', 'SAME_POKEMON'] as const
 
 export type PokemonRelationship = (typeof POKEMON_RELATIONSHIPS)[number]
 
@@ -127,7 +122,8 @@ export const POKEMON_DEFINITION: TCGDefinition = {
   publisher: 'The Pokémon Company',
   adapterKey: 'pokemon',
   relationshipTypes: [...POKEMON_RELATIONSHIPS],
-  nodeTypes: ['pokemon', 'attribute'],
+  nodeTypes: ['pokemon'],
+  subjectRelation: 'SAME_POKEMON',
   filters: POKEMON_FILTERS,
   theme: POKEMON_THEME,
   attribution: {

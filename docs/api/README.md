@@ -31,7 +31,7 @@ The neighborhood around one node. `nodeId` is `<node_type>:<uuid>`, URL-encoded.
 
 | Param               | Default | Notes                                                                 |
 | ------------------- | ------- | --------------------------------------------------------------------- |
-| `depth`             | 1       | 0–3 hops                                                              |
+| `depth`             | 1       | 0–2 hops (Direct, Extended); sets, series and the game open only as the focus |
 | `limit`             | 300     | Max nodes (focus included), 1–1000                                    |
 | `perNode`           | 60      | Max neighbors expanded per node, best weight first                    |
 | `relationshipTypes` | all     | Comma-separated                                                       |
@@ -139,10 +139,29 @@ Providers: `evm` (Ethereum, Polygon, Base, Arbitrum One, OP Mainnet through Bloc
 `SOLANA_RPC_URL` is set), `manual` (declared cards). Token payloads lose every market-looking key
 (`price`, `exchange_rate`, `floor`, `volume`, …) before they are stored.
 
+## `GET /api/graph/node/:nodeId/connections`
+
+Every connection of one kind of a node, a page at a time (what a "Show all" page lists).
+
+| Param          | Default | Notes                                                                       |
+| -------------- | ------- | --------------------------------------------------------------------------- |
+| `rel`          | —       | Relationship type, required (`BELONGS_TO`, `ILLUSTRATED_BY`, …)              |
+| `dir`          | —       | `out` (the node is the source, or either end of an undirected edge) or `in` |
+| `offset`       | 0       |                                                                             |
+| `limit`        | 60      | 1–200                                                                       |
+| `nodeTypes`    | all     | Comma-separated                                                             |
+| `f.<filterId>` | —       | Same filters as the focus                                                   |
+
+Returns `{ node, relationshipType, direction, offset, total, items: [{ node, weight, metadata }], filtered }`.
+Order: a set's cards by collector number; expansions and printings newest first; everything else
+strongest first, then by name.
+
 ## URL-addressable exploration
 
 The explorer itself is addressable: `/explore?node=card_printing:<uuid>&depth=2&view=list&f.rarity=Rare`.
-Every focus, depth, view mode and filter selection is in the URL, so any view can be shared.
+Every focus, depth, view mode and filter selection is in the URL, so any view can be shared. So are
+the pages opened over it: `panel=details`, and `panel=list&rel=<TYPE>&dir=<out|in>[&of=<nodeId>]`
+for every connection of a kind (of the focus, or of `of`).
 
 Printings and sets also have readable addresses that redirect to the explorer, carrying depth,
 view and filters along:

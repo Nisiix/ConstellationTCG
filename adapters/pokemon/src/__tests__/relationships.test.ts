@@ -27,33 +27,48 @@ function context(overrides: Partial<RelationshipContext> = {}): RelationshipCont
         nodeId: 'attribute:water',
         metadata: { value: '×2' },
       },
+      { kind: 'attribute', key: 'type:fighting', relation: 'RESISTS', nodeId: 'attribute:fighting', metadata: {} },
       { kind: 'mechanic', key: 'attack:fire-spin', relation: 'HAS_ATTACK', nodeId: 'mechanic:fs', metadata: {} },
       { kind: 'mechanic', key: 'ability:energy-burn', relation: 'HAS_ABILITY', nodeId: 'mechanic:eb', metadata: {} },
     ],
     identityNodeIdByName: (name) => (name === 'charmeleon' ? 'card_identity:charmeleon' : null),
     entityNodeIdByKey: () => null,
+    setPrintingNodeIdsByName: () => [],
     ...overrides,
   }
 }
 
+const pairsOf = (ctx: RelationshipContext) => buildRelationships(ctx).map((r) => `${r.relationshipType} ${r.sourceNodeId} -> ${r.targetNodeId}`)
+
 describe('buildRelationships', () => {
-  it('emits catalog, artist, entity and evolution edges for a printing', () => {
+  it('emits catalog, artist, Pokémon and evolution edges for a printing', () => {
     const rels = buildRelationships(context())
-    const pairs = rels.map((r) => `${r.relationshipType} ${r.sourceNodeId} -> ${r.targetNodeId}`)
+    const pairs = pairsOf(context())
     expect(pairs).toContain('BELONGS_TO card_printing:p1 -> set:base1')
     expect(pairs).toContain('PRINTING_OF card_printing:p1 -> card_identity:charizard')
     expect(pairs).toContain('ILLUSTRATED_BY card_printing:p1 -> artist:arita')
     expect(pairs).toContain('SAME_POKEMON card_printing:p1 -> pokemon:6')
-    expect(pairs).toContain('HAS_TYPE card_printing:p1 -> attribute:fire')
-    expect(pairs).toContain('WEAK_TO card_printing:p1 -> attribute:water')
-    // Stale attack or ability links (from an older ingestion) never become edges.
-    expect(pairs.some((p) => p.startsWith('HAS_ATTACK'))).toBe(false)
-    expect(pairs.some((p) => p.startsWith('HAS_ABILITY'))).toBe(false)
-    expect(pairs.some((p) => p.includes('mechanic:'))).toBe(false)
     expect(pairs).toContain('EVOLVES_FROM card_printing:p1 -> card_identity:charmeleon')
     expect(pairs).toContain('EVOLUTION_OF card_identity:charizard -> card_identity:charmeleon')
-    expect(rels.find((r) => r.relationshipType === 'WEAK_TO')?.metadata).toEqual({ value: '×2' })
     expect(rels.every((r) => typeof r.weight === 'number' && r.weight > 0)).toBe(true)
+  })
+
+  it('never connects cards through an energy type, a weakness, a resistance or card statistics', () => {
+    const pairs = pairsOf(context())
+    expect(pairs.some((p) => p.includes('attribute:'))).toBe(false)
+    expect(pairs.some((p) => /^(HAS_TYPE|WEAK_TO|RESISTS|HAS_ATTRIBUTE) /.test(p))).toBe(false)
+    // Stale attack or ability links (from an older ingestion) never become edges either.
+    expect(pairs.some((p) => p.includes('mechanic:'))).toBe(false)
+  })
+
+  it('links the evolution to the pre-evolution printed in the same set when there is one', () => {
+    const pairs = pairsOf(
+      context({ setPrintingNodeIdsByName: (name) => (name === 'charmeleon' ? ['card_printing:charmeleon-base1'] : []) }),
+    )
+    expect(pairs).toContain('EVOLVES_FROM card_printing:p1 -> card_printing:charmeleon-base1')
+    expect(pairs).not.toContain('EVOLVES_FROM card_printing:p1 -> card_identity:charmeleon')
+    // The identity-level evolution line stays.
+    expect(pairs).toContain('EVOLUTION_OF card_identity:charizard -> card_identity:charmeleon')
   })
 
   it('omits optional edges when the data is missing', () => {

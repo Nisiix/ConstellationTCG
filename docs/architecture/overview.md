@@ -72,7 +72,8 @@ everything; adapters never import the web app or the graph package.
    On the hosted project the whole import (series, sets, cards, projection) runs inside Supabase:
    pg_cron calls the `catalog-import` Edge Function every few seconds while jobs are queued.
 3. **Exploration** (`apps/web`): the browser only talks to `/api/*` (rate limited, `Server-Timing`). The universe (game → series →
-   sets) is shown before any search; a focus request returns a bounded neighborhood (depth ≤ 3,
+   sets) is shown before any search; a focus request returns a bounded neighborhood (depth ≤ 2,
+   containers open only as the focus,
    node and fan-out caps) plus a relationship summary; schema-driven filters narrow which printings
    may appear. Nothing calls external sources during user interaction. The client caches graph
    responses and preloads the neighborhoods of the strongest connections and of whatever is under
@@ -102,7 +103,8 @@ everything; adapters never import the web app or the graph package.
 
 - No prices, no marketplace, no binder, no "portfolio". `pricing` and `variants_detailed` are
   stripped at the source and the normalizer refuses records that still contain them.
-- Progressive disclosure: never thousands of nodes at once; depth ≤ 3; hubs capped.
+- Progressive disclosure: never thousands of nodes at once; depth ≤ 2; sets, series and the game
+  open only as the focus; hubs capped; "Show all" lists open on a page of their own.
 - TCG agnostic core: adding a game is an adapter under `adapters/<game>/` plus one registration
   (see [Adding a TCG adapter](../adapters/README.md)). The graph, search, filters, camera and
   database never change for a new game.

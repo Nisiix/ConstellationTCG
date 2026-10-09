@@ -230,3 +230,33 @@ export function pathUrl(from: string, to: string, maxDepth?: number | null): str
 export function fetchPath(from: string, to: string, maxDepth?: number | null, signal?: AbortSignal) {
   return cached<PathResponse>(pathUrl(from, to, maxDepth), signal)
 }
+
+export interface ConnectionsPage {
+  /** The node whose connections these are. */
+  node: GraphNode
+  relationshipType: string
+  direction: 'out' | 'in'
+  offset: number
+  total: number
+  items: Array<{ node: GraphNode; weight: number; metadata: Record<string, unknown> }>
+  filtered: boolean
+}
+
+export function connectionsUrl(
+  nodeId: string,
+  options: { relationshipType: string; direction: 'out' | 'in'; offset?: number; limit?: number; nodeTypes?: NodeType[]; filters?: Record<string, string> },
+): string {
+  const params = new URLSearchParams({ rel: options.relationshipType, dir: options.direction })
+  if (options.offset) params.set('offset', String(options.offset))
+  if (options.limit) params.set('limit', String(options.limit))
+  if (options.nodeTypes?.length) params.set('nodeTypes', options.nodeTypes.join(','))
+  for (const [id, value] of Object.entries(options.filters ?? {})) {
+    if (value) params.set(`f.${id}`, value)
+  }
+  return `/api/graph/node/${encodeURIComponent(nodeId)}/connections?${params.toString()}`
+}
+
+/** One page of every connection of a kind (what a "Show all" page reads), cached like the graph. */
+export function fetchConnections(nodeId: string, options: Parameters<typeof connectionsUrl>[1], signal?: AbortSignal) {
+  return cached<ConnectionsPage>(connectionsUrl(nodeId, options), signal)
+}

@@ -19,7 +19,30 @@ describe('explore url', () => {
       filters: { 'pokemon.type': 'Fire,Water', rarity: 'Rare' },
       path: null,
       pathMax: null,
+      panel: null,
     })
+  })
+
+  it('round-trips the page opened over the explorer, and drops a malformed one', () => {
+    const list = { kind: 'list' as const, relationshipType: 'ILLUSTRATED_BY', direction: 'in' as const, of: 'artist:arita' }
+    const url = buildExploreUrl({ node: 'card_printing:abc', panel: list })
+    expect(url).toBe('/explore?node=card_printing%3Aabc&panel=list&rel=ILLUSTRATED_BY&dir=in&of=artist%3Aarita')
+    expect(parseExploreParams(new URLSearchParams(url.split('?')[1])).panel).toEqual(list)
+    expect(parseExploreParams(new URLSearchParams('node=set:a&panel=details')).panel).toEqual({ kind: 'details' })
+    expect(parseExploreParams(new URLSearchParams('panel=list&rel=BELONGS_TO&dir=in')).panel).toEqual({
+      kind: 'list',
+      relationshipType: 'BELONGS_TO',
+      direction: 'in',
+      of: null,
+    })
+    expect(parseExploreParams(new URLSearchParams('panel=list&rel=belongs;drop&dir=in')).panel).toBeNull()
+    expect(parseExploreParams(new URLSearchParams('panel=list&rel=BELONGS_TO&dir=sideways')).panel).toBeNull()
+    expect(parseExploreParams(new URLSearchParams('panel=list&rel=BELONGS_TO&dir=in&of=nonsense')).panel).toMatchObject({ of: null })
+    expect(parseExploreParams(new URLSearchParams('panel=elsewhere')).panel).toBeNull()
+  })
+
+  it('caps the depth at the two levels (Direct, Extended)', () => {
+    expect(parseExploreParams(new URLSearchParams('depth=3')).depth).toBe(2)
   })
 
   it('round-trips a path and how far it searches, starting on its first end', () => {
@@ -48,7 +71,7 @@ describe('explore url', () => {
     expect(buildExploreUrl({ node: null, depth: 1, view: null, filters: {} })).toBe('/explore')
     const parsed = parseExploreParams(new URLSearchParams('node=not-a-node&depth=99&view=weird'))
     expect(parsed.node).toBeNull()
-    expect(parsed.depth).toBe(3)
+    expect(parsed.depth).toBe(2)
     expect(parsed.view).toBeNull()
     expect(parseExploreParams(new URLSearchParams('depth=-2')).depth).toBe(1)
   })

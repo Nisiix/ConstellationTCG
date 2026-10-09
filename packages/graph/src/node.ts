@@ -1,7 +1,7 @@
 import { sql, type Db } from '@constellation/database'
-import type { GraphNode, NodeType, RelationshipSummary } from '@constellation/domain'
+import { parseNodeId, type GraphNode, type NodeType, type RelationshipSummary } from '@constellation/domain'
 import { loadNodes } from './neighborhood'
-import { rows } from './rows'
+import { rows, toGraphNode, type NodeRow } from './rows'
 
 export async function getNode(db: Db, nodeId: string): Promise<GraphNode | null> {
   const [node] = await loadNodes(db, [nodeId])
@@ -25,6 +25,7 @@ function list(values: readonly string[]) {
 /**
  * How many edges of each type touch a node, split by direction. With the same filters as the
  * neighborhood, the totals describe what the neighborhood would show in full, not the raw graph.
+ * An undirected edge (two similar sets) reads the same from both ends: it counts as `out`.
  */
 export async function getRelationshipSummary(
   db: Db,
@@ -40,7 +41,7 @@ export async function getRelationshipSummary(
         join graph_nodes n on n.id = e.target_node_id
         where e.source_node_id = ${nodeId} ${typeFilter} ${excludeFilter} ${relFilter}
       union all
-      select e.relationship_type, 'in' as direction from graph_edges e
+      select e.relationship_type, case when e.direction = 'undirected' then 'out' else 'in' end as direction from graph_edges e
         join graph_nodes n on n.id = e.source_node_id
         where e.target_node_id = ${nodeId} ${typeFilter} ${excludeFilter} ${relFilter}
     ) t
@@ -85,4 +86,64 @@ export async function getGraphStats(db: Db, gameSlug?: string): Promise<GraphSta
     nodes += Number(r.count)
   }
   return { nodes, edges: Number(edgeRows[0]?.count ?? 0), byNodeType }
+}
+
+export interface ConnectionOptions {
+  relationshipType: string
+  /** `out`: the node is the source (or either end of an undirected edge); `in`: the target. */
+  direction: 'out' | 'in'
+  offset?: number
+  /** Page size. Default 60, at most 500. */
+  limit?: number
+  nodeTypes?: NodeType[] | null
+  /** When set, only these card_printing node ids may be listed (schema-driven filters). */
+  allowedPrintingNodeIds?: Set<string> | null
+}
+
+export interface ConnectionItem {
+  node: GraphNode
+  weight: number
+  metadata: Record<string, unknown>
+}
+
+/**
+ * Every connection of one kind, a page at a time: what a "show all" list reads. The order is the
+ * focus panel's: a set's cards by collector number; expansions and printings newest first;
+ * everything else strongest first, then by name.
+ */
+export async function getConnections(
+  db: Db,
+  nodeId: string,
+  options: ConnectionOptions,
+): Promise<{ items: ConnectionItem[]; total: number }> {
+  const offset = Math.max(0, Math.floor(options.offset ?? 0))
+  const limit = Math.min(500, Math.max(1, Math.floor(options.limit ?? 60)))
+  const typeFilter = options.nodeTypes?.length ? sql`and n.node_type in (${list(options.nodeTypes)})` : sql``
+  const ends =
+    options.direction === 'out'
+      ? sql`(e.source_node_id = ${nodeId} or (e.target_node_id = ${nodeId} and e.direction = 'undirected'))`
+      : sql`(e.target_node_id = ${nodeId} and e.direction <> 'undirected')`
+  const byNumber = parseNodeId(nodeId)?.type === 'set' && options.relationshipType === 'BELONGS_TO'
+  const order = byNumber
+    ? sql`length(coalesce(n.metadata->>'collectorNumber', '')), coalesce(n.metadata->>'collectorNumber', '') collate "C"`
+    : sql`case when n.node_type in ('set', 'series', 'card_printing')
+             then coalesce(n.metadata->>'releaseDate', n.metadata->>'firstReleaseDate', '') else '' end desc,
+           e.weight desc`
+  const result = await db.execute(sql`
+    select n.id, n.game_id, n.node_type, n.entity_id, n.label, n.subtitle, n.image_url, n.metadata,
+      e.weight as edge_weight, e.metadata as edge_metadata
+    from graph_edges e
+    join graph_nodes n on n.id = case when e.source_node_id = ${nodeId} then e.target_node_id else e.source_node_id end
+    where e.relationship_type = ${options.relationshipType} and ${ends} ${typeFilter}
+    order by ${order}, n.label, n.id
+  `)
+  const allowed = options.allowedPrintingNodeIds
+  const all = rows<NodeRow & { edge_weight: number | string; edge_metadata: Record<string, unknown> | string | null }>(result)
+    .filter((r) => !allowed || r.node_type !== 'card_printing' || allowed.has(r.id))
+    .map((r) => ({
+      node: toGraphNode(r),
+      weight: Number(r.edge_weight),
+      metadata: toGraphNode({ ...r, metadata: r.edge_metadata }).metadata,
+    }))
+  return { items: all.slice(offset, offset + limit), total: all.length }
 }

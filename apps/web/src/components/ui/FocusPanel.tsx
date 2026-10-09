@@ -13,6 +13,7 @@ import { useExploreNavigation } from '../navigation'
 import { useOtherPrintings } from '../useOtherPrintings'
 import { useRelationshipGroups, type RelationshipGroup } from '../useRelationshipGroups'
 import { ElementIcon, elementOfNode } from './ElementIcon'
+import { ConnectionList } from './ConnectionList'
 import { Details, Prose } from './Details'
 import { NodeBadge } from './NodeBadge'
 import { NodeImage } from './NodeImage'
@@ -37,11 +38,27 @@ export function FocusPanel() {
   const setHighlight = useUiStore((s) => s.setHighlight)
   const other = useOtherPrintings(focus)
   const [copied, setCopied] = useState(false)
-  /** `connections` (default) or `details`: the card's data on its own page, with a way back. */
-  const [view, setView] = useState<'connections' | 'details'>('connections')
+  // The panel's pages (the details, every connection of a kind) live in the URL: Back returns.
+  const panel = navigation.current.panel
+  const view = panel?.kind === 'details' ? 'details' : 'connections'
+  const openDetails = () => navigation.openPanel({ kind: 'details' })
 
   // On the first visit the welcome card takes the stage; the game panel returns once dismissed.
   if (!focus || (welcomeVisible && isUniverse)) return null
+
+  if (panel?.kind === 'list') {
+    return (
+      <aside
+        id="focus-panel"
+        aria-label="Connections"
+        className="panel scroll-thin fade-up absolute right-4 top-16 z-30 flex max-h-[calc(100vh-9rem)] w-[21rem] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
+        key={`list-${panel.relationshipType}-${panel.direction}-${panel.of ?? focus.id}`}
+        onMouseLeave={() => setHighlight(null)}
+      >
+        <ConnectionList panel={panel} variant="panel" />
+      </aside>
+    )
+  }
 
   const isCard = focus.nodeType === 'card_printing' || focus.nodeType === 'card_identity'
   const details = detailRows(focus, edges)
@@ -74,7 +91,7 @@ export function FocusPanel() {
           {focus.nodeType !== 'card_printing' ? <NodeBadge type={focus.nodeType} /> : null}
           <div className="ml-auto flex items-center gap-1">
             {view === 'details' ? (
-              <button type="button" onClick={() => setView('connections')} className="btn btn-quiet text-[12.5px]" title="Back to the connections">
+              <button type="button" onClick={navigation.closePanel} className="btn btn-quiet text-[12.5px]" title="Back to the connections">
                 ← Back
               </button>
             ) : (
@@ -91,7 +108,7 @@ export function FocusPanel() {
         {focus.subtitle && !(view === 'details' && hasHeadline) ? <p className="mt-0.5 text-[14px] text-ink-dim">{focus.subtitle}</p> : null}
         {view === 'connections' && (details.length > 0 || isCard) ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setView('details')} className="btn btn-ghost pill text-[12.5px]" title="Open the details of this point">
+            <button type="button" onClick={openDetails} className="btn btn-ghost pill text-[12.5px]" title="Open the details of this point">
               Details
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M9 6l6 6-6 6" />
@@ -105,13 +122,20 @@ export function FocusPanel() {
 
       {view === 'details' ? (
         <div className="slide-in">
-          <DetailsView focus={focus} details={details} other={other} isCard={isCard} onSelect={(id) => navigation.goTo(id, { follow: true })} />
+          <DetailsView
+            focus={focus}
+            details={details}
+            other={other}
+            isCard={isCard}
+            onSelect={(id) => navigation.goTo(id, { follow: true })}
+            onShowAllPrintings={(identityId) => navigation.openPanel({ kind: 'list', relationshipType: 'PRINTING_OF', direction: 'in', of: identityId })}
+          />
         </div>
       ) : (
         <div className="slide-back">
 
       {focus.imageUrl && isCard ? (
-        <button type="button" onClick={() => setView('details')} className="flex w-full justify-center bg-void/40 px-5 py-4" title="Open the details">
+        <button type="button" onClick={openDetails} className="flex w-full justify-center bg-void/40 px-5 py-4" title="Open the details">
           <NodeImage node={focus} variant="card" className="img-frame fade-up w-36 rounded-lg" loading="eager" />
         </button>
       ) : focus.imageUrl && focus.nodeType !== 'game' ? (
@@ -146,7 +170,11 @@ export function FocusPanel() {
         <div className="space-y-4">
           {groups.map((group, i) => (
             <div key={group.key} className="pop-in" style={{ '--i': i } as React.CSSProperties}>
-              <RelationshipGroupView group={group} onSelect={(id) => navigation.goTo(id, { follow: true })} />
+              <RelationshipGroupView
+                group={group}
+                onSelect={(id) => navigation.goTo(id, { follow: true })}
+                onShowAll={() => navigation.openPanel({ kind: 'list', relationshipType: group.relationshipType, direction: group.direction, of: null })}
+              />
             </div>
           ))}
         </div>
@@ -164,12 +192,14 @@ function DetailsView({
   other,
   isCard,
   onSelect,
+  onShowAllPrintings,
 }: {
   focus: GraphNode
   details: DetailRow[]
   other: ReturnType<typeof useOtherPrintings>
   isCard: boolean
   onSelect: (nodeId: string) => void
+  onShowAllPrintings: (identityNodeId: string) => void
 }) {
   const meta = focus.metadata
   return (
@@ -195,20 +225,31 @@ function DetailsView({
           <Prose>{meta.description}</Prose>
         </section>
       ) : null}
-      {focus.nodeType === 'card_printing' && other.status !== 'idle' ? <OtherPrintingsView other={other} onSelect={onSelect} /> : null}
+      {focus.nodeType === 'card_printing' && other.status !== 'idle' ? (
+        <OtherPrintingsView other={other} onSelect={onSelect} onShowAll={onShowAllPrintings} />
+      ) : null}
     </div>
   )
 }
 
-function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; onSelect: (nodeId: string) => void }) {
-  const [expanded, setExpanded] = useState(false)
+/** How many connections of a kind the panel lists before "Show all" opens them on a page of their own. */
+const GROUP_PREVIEW = 6
+
+function RelationshipGroupView({
+  group,
+  onSelect,
+  onShowAll,
+}: {
+  group: RelationshipGroup
+  onSelect: (nodeId: string) => void
+  onShowAll: () => void
+}) {
   const theme = useTheme()
   const colorOf = useNodeColor()
   const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
   const setHighlight = useUiStore((s) => s.setHighlight)
   const owned = useOwnershipStore((s) => s.ownedNodeIds)
-  const limit = 6
-  const items = expanded ? group.items : group.items.slice(0, limit)
+  const items = group.items.slice(0, GROUP_PREVIEW)
   const lineColor = edgeColor(theme, group.relationshipType)
   const highlightGroup = () => setHighlight(group.items.map((i) => i.node.id))
   return (
@@ -246,25 +287,28 @@ function RelationshipGroupView({ group, onSelect }: { group: RelationshipGroup; 
           </li>
         ))}
       </ul>
-      {group.items.length > limit ? (
-        <button type="button" onClick={() => setExpanded((e) => !e)} className="btn btn-quiet mt-1 text-[12.5px]">
-          {expanded ? 'Show less' : `Show ${group.items.length - limit} more`}
+      {group.total > items.length ? (
+        <button type="button" onClick={onShowAll} className="btn btn-quiet mt-1 text-[12.5px]" title={`Every ${group.label.toLowerCase()} on a page of its own`}>
+          Show all {group.total} →
         </button>
-      ) : group.total > group.items.length ? (
-        <p className="mt-1 px-2 text-[12px] text-ink-dim">
-          {group.items.length} of {group.total} shown · more with Extended or Deep
-        </p>
       ) : null}
     </section>
   )
 }
 
 /** The other expansions a card was printed in: the question a collector asks first. */
-function OtherPrintingsView({ other, onSelect }: { other: ReturnType<typeof useOtherPrintings>; onSelect: (nodeId: string) => void }) {
-  const [expanded, setExpanded] = useState(false)
+function OtherPrintingsView({
+  other,
+  onSelect,
+  onShowAll,
+}: {
+  other: ReturnType<typeof useOtherPrintings>
+  onSelect: (nodeId: string) => void
+  onShowAll: (identityNodeId: string) => void
+}) {
   const setHighlight = useUiStore((s) => s.setHighlight)
   const limit = 5
-  const items = expanded ? other.printings : other.printings.slice(0, limit)
+  const items = other.printings.slice(0, limit)
   return (
     <section className="border-t border-ink/10 px-5 py-4" aria-label="Also printed in">
       <div className="mb-2 flex items-baseline justify-between">
@@ -302,9 +346,9 @@ function OtherPrintingsView({ other, onSelect }: { other: ReturnType<typeof useO
           ))}
         </ul>
       ) : null}
-      {other.printings.length > limit ? (
-        <button type="button" onClick={() => setExpanded((e) => !e)} className="btn btn-quiet mt-1 text-[12.5px]">
-          {expanded ? 'Show less' : `Show ${other.printings.length - limit} more`}
+      {other.printings.length > limit && other.identityNodeId ? (
+        <button type="button" onClick={() => onShowAll(other.identityNodeId as string)} className="btn btn-quiet mt-1 text-[12.5px]">
+          Show all {other.printings.length + 1} printings →
         </button>
       ) : null}
       {other.identityNodeId ? (

@@ -1,12 +1,14 @@
 /**
  * Focus neighborhood: the sub-graph around one node, bounded in depth and size.
  *
- * Breadth-first over `graph_edges`, with a per-node fan-out cap (hub nodes such as a type or a
- * big set have thousands of edges) and a global node cap. Progressive disclosure is enforced here,
- * not in the UI.
+ * Breadth-first over `graph_edges`, with a per-node fan-out cap (hub nodes such as a Pokémon or a
+ * prolific artist have hundreds of edges) and a global node cap. Containers (sets, series, the
+ * game) are expanded only when they are the focus. Progressive disclosure is enforced here, not in
+ * the UI.
  */
 import { sql, type Db } from '@constellation/database'
 import {
+  CONTAINER_NODE_TYPES,
   GraphError,
   MAX_GRAPH_DEPTH,
   parseNodeId,
@@ -79,6 +81,10 @@ export async function getNeighborhood(
   }
 
   for (let d = 1; d <= depth && frontier.length > 0; d += 1) {
+    // Containers (sets, series, the game) open only as the focus: a card's set is a connection,
+    // the rest of that set is not.
+    if (d > 1) frontier = frontier.filter((id) => !isContainer(id))
+    if (frontier.length === 0) break
     const edgeRows = await loadFrontierEdges(db, frontier, perNode, relationshipTypes)
     const next: string[] = []
     for (const row of edgeRows) {
@@ -119,6 +125,11 @@ export async function getNeighborhood(
       distances: Object.fromEntries(distances),
     },
   }
+}
+
+function isContainer(id: string): boolean {
+  const type = parseNodeId(id)?.type
+  return type !== undefined && CONTAINER_NODE_TYPES.includes(type)
 }
 
 function idList(ids: string[]) {

@@ -57,7 +57,10 @@ describe('Pokémon manifest', () => {
 
   it('exposes Pokémon relationship and node types to the core', () => {
     expect(POKEMON_DEFINITION.relationshipTypes).toContain('EVOLVES_FROM')
-    expect(POKEMON_DEFINITION.nodeTypes).toEqual(['pokemon', 'attribute'])
+    // Only the Pokémon are points; energy types stay card data and filters.
+    expect(POKEMON_DEFINITION.nodeTypes).toEqual(['pokemon'])
+    expect(POKEMON_DEFINITION.subjectRelation).toBe('SAME_POKEMON')
+    expect(POKEMON_DEFINITION.relationshipTypes).not.toContain('HAS_TYPE')
     expect(POKEMON_DEFINITION.filters.every((f) => f.scope === 'game' && f.id.startsWith('pokemon.'))).toBe(true)
   })
 })

@@ -1,5 +1,3 @@
-import { sql } from '@constellation/database'
-import { matchingPrintingNodeIds, parseSelection } from '@constellation/filters'
 import { getNeighborhood, getRelationshipSummary } from '@constellation/graph'
 import {
   GraphError,
@@ -13,8 +11,8 @@ import {
 import type { NextRequest } from 'next/server'
 import { getCache } from '@/server/cache'
 import { getDatabase } from '@/server/db'
+import { resolveGraphFilters } from '@/server/graph-filters'
 import { CACHE_PUBLIC, errorResponse, filterParams, intParam, json, listParam, rateLimit } from '@/server/http'
-import { getFilterService } from '@/server/registry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,36 +47,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ nod
       const database = await getDatabase()
       const db = database.db
 
-      let allowedPrintingNodeIds: Set<string> | null = null
-      let graphRelationshipTypes = relationshipTypes
-      let graphNodeTypes: NodeType[] = nodeTypes
-      let effectiveDepth = depth
-
-      if (Object.keys(rawFilters).length > 0) {
-        const gameRow = await db.execute(
-          sql`select g.id, g.slug from graph_nodes n join tcg_games g on g.id = n.game_id where n.id = ${nodeId}`,
-        )
-        const games = Array.isArray(gameRow) ? gameRow : (gameRow as { rows: unknown[] }).rows
-        const game = games[0] as { id: string; slug: string } | undefined
-        if (game) {
-          const filters = await getFilterService()
-          const definitions = await filters.definitions(game.slug)
-          const selection = parseSelection(definitions, rawFilters)
-          allowedPrintingNodeIds = await matchingPrintingNodeIds(db, game.id, definitions, selection)
-          const rel = selection.relationship
-          if (Array.isArray(rel) && rel.length && !graphRelationshipTypes) graphRelationshipTypes = rel as string[]
-          const types = selection.nodeType
-          if (Array.isArray(types) && types.length && graphNodeTypes.length === 0) {
-            graphNodeTypes = (types as string[]).filter((t): t is NodeType =>
-              (NODE_TYPES as readonly string[]).includes(t),
-            )
-          }
-          const range = selection.graphDepth
-          if (Array.isArray(range) && typeof range[1] === 'number' && !params.get('depth')) {
-            effectiveDepth = Math.min(MAX_GRAPH_DEPTH, Math.max(0, range[1]))
-          }
-        }
-      }
+      const resolved = await resolveGraphFilters(db, nodeId, rawFilters, { relationshipTypes, nodeTypes })
+      const allowedPrintingNodeIds = resolved.allowedPrintingNodeIds
+      const graphRelationshipTypes = resolved.relationshipTypes
+      const graphNodeTypes = resolved.nodeTypes
+      const effectiveDepth = resolved.depth !== null && !params.get('depth') ? resolved.depth : depth
 
       const [neighborhood, summary] = await Promise.all([
         getNeighborhood(db, nodeId, {

@@ -287,7 +287,34 @@ export function searchTextFor(node: GraphNode): string {
   return [...new Set(parts)].join(' ')
 }
 
+/** Entity kinds that become points: the ones the adapter declares as node types (Pokémon: species only). */
+export function projectedEntityKinds(adapter: TCGAdapter): Set<string> {
+  return new Set<string>(adapter.definition().nodeTypes)
+}
+
+/** A printing's evolution stage (or the game's equivalent), used to compare the make-up of sets. */
+export function stageOf(attributes: unknown): string | null {
+  const stage = (attributes as Record<string, unknown> | null)?.stage
+  return typeof stage === 'string' && stage ? stage : null
+}
+
 // ───────────────────────────── lookups ─────────────────────────────
+
+/** Per set, the printing node ids of each card name (normalized), for in-set links such as evolutions. */
+export function setPrintingIndex(
+  printings: Array<{ id: string; setId: string; identityId: string }>,
+  normalizedNameOf: (identityId: string) => string | undefined,
+): Map<string, Map<string, string[]>> {
+  const index = new Map<string, Map<string, string[]>>()
+  for (const p of [...printings].sort((a, b) => compareText(a.id, b.id))) {
+    const name = normalizedNameOf(p.identityId)
+    if (!name) continue
+    const bySet = index.get(p.setId) ?? new Map<string, string[]>()
+    bySet.set(name, [...(bySet.get(name) ?? []), makeNodeId('card_printing', p.id)])
+    index.set(p.setId, bySet)
+  }
+  return index
+}
 
 /**
  * Identity node id by normalized name. Characters win when several identity types share a name
@@ -332,6 +359,8 @@ export interface PrintingContextInput {
   links: Array<{ kind: EntityKind; key: string; relation: string; entityNodeId: string; metadata: Record<string, unknown> }>
   identityNodeIdByName: (normalizedName: string) => string | null
   entityNodeIdByKey: (kind: EntityKind, key: string) => string | null
+  /** This printing's set: printing node ids by card name. */
+  setPrintingNodeIdsByName: (normalizedName: string) => string[]
 }
 
 /** The adapter's relationships for one printing, from a context that needs no database. */
@@ -360,6 +389,7 @@ export function relationshipsForPrinting(adapter: TCGAdapter, input: PrintingCon
     })),
     identityNodeIdByName: input.identityNodeIdByName,
     entityNodeIdByKey: input.entityNodeIdByKey,
+    setPrintingNodeIdsByName: input.setPrintingNodeIdsByName,
   }
   try {
     return adapter.buildRelationships(context)

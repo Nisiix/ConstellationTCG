@@ -46,13 +46,18 @@
   (`d3-force-3d`) centrato sul focus, rivelazione progressiva dei punti (`reveal` in
   `NodeRenderer`), archi con scintille animate (`EdgeSparks`), alone e anello orbitante sul focus
   (`SelectionEffects`), campo di stelle (`ParticleField`), bloom e vignette (`PostFX`).
-- **Layer 1 / 2 / 3 (Direct, Extended, Deep)** — ✅. Profondità 1–3 nel HUD e nell'URL
-  (`depth`), con limiti per nodo (60) e totali (300) per non degenerare a spaghetti.
+- **Layer (Direct, Extended)** — ✅, ridotti a due il 9 ottobre (sera). Profondità 1–2 nel HUD e
+  nell'URL (`depth`; un vecchio `depth=3` diventa 2), con limiti per nodo (60) e totali (300).
+  Set, serie e gioco si aprono solo quando sono il focus: Deep ripeteva gli stessi hub, e una
+  catena più lunga fra due punti è il mestiere di *Connect to…*.
 - **Tipi di relazione previsti dal documento** — 🟡.
   - Presenti e usati dall'adapter Pokémon: `EVOLUTION_OF`, `SAME_POKEMON` (same character),
     `ILLUSTRATED_BY` (same artist), `PART_OF` / `BELONGS_TO` (set, serie), `PRINTING_OF`,
-    `HAS_TYPE`, `WEAK_TO`, `RESISTS`, `HAS_ATTRIBUTE`. Attacchi e abilità restano dati della carta,
-    mai nodi o archi.
+    `EVOLVES_FROM` (verso la pre-evoluzione stampata nello stesso set, se c'è). Tipi di energia,
+    debolezze, resistenze, attacchi e abilità restano dati della carta e filtri, mai nodi o archi.
+  - Dal core, fra espansioni: `SHARED_SUBJECTS` (stessi Pokémon), `SHARED_ARTISTS`,
+    `SIMILAR_STRUCTURE` (stessa composizione); fra carte: `COUNTERPART_OF` (lo stesso Pokémon nelle
+    due espansioni precedenti più simili).
   - `REPRINT_OF` è emesso dal core per ogni carta con più stampe: ogni ristampa punta alla prima
     stampa (per data di uscita), così l'originale è il fulcro di tutte le sue ristampe fra set
     diversi e "Reprint of" / "Reprints" sono connessioni di primo livello (oltre a "Also printed
@@ -62,9 +67,9 @@
 - **Nebbia di profondità** — ❌ (dettaglio estetico; bloom, vignette, particelle e archi animati
   ci sono).
 - **Cosa conta come connessione** — ✅. Di default il vicinato mostra altre carte (stampe,
-  ristampe, evoluzioni, la carta stessa), set, serie, gioco e l'artista (la via alle altre carte
-  che ha illustrato); specie Pokémon ed energy type restano fuori finché il filtro "Node type" non
-  li richiede. Dove compare un elemento (Fire, Water, …) la sua icona animata sta alla sua sinistra
+  ristampe, evoluzioni, la carta stessa), set, serie, gioco, il Pokémon e l'artista (le vie alle
+  altre carte che mostrano lo stesso Pokémon o che ha illustrato). Due carte non sono mai collegate
+  perché stanno nello stesso set o hanno lo stesso tipo di energia. Dove compare un elemento (Fire, Water, …) la sua icona animata sta alla sua sinistra
   (`ElementIcon`).
 - **Immagine ancorata al disco del nodo** — ✅. Il disco con l'immagine è posizionato e orientato
   ogni frame dalla stessa posizione disegnata della sfera e dalla camera di quel frame, e scalato
@@ -400,3 +405,23 @@ fra due set diversi, su una fixture Base Set + Base Set 2 da generare con rete:
 misure sul catalogo completo dentro i limiti accettati, **p95 ≤ 300 ms a caldo e ≤ 3 s a freddo,
 6 tappe (8 su richiesta)**, prese con `pnpm path:measure` dopo l'import. Un test di budget su un grafo
 sintetico della taglia del catalogo tiene d'occhio l'algoritmo in CI.
+
+## Connessioni riviste, pagine "Show all", sky di nuovo visibile (9 ottobre 2026, notte)
+
+- **Sky nero in 3D** — la content security policy (`script-src` senza `blob:`, `connect-src
+  'self'`) bloccava sia il worker di troika (le etichette di drei `Text`) sia i suoi font dal CDN:
+  l'eccezione spegneva tutta la scena. Ora le etichette si impaginano sul thread principale con un
+  font servito dall'app (`public/fonts/Figtree-Medium.ttf`, OFL), i caratteri che il font non ha
+  si leggono a parole (♀ → F, δ → Delta, ☆ → Star, ◇ → Prism Star: `lib/sky-label.ts`) e un
+  `SceneBoundary` impedisce che un errore delle etichette tolga di nuovo tutto il cielo.
+- **Connessioni** — vedi "Tipi di relazione" sopra: niente archi verso tipi/debolezze/resistenze
+  (né nodi `attribute`/`mechanic`), relazioni fra set (Pokémon, artisti, composizione),
+  corrispettivi delle carte nelle espansioni precedenti simili, evoluzioni nello stesso set; i
+  contenitori si aprono solo come focus. Il builder a passi ha un passo `similarity` in più (e la
+  coda d'import la sua priorità): **il bundle della Edge Function va rigenerato** prima del deploy.
+- **"Show all" invece di "Show more"** — il pannello elenca sei connessioni per tipo; *Show all*
+  apre la pagina `panel=list` (caricamento allo scroll, `GET /api/graph/node/:id/connections`),
+  con Back che torna dove era aperta. Lo stesso per "Also printed in", le sezioni "Further away" e i
+  set di una serie nella vista elenco; anche *Details* è una pagina con indirizzo (`panel=details`).
+- **Da sapere** — la fixture `base2` è **Jungle** (su TCGdex Base Set 2 è `base4`): i test e2e che
+  cercano "Base Set 2" restano saltati finché non c'è quella fixture.

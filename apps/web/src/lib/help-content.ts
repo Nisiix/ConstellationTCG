@@ -17,9 +17,9 @@ export const HOW_IT_WORKS: HelpStep[] = [
   },
   {
     title: 'Follow',
-    text: 'any connection by clicking it, in the scene or in the panel on the right: other cards (printings, reprints, evolutions), the sets and series they belong to, and the artist, who leads to the other cards they illustrated. Pokémon species and energy types stay out of the way unless the Node type filter asks for them. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
+    text: 'any connection by clicking it, in the scene or in the panel on the right. A card leads to the same card in other sets, to the same Pokémon, to its evolutions in the same set, to the same Pokémon in earlier sets that look alike, and to its artist; a set leads to its cards and to the sets that share its Pokémon, its artists or its make-up. Two cards are never connected just for sitting in the same set or sharing an energy type. A panel lists a few of each kind; Show all opens every one of them on a page of its own, and Back returns. Hovering a group or a row in the panel lights up those points in the scene; hovering a point names its connection to the focus.',
   },
-  { title: 'Go wider', text: 'with Extended or Deep connections (bottom right) or narrow down with filters.' },
+  { title: 'Go wider', text: 'with Extended connections (bottom right): the cards reached through the same card, the same Pokémon or the same artist. Or narrow down with filters.' },
   {
     title: 'Keep your thread.',
     text: 'The sky never resets: every point you visit leaves a trail of light behind you, the last twelve steps bright and older ones fading. Your thread (bottom left) lists them in order; pick one to go back there. It lives in this browser tab only and is never sent anywhere.',

@@ -1,11 +1,11 @@
 import { cardPrintings, eq, graphEdges, graphNodes, tcgSets, type Database } from '@constellation/database'
 import { GraphError } from '@constellation/domain'
-import { createSeededDatabase } from '@constellation/testing'
+import { createSeededDatabase, ingestFixture } from '@constellation/testing'
 import type { AdapterRegistry } from '@constellation/adapters'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildGraphProjection, type BuildReport } from '../builder'
 import { getNeighborhood } from '../neighborhood'
-import { getGraphStats, getRelationshipSummary } from '../node'
+import { getConnections, getGraphStats, getRelationshipSummary } from '../node'
 import { getUniverse } from '../universe'
 
 let database: Database
@@ -45,8 +45,8 @@ describe('graph projection', () => {
     expect(stats.byNodeType.card_identity).toBeGreaterThan(90)
     expect(stats.byNodeType.artist).toBe(4)
     expect(stats.byNodeType.pokemon).toBeGreaterThan(50)
-    expect(stats.byNodeType.attribute).toBeGreaterThan(5)
-    // Abilities and attacks are card data, not points: no mechanic nodes at all.
+    // Energy types, weaknesses, abilities and attacks are card data, not points.
+    expect(stats.byNodeType.attribute ?? 0).toBe(0)
     expect(stats.byNodeType.mechanic ?? 0).toBe(0)
     expect(stats.nodes).toBe(game?.nodes)
     expect(stats.edges).toBe(game?.edges)
@@ -74,8 +74,7 @@ describe('graph projection', () => {
     expect(arita?.imageUrl).toMatch(/\/high\.webp$/)
     const charizard = all.find((n) => n.nodeType === 'pokemon' && n.label === 'Charizard')
     expect(charizard?.imageUrl).toContain('/base1/4/')
-    const fire = all.find((n) => n.nodeType === 'attribute' && n.label === 'Fire')
-    expect(fire?.imageUrl).toBeNull()
+    expect(all.some((n) => n.nodeType === 'attribute')).toBe(false)
   })
 
   it('gives card nodes image, set, number and rarity', async () => {
@@ -101,10 +100,12 @@ describe('neighborhood', () => {
     const labels = new Map(hood.nodes.map((n) => [`${n.nodeType}:${n.label}`, n]))
     expect(labels.has('set:Base Set')).toBe(true)
     expect(labels.has('card_identity:Charizard')).toBe(true)
-    expect(labels.has('card_identity:Charmeleon')).toBe(true)
+    // It evolves from the Charmeleon printed in the same set.
+    expect(labels.has('card_printing:Charmeleon')).toBe(true)
     expect(labels.has('artist:Mitsuhiro Arita')).toBe(true)
     expect(labels.has('pokemon:Charizard')).toBe(true)
-    expect(labels.has('attribute:Fire')).toBe(true)
+    // Not because both are Fire.
+    expect(hood.nodes.some((n) => n.nodeType === 'attribute')).toBe(false)
     expect(labels.has('mechanic:Energy Burn')).toBe(false)
     expect(labels.has('mechanic:Fire Spin')).toBe(false)
     const types = new Set(hood.edges.map((e) => e.relationshipType))
@@ -119,15 +120,15 @@ describe('neighborhood', () => {
   it('expands progressively with bounded depth and size', async () => {
     const charizard = await findNode('card_printing', 'Charizard')
     const d1 = await getNeighborhood(database.db, charizard.id, { depth: 1 })
-    const d2 = await getNeighborhood(database.db, charizard.id, { depth: 2, limit: 40 })
+    const d2 = await getNeighborhood(database.db, charizard.id, { depth: 2, limit: 12 })
     expect(d2.nodes.length).toBeGreaterThan(d1.nodes.length)
-    expect(d2.nodes.length).toBeLessThanOrEqual(40)
+    expect(d2.nodes.length).toBeLessThanOrEqual(12)
     expect(d2.meta.truncated).toBe(true)
     const d0 = await getNeighborhood(database.db, charizard.id, { depth: 0 })
     expect(d0.nodes).toHaveLength(1)
     expect(d0.edges).toHaveLength(0)
     const tooDeep = await getNeighborhood(database.db, charizard.id, { depth: 99, limit: 20 })
-    expect(tooDeep.meta.depth).toBe(3)
+    expect(tooDeep.meta.depth).toBe(2)
   })
 
   it('respects relationship and node type filters', async () => {
@@ -138,12 +139,12 @@ describe('neighborhood', () => {
     })
     expect(onlySet.nodes.map((n) => n.nodeType).sort()).toEqual(['card_printing', 'set'])
 
-    const noAttributes = await getNeighborhood(database.db, charizard.id, {
+    const noSpecies = await getNeighborhood(database.db, charizard.id, {
       depth: 1,
-      excludeNodeTypes: ['attribute', 'mechanic'],
+      excludeNodeTypes: ['pokemon'],
     })
-    expect(noAttributes.nodes.some((n) => n.nodeType === 'attribute')).toBe(false)
-    expect(noAttributes.nodes.some((n) => n.nodeType === 'set')).toBe(true)
+    expect(noSpecies.nodes.some((n) => n.nodeType === 'pokemon')).toBe(false)
+    expect(noSpecies.nodes.some((n) => n.nodeType === 'set')).toBe(true)
   })
 
   it('caps the fan-out of hub nodes', async () => {
@@ -325,5 +326,111 @@ describe('per-node budget', () => {
     const numbers = cards.map((n) => Number(n.metadata.collectorNumber)).sort((a, b) => a - b)
     expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(cards.some((n) => n.label === 'Charizard')).toBe(true)
+  })
+})
+
+// The `base2` fixture is Jungle (TCGdex numbers Base Set 2 `base4`): three artists and two
+// Pokémon (Electrode, Pikachu) in common with Base Set.
+describe('connections across expansions (Base Set and Jungle)', () => {
+  let two: Database
+  let reg: AdapterRegistry
+
+  beforeAll(async () => {
+    const seeded = await createSeededDatabase('base1')
+    two = seeded.database
+    reg = seeded.registry
+    await ingestFixture(two, 'base2')
+    await buildGraphProjection({ database: two, registry: reg })
+  })
+
+  afterAll(async () => {
+    await two.close()
+  })
+
+  async function nodeOf(nodeType: string, label: string) {
+    const node = (await two.db.select().from(graphNodes)).find((n) => n.nodeType === nodeType && n.label === label)
+    if (!node) throw new Error(`node ${nodeType} "${label}" not found`)
+    return node
+  }
+
+  it('relates the two sets by their artists and their make-up, newer to older', async () => {
+    const base = await nodeOf('set', 'Base Set')
+    const jungle = await nodeOf('set', 'Jungle')
+    const edges = (await two.db.select().from(graphEdges)).filter((e) => e.sourceNodeId === jungle.id && e.targetNodeId === base.id)
+    const types = edges.map((e) => e.relationshipType).sort()
+    // Two Pokémon out of a hundred are not "the same Pokémon": no SHARED_SUBJECTS between them.
+    expect(types).toEqual(['SHARED_ARTISTS', 'SIMILAR_STRUCTURE'])
+    expect(edges.every((e) => e.direction === 'undirected')).toBe(true)
+    expect(edges.find((e) => e.relationshipType === 'SHARED_ARTISTS')?.metadata.shared).toBe(3)
+
+    // A set in focus shows its kindred sets directly.
+    const hood = await getNeighborhood(two.db, base.id, { depth: 1 })
+    expect(hood.nodes.some((n) => n.id === jungle.id)).toBe(true)
+
+    // Undirected: one group, whichever end is in focus.
+    for (const set of [base, jungle]) {
+      const summary = await getRelationshipSummary(two.db, set.id, { relationshipTypes: ['SHARED_ARTISTS'] })
+      expect(summary).toEqual([{ relationshipType: 'SHARED_ARTISTS', direction: 'out', count: 1 }])
+      const listed = await getConnections(two.db, set.id, { relationshipType: 'SHARED_ARTISTS', direction: 'out' })
+      expect(listed.items.map((i) => i.node.id)).toEqual([set === base ? jungle.id : base.id])
+    }
+  })
+
+  it('never pairs a card with a reprint of itself as a counterpart', async () => {
+    const printings = new Map((await two.db.select().from(cardPrintings)).map((p) => [`card_printing:${p.id}`, p]))
+    const counterparts = (await two.db.select().from(graphEdges)).filter((e) => e.relationshipType === 'COUNTERPART_OF')
+    for (const e of counterparts) {
+      expect(printings.get(e.sourceNodeId)?.identityId).not.toBe(printings.get(e.targetNodeId)?.identityId)
+    }
+  })
+
+  it('reaches other cards through the card, the Pokémon or the artist, never through the set', async () => {
+    const [charizard] = (await two.db.select().from(graphNodes)).filter(
+      (n) => n.nodeType === 'card_printing' && n.label === 'Charizard' && n.subtitle?.startsWith('Base Set ·'),
+    )
+    if (!charizard) throw new Error('fixture')
+    const hood = await getNeighborhood(two.db, charizard.id, { depth: 2, limit: 1000, perNodeLimit: 500 })
+    const d = hood.meta.distances
+    const containers = new Set(['game', 'series', 'set'])
+    const typeOf = new Map(hood.nodes.map((n) => [n.id, n.nodeType]))
+    const far = hood.nodes.filter((n) => d[n.id] === 2 && n.nodeType === 'card_printing')
+    expect(far.length).toBeGreaterThan(5)
+    for (const node of far) {
+      // Every far card hangs from a direct connection that is not a set, a series or the game.
+      const bridges = hood.edges
+        .filter((e) => e.sourceNodeId === node.id || e.targetNodeId === node.id)
+        .map((e) => (e.sourceNodeId === node.id ? e.targetNodeId : e.sourceNodeId))
+        .filter((id) => d[id] === 1 && !containers.has(typeOf.get(id) ?? ''))
+      expect(bridges.length, node.label).toBeGreaterThan(0)
+    }
+    // Mitsuhiro Arita's Jungle illustrations are two steps away, through the artist.
+    expect(far.some((n) => n.subtitle?.startsWith('Jungle'))).toBe(true)
+    // Base Set cards that share nothing with Charizard but the set are not there.
+    expect(far.some((n) => n.label === 'Alakazam')).toBe(false)
+  })
+})
+
+describe('connection lists', () => {
+  it('lists every connection of one kind, a page at a time, in the order the panel uses', async () => {
+    const set = await findNode('set', 'Base Set')
+    const first = await getConnections(database.db, set.id, { relationshipType: 'BELONGS_TO', direction: 'in', limit: 40 })
+    expect(first.total).toBe(102)
+    expect(first.items).toHaveLength(40)
+    // A set's cards come in collector-number order, as in the set list.
+    expect(first.items.slice(0, 4).map((i) => i.node.metadata.collectorNumber)).toEqual(['1', '2', '3', '4'])
+    const last = await getConnections(database.db, set.id, { relationshipType: 'BELONGS_TO', direction: 'in', offset: 80, limit: 40 })
+    expect(last.items).toHaveLength(22)
+    expect(last.items.at(-1)?.node.metadata.collectorNumber).toBe('102')
+    // Only the node types asked for.
+    const none = await getConnections(database.db, set.id, { relationshipType: 'BELONGS_TO', direction: 'in', nodeTypes: ['artist'] })
+    expect(none.total).toBe(0)
+  })
+
+  it('keeps only the printings a filter allows', async () => {
+    const set = await findNode('set', 'Base Set')
+    const all = await getConnections(database.db, set.id, { relationshipType: 'BELONGS_TO', direction: 'in', limit: 500 })
+    const allowed = new Set(all.items.slice(0, 3).map((i) => i.node.id))
+    const filtered = await getConnections(database.db, set.id, { relationshipType: 'BELONGS_TO', direction: 'in', allowedPrintingNodeIds: allowed })
+    expect(filtered.total).toBe(3)
   })
 })

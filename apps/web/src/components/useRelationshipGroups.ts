@@ -75,7 +75,8 @@ export function buildRelationshipGroups(
       direction = 'out'
       otherId = edge.targetNodeId
     } else if (edge.targetNodeId === focusNodeId) {
-      direction = 'in'
+      // An undirected edge (two similar sets) reads the same from both ends, as the server counts it.
+      direction = edge.direction === 'undirected' ? 'out' : 'in'
       otherId = edge.sourceNodeId
     } else continue
     if (hidden(edge.relationshipType, direction)) continue

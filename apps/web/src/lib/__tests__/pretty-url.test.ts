@@ -55,6 +55,7 @@ describe('pretty paths', () => {
     filters: { rarity: 'Rare' },
     path: null,
     pathMax: null,
+    panel: null,
   }
 
   it('addresses printings and sets, nothing else', () => {

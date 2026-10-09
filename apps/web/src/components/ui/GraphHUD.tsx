@@ -12,8 +12,7 @@ import { useExploreNavigation } from '../navigation'
 
 const DEPTHS: Array<{ value: number; label: string; title: string }> = [
   { value: 1, label: 'Direct', title: 'Only what is directly connected to the focus' },
-  { value: 2, label: 'Extended', title: 'Also what those connections are connected to' },
-  { value: 3, label: 'Deep', title: 'Three hops away from the focus' },
+  { value: 2, label: 'Extended', title: 'Also the cards reached through them: the same card, the same Pokémon, the same artist' },
 ]
 
 /** What the ring colors in the sky mean, for the kinds of points on screen right now. */

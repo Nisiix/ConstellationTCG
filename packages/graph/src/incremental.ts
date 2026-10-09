@@ -8,6 +8,7 @@
  *   identities (pages)  identity nodes with printing count and first printing
  *   printings (per set) printing nodes and the adapter's relationships for that set's cards
  *   reprints (pages)    REPRINT_OF edges, identities in pages
+ *   similarity          set ↔ set similarity and counterparts in earlier sets (one pass, aggregates)
  *   finish              deletes the rows of the game that this build did not write
  *
  * Every step fits a serverless worker (a Supabase Edge Function has 2 s of CPU per request); the
@@ -46,18 +47,22 @@ import {
   EdgeCollector,
   identityNodeIdsByName,
   PRINTING_ORDER_SQL,
+  projectedEntityKinds,
   relationshipsForPrinting,
   releaseOf,
   reprintRelationships,
+  setPrintingIndex,
   type PrintingRow,
 } from './compose'
 import { rows } from './rows'
+import { similarityRelationships, type SimilarityInput } from './similarity'
 
 export type GraphStep =
   | { kind: 'scaffold' }
   | { kind: 'identities'; page: number; pageSize: number }
   | { kind: 'printings'; setId: string }
   | { kind: 'reprints'; page: number; pageSize: number }
+  | { kind: 'similarity' }
   | { kind: 'finish' }
 
 export interface GraphStepReport {
@@ -93,6 +98,8 @@ export function describeGraphStep(step: GraphStep): string {
       return `printings of set ${step.setId}`
     case 'reprints':
       return `reprints page ${step.page}`
+    case 'similarity':
+      return 'set similarity and counterparts'
     case 'finish':
       return 'finish'
   }
@@ -100,7 +107,7 @@ export function describeGraphStep(step: GraphStep): string {
 
 /**
  * The steps that follow the scaffold for a game, in the order they must run: identity pages, one
- * printings step per set, reprint pages, finish. Sets come oldest first so the sky grows in time
+ * printings step per set, reprint pages, similarity, finish. Sets come oldest first so the sky grows in time
  * order while a build is in progress.
  */
 export async function planGraphBuild(
@@ -121,6 +128,7 @@ export async function planGraphBuild(
   for (let page = 0; page * identityPage < identities; page += 1) steps.push({ kind: 'identities', page, pageSize: identityPage })
   for (const set of sets) steps.push({ kind: 'printings', setId: set.id })
   for (let page = 0; page * reprintPage < identities; page += 1) steps.push({ kind: 'reprints', page, pageSize: reprintPage })
+  steps.push({ kind: 'similarity' })
   steps.push({ kind: 'finish' })
   return steps
 }
@@ -142,6 +150,9 @@ export async function runGraphStep(options: GraphStepOptions): Promise<GraphStep
       break
     case 'reprints':
       await reprintPage(db, options, step, report)
+      break
+    case 'similarity':
+      await similarity(db, options, report)
       break
     case 'finish':
       await finish(db, options, report)
@@ -218,9 +229,10 @@ async function scaffold(db: Db, options: GraphStepOptions, report: GraphStepRepo
   for (const series of seriesRows) nodes.push(composeSeriesNode(gameId, series, setsBySeries.get(series.id) ?? 0, placeholders))
   for (const set of setRows) nodes.push(composeSetNode(gameId, set, seriesById.get(set.seriesId), printingCounts.get(set.id) ?? 0, placeholders))
   for (const artist of artistRows) nodes.push(composeArtistNode(gameId, artist, artistCounts.get(artist.id) ?? 0, artistImages.get(artist.id) ?? null))
+  const kinds = projectedEntityKinds(adapter)
   for (const entity of entityRows) {
     const n = entityCounts.get(entity.id) ?? 0
-    if (n === 0) continue
+    if (n === 0 || !kinds.has(entity.kind)) continue
     nodes.push(composeEntityNode(gameId, entity, n, speciesImages.get(entity.id) ?? null))
   }
   const known = new Set(nodes.map((n) => n.id))
@@ -323,8 +335,10 @@ async function printingsOfSet(db: Db, options: GraphStepOptions, step: { setId: 
   }
   for (const i of identityIndex) known.add(makeNodeId('card_identity', i.id))
   for (const a of usedArtists) known.add(makeNodeId('artist', a.artist_id))
-  for (const e of linkedEntities) known.add(makeNodeId(e.kind as EntityKind, e.id))
+  const kinds = projectedEntityKinds(adapter)
+  for (const e of linkedEntities) if (kinds.has(e.kind)) known.add(makeNodeId(e.kind as EntityKind, e.id))
   for (const p of printings) known.add(makeNodeId('card_printing', p.id))
+  const inSet = setPrintingIndex(printings, (id) => identityById.get(id)?.normalizedName)
 
   const linksByPrinting = new Map<string, typeof links>()
   for (const link of links) {
@@ -364,6 +378,7 @@ async function printingsOfSet(db: Db, options: GraphStepOptions, step: { setId: 
         }),
         identityNodeIdByName: (name) => byName.get(name) ?? null,
         entityNodeIdByKey: (kind, key) => entityNodeIdByKey.get(`${kind}:${key}`) ?? null,
+        setPrintingNodeIdsByName: (name) => inSet.get(p.setId)?.get(name) ?? [],
       }),
     )
   }
@@ -406,6 +421,66 @@ async function reprintPage(db: Db, options: GraphStepOptions, step: { page: numb
       ),
     )
   }
+  await upsertEdges(db, collector.list(), options.buildId)
+  report.edges = collector.edges.size
+}
+
+/**
+ * Set similarity and counterparts need the whole catalog, but only a few narrow columns of it: the
+ * sets, one row per printing and its subject links. The composition is the same as the one-shot
+ * builder's (`similarityRelationships`).
+ */
+async function similarity(db: Db, options: GraphStepOptions, report: GraphStepReport) {
+  const { gameId, adapter } = options
+  const subjectRelation = adapter.definition().subjectRelation
+  const sets = await db
+    .select({ id: tcgSets.id, externalId: tcgSets.externalId, releaseDate: tcgSets.releaseDate })
+    .from(tcgSets)
+    .where(eq(tcgSets.gameId, gameId))
+  const printings = rows<{
+    id: string
+    set_id: string
+    identity_id: string
+    artist_id: string | null
+    category: string | null
+    rarity: string | null
+    stage: string | null
+    collector_number: string
+    external_id: string
+    release_date: string | null
+  }>(
+    await db.execute(sql`
+      select p.id, p.set_id, p.identity_id, p.artist_id, p.category, p.rarity,
+        case when jsonb_typeof(p.attributes->'stage') = 'string' and p.attributes->>'stage' <> '' then p.attributes->>'stage' end as stage,
+        p.collector_number, p.external_id, p.release_date::text as release_date
+      from card_printings p join tcg_sets s on s.id = p.set_id where s.game_id = ${gameId}`),
+  )
+  const subjects = subjectRelation
+    ? rows<{ printing_id: string; entity_id: string }>(
+        await db.execute(sql`
+          select pe.printing_id, pe.entity_id from printing_entities pe
+          join card_printings p on p.id = pe.printing_id join tcg_sets s on s.id = p.set_id
+          where s.game_id = ${gameId} and pe.relation = ${subjectRelation}`),
+      ).map((r) => ({ printingId: r.printing_id, subjectId: r.entity_id }))
+    : printings.map((p) => ({ printingId: p.id, subjectId: p.identity_id }))
+  const input: SimilarityInput = {
+    sets,
+    printings: printings.map((p) => ({
+      id: p.id,
+      setId: p.set_id,
+      identityId: p.identity_id,
+      artistId: p.artist_id,
+      category: p.category,
+      rarity: p.rarity,
+      stage: p.stage,
+      collectorNumber: p.collector_number,
+      externalId: p.external_id,
+      releaseDate: p.release_date,
+    })),
+    subjects,
+  }
+  const collector = new EdgeCollector(() => true)
+  collector.addAll(similarityRelationships(input))
   await upsertEdges(db, collector.list(), options.buildId)
   report.edges = collector.edges.size
 }

@@ -45,8 +45,8 @@ export default function HelpPage() {
         <article className="prose-help fade-up max-w-3xl">
           <h1 className="text-[36px] leading-tight md:text-[44px]">Explore by following connections</h1>
           <p className="mt-3 text-[16px]">
-            Constellation shows a trading card game as a sky of points and lines. A point is a card, a set, a series, a Pokémon, an
-            artist, a type, an attack. A line is a relationship between two of them. You move by following lines.
+            Constellation shows a trading card game as a sky of points and lines. A point is a card, a set, a series, a Pokémon or an
+            artist. A line is a relationship between two of them. You move by following lines.
           </p>
 
           <h2 id="how">How it works</h2>
@@ -59,15 +59,15 @@ export default function HelpPage() {
           </ol>
           <p>
             Before any search you see the <strong>universe</strong>: the game, its series and its sets. Pick a set to see its cards;
-            pick a card to see everything around it. Thousands of cards are never shown at once: depth is bounded to three steps and
-            large hubs are capped, so every view stays readable.
+            pick a card to see everything around it. Thousands of cards are never shown at once: depth is bounded to two steps, a set never
+            spills its cards into a card&apos;s view, and large hubs are capped, so every view stays readable.
           </p>
 
           <h2 id="connections">Reading the connections</h2>
           <ul>
             <li>
               <strong>Rings.</strong> Every point is outlined in the color of what it is: sets and series in the game&apos;s color,
-              cards and artists in white; Pokémon species and energy types join only when the Node type filter asks for them. The legend at the bottom of the map lists the
+              cards, Pokémon and artists in white. The legend at the bottom of the map lists the
               kinds on screen.
             </li>
             <li>
@@ -101,8 +101,10 @@ export default function HelpPage() {
           <h2 id="filters">Filters and sharing</h2>
           <ul>
             <li>
-              <strong>Depth.</strong> “Direct” shows what touches the focus; “Extended” and “Deep” also show what those connections
-              are connected to. <kbd>E</kbd> goes wider, <kbd>C</kbd> back to direct connections.
+              <strong>Depth.</strong> “Direct” shows what touches the focus; “Extended” also shows the cards reached through it: the
+              same card in other sets, the same Pokémon, the same artist. Sets, series and the game open only when they are the
+              focus. <kbd>E</kbd> goes wider, <kbd>C</kbd> back to direct connections; a longer chain between two points is what{' '}
+              <em>Connect to…</em> is for.
             </li>
             <li>
               <strong>Filters</strong> (<kbd>F</kbd>) narrow which cards appear around the focus: set, rarity, type, evolution stage,

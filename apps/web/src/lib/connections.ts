@@ -3,9 +3,8 @@ import { RELATIONSHIP_ORDER, relationshipLabel } from './colors'
 
 /**
  * What counts as a connection in the explorer: other cards (printings and the cards they print),
- * the catalog they belong to (sets, series, the game) and the artist, the way to the other cards
- * they illustrated. Pokémon species and energy types are in the graph but step aside by default;
- * the "Node type" filter brings them back when asked.
+ * the catalog they belong to (sets, series, the game), the artist and the Pokémon — the ways to the
+ * other cards they illustrated or show. The "Node type" filter narrows it down when asked.
  */
 export const CONNECTION_NODE_TYPES: NodeType[] = [
   'game',
@@ -13,6 +12,7 @@ export const CONNECTION_NODE_TYPES: NodeType[] = [
   'set',
   'card_identity',
   'card_printing',
+  'pokemon',
   'artist',
 ]
 
@@ -28,6 +28,8 @@ export interface FarSection {
   relationshipType: string
   /** The direct connection the far points came in through; null when no path was found. */
   bridge: GraphNode | null
+  /** Which end of the far points' edges the bridge is (`target`: they all point at it, a hub). */
+  bridgeIs: 'source' | 'target' | null
   label: string
   nodes: GraphNode[]
 }
@@ -37,13 +39,8 @@ const SHARED_THROUGH: Record<string, string> = {
   PRINTING_OF: 'Same card',
   REPRINT_OF: 'Reprints',
   SAME_POKEMON: 'Same Pokémon',
-  BELONGS_TO: 'Same set',
   ILLUSTRATED_BY: 'Through the artist',
-  HAS_TYPE: 'Same energy type',
-  WEAK_TO: 'Same weakness',
-  RESISTS: 'Same resistance',
-  HAS_ABILITY: 'Same ability',
-  HAS_ATTRIBUTE: 'Same attribute',
+  COUNTERPART_OF: 'Same Pokémon, earlier sets',
 }
 
 /**
@@ -67,7 +64,7 @@ interface Route {
 }
 
 /**
- * Section the points two or three steps away by the direct connection they came in through: for
+ * Section the points two steps away by the direct connection they came in through: for
  * each far point, the depth-1 neighbour it hangs from and the kind of edge between them (a third
  * step inherits the bridge of the point it hangs from). A point reachable through several bridges
  * goes under the first one only, in the connection order used everywhere else; sections follow
@@ -125,6 +122,7 @@ export function groupFarNodes(
         key,
         relationshipType: route?.relationshipType ?? 'RELATED_TO',
         bridge: route?.bridge ?? null,
+        bridgeIs: route?.bridgeIs ?? null,
         label: route ? bridgeLabel(route.relationshipType, route.bridgeIs, route.bridge) : 'Other connections',
         nodes: [],
       } satisfies FarSection)

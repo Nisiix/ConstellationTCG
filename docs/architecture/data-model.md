@@ -58,14 +58,30 @@ the Edge Function and the CLI.
 and, in its last step, deletes the rows of the game that carry another build's id.
 
 Node types: `game`, `series`, `set`, `card_identity`, `card_printing`, `pokemon`, `artist`,
-`mechanic`, `attribute`, `digital_asset`.
+`mechanic`, `attribute`, `digital_asset`. Only the entity kinds an adapter declares in
+`TCGDefinition.nodeTypes` become points (Pokémon: species only); `attribute` and `mechanic`
+entities stay card data, read by filters from `printing_entities`.
 
 The core emits the catalog edges (`PART_OF`) and, for every card with more than one printing,
 `REPRINT_OF` from each later printing to the card's first printing (by release date, then
 number): one edge per reprint, so the original is the hub of all its reprints across sets.
-Universal relationships are listed in `packages/domain/src/graph.ts`; adapters add their own
-(Pokémon: `EVOLVES_FROM`, `HAS_TYPE`, `WEAK_TO`, `RESISTS`,
-`SAME_POKEMON`, …). The core treats relationship types as opaque strings.
+
+It also relates expansions and their cards (`packages/graph/src/similarity.ts`, shared by both
+builders):
+
+| Edge | Between | Why |
+| ---- | ------- | --- |
+| `SHARED_SUBJECTS` | set ↔ set | they print the same Pokémon (the adapter's `subjectRelation`); Jaccard ≥ 0.05, at least 2 in common |
+| `SHARED_ARTISTS` | set ↔ set | the same artists illustrated both; Jaccard ≥ 0.05, at least 2 in common |
+| `SIMILAR_STRUCTURE` | set ↔ set | alike in make-up: shares of categories, stages and rarities (cosine), damped by the size ratio; ≥ 0.6 |
+| `COUNTERPART_OF` | printing → printing | the same Pokémon, a different card, in one of the two earlier sets closest to this one (half make-up, half Pokémon in common) |
+
+Set edges are undirected, stored once from the newer set to the older, and each set keeps its six
+closest per kind. Universal relationships are listed in `packages/domain/src/graph.ts`; adapters
+add their own (Pokémon: `SAME_POKEMON`, and `EVOLVES_FROM` — to the pre-evolution printed in the
+same set when there is one, else to the card). Two cards are never connected for sitting in the
+same set or sharing an energy type, a weakness or a resistance. The core treats relationship
+types as opaque strings.
 
 Card statistics (HP, attacks, retreat cost) are data on the printing (`attributes`), never
 entities, edges or filters: the product explores relationships, not stats. Entities no card refers

@@ -32,6 +32,10 @@ export const RELATIONSHIP_LABELS: Record<string, string> = {
   RELATED_TO: 'Related',
   REPRESENTS_ASSET: 'Digital asset',
   OWNED_BY: 'Owned by',
+  COUNTERPART_OF: 'In earlier sets',
+  SHARED_SUBJECTS: 'Shared Pokémon',
+  SHARED_ARTISTS: 'Shared artists',
+  SIMILAR_STRUCTURE: 'Similar make-up',
 }
 
 /** Label for a relationship seen from a given side of the edge. */
@@ -64,6 +68,8 @@ export function relationshipLabel(type: string, direction: 'out' | 'in'): string
         return 'Cards with this ability'
       case 'HAS_ATTRIBUTE':
         return 'Cards'
+      case 'COUNTERPART_OF':
+        return 'In later sets'
     }
   }
   return RELATIONSHIP_LABELS[type] ?? humanize(type)
@@ -93,16 +99,24 @@ export function nodeRadius(type: NodeType, distance: number, isFocus: boolean): 
   return base[type] * scale
 }
 
-/** Group ordering in the focus panel: most semantic first. */
+/**
+ * Group ordering in the focus panel: most semantic first. For a card: the same card, the same
+ * Pokémon, its evolution line in the set, its counterparts in earlier sets, the artist, the set.
+ * For a set: its cards, then the sets it shares Pokémon, artists or make-up with.
+ */
 export const RELATIONSHIP_ORDER = [
   'PRINTING_OF',
   'REPRINT_OF',
   'SAME_POKEMON',
-  'BELONGS_TO',
-  'PART_OF',
-  'ILLUSTRATED_BY',
   'EVOLVES_FROM',
   'EVOLUTION_OF',
+  'COUNTERPART_OF',
+  'ILLUSTRATED_BY',
+  'BELONGS_TO',
+  'SHARED_SUBJECTS',
+  'SHARED_ARTISTS',
+  'SIMILAR_STRUCTURE',
+  'PART_OF',
   'HAS_TYPE',
   'WEAK_TO',
   'RESISTS',

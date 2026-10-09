@@ -3,8 +3,9 @@
  *
  * Reads the canonical catalog and (re)writes `graph_nodes` / `graph_edges` for a game in a single
  * transaction. The projection is derived data: it can be dropped and rebuilt at any time. Universal
- * edges (series → game, set → series, reprint → first printing) are produced by the core;
- * everything card-specific comes from the adapter's `buildRelationships`.
+ * edges (series → game, set → series, reprint → first printing, set similarity, counterparts in
+ * earlier sets) are produced by the core; everything card-specific comes from the adapter's
+ * `buildRelationships`.
  *
  * The same composition, split into bounded steps for serverless workers, lives in `incremental.ts`.
  */
@@ -43,7 +44,11 @@ import {
   searchTextFor,
   type GameRow,
   type PrintingRow,
+  projectedEntityKinds,
+  setPrintingIndex,
+  stageOf,
 } from './compose'
+import { similarityRelationships, type SimilarityInput } from './similarity'
 
 export { searchTextFor } from './compose'
 
@@ -209,10 +214,12 @@ export async function composeGame(
   }
   const entityNodeIdByKey = new Map<string, string>()
   const entityNodeIds = new Map<string, string>()
+  const kinds = projectedEntityKinds(adapter)
   for (const entity of entityRows) {
     const count = linksByEntity.get(entity.id) ?? 0
-    // An entity no card refers to any more (e.g. attacks from an older ingestion) is not a point.
-    if (count === 0) continue
+    // An entity no card refers to any more (e.g. attacks from an older ingestion) is not a point,
+    // and neither is a kind the adapter keeps as card data (energy types, attacks).
+    if (count === 0 || !kinds.has(entity.kind)) continue
     const node = composeEntityNode(game.id, entity, count, earliest(speciesPrintings.get(entity.id) ?? [])?.imageFront ?? null)
     addNode(node)
     entityNodeIds.set(entity.id, node.id)
@@ -238,6 +245,7 @@ export async function composeGame(
 
   const byName = identityNodeIdsByName(identityRows)
   const entityById = new Map(entityRows.map((e) => [e.id, e]))
+  const inSet = setPrintingIndex(printings, (id) => identityById.get(id)?.normalizedName)
   const linksByPrinting = new Map<string, typeof links>()
   for (const link of links) {
     const list = linksByPrinting.get(link.printingId) ?? []
@@ -266,14 +274,44 @@ export async function composeGame(
         }),
         identityNodeIdByName: (name) => byName.get(name) ?? null,
         entityNodeIdByKey: (kind, key) => entityNodeIdByKey.get(`${kind}:${key}`) ?? null,
+        setPrintingNodeIdsByName: (name) => inSet.get(p.setId)?.get(name) ?? [],
       }),
     )
   }
   for (const list of printingsByIdentity.values()) collector.addAll(reprintRelationships(list.map(order)))
+  collector.addAll(similarityRelationships(similarityInput(adapter, setRows, printings, links)))
 
   const skipped = collector.skipped + skippedPrintings
   if (skipped > 0) log(`${skipped} edges skipped (missing endpoint)`)
   return { nodes: [...nodes.values()], edges: collector.list(), skippedEdges: skipped }
+}
+
+/** What set similarity and counterparts are computed from, read from the rows in memory. */
+export function similarityInput(
+  adapter: TCGAdapter,
+  setRows: Array<{ id: string; externalId: string; releaseDate: string | null }>,
+  printings: PrintingRow[],
+  links: Array<{ printingId: string; entityId: string; relation: string }>,
+): SimilarityInput {
+  const subjectRelation = adapter.definition().subjectRelation
+  return {
+    sets: setRows.map((s) => ({ id: s.id, externalId: s.externalId, releaseDate: s.releaseDate })),
+    printings: printings.map((p) => ({
+      id: p.id,
+      setId: p.setId,
+      identityId: p.identityId,
+      artistId: p.artistId,
+      category: p.category,
+      rarity: p.rarity,
+      stage: stageOf(p.attributes),
+      collectorNumber: p.collectorNumber,
+      externalId: p.externalId,
+      releaseDate: p.releaseDate,
+    })),
+    subjects: subjectRelation
+      ? links.filter((l) => l.relation === subjectRelation).map((l) => ({ printingId: l.printingId, subjectId: l.entityId }))
+      : printings.map((p) => ({ printingId: p.id, subjectId: p.identityId })),
+  }
 }
 
 /** Replace a game's projection in one transaction. `buildId` marks every row of this build. */

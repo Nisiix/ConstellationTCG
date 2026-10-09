@@ -17,8 +17,17 @@ export interface TCGDefinition {
   adapterKey: string
   /** Relationship types this adapter emits beyond the universal set. */
   relationshipTypes: string[]
-  /** Node types this adapter emits beyond the universal set. */
+  /**
+   * Node types this adapter emits beyond the universal set. Only entities of these kinds become
+   * points; other entity kinds stay card data (and filters).
+   */
   nodeTypes: NodeType[]
+  /**
+   * The entity relation that names what a card depicts (Pokémon: `SAME_POKEMON`). Sets that share
+   * subjects are related, and a card's counterpart in an earlier, similar set is the card with the
+   * same subject. Without it, a card's subject is its own name.
+   */
+  subjectRelation?: string
   /** Game-scoped filter definitions (values are computed by the filters package). */
   filters: FilterDefinition[]
   /** Visual theme: brand colors for contours, neutral backgrounds per mode. */
@@ -151,6 +160,11 @@ export interface RelationshipContext {
   identityNodeIdByName: (normalizedName: string) => string | null
   /** Lookup of an entity node id in the same game by kind and key. */
   entityNodeIdByKey: (kind: EntityKind, key: string) => string | null
+  /**
+   * The printings of this printing's own set whose card has this normalized name (e.g. the set's
+   * Charmeleon, for its Charizard). Empty when the set has none.
+   */
+  setPrintingNodeIdsByName?: (normalizedName: string) => string[]
 }
 
 export interface ListCardsOptions {

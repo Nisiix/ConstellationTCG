@@ -8,28 +8,26 @@ export const RELATIONSHIP_WEIGHTS: Record<string, number> = {
   EVOLVES_FROM: 0.9,
   EVOLUTION_OF: 0.9,
   ILLUSTRATED_BY: 0.8,
-  HAS_TYPE: 0.5,
-  HAS_ATTRIBUTE: 0.3,
-  WEAK_TO: 0.3,
-  RESISTS: 0.3,
 }
 
 /**
- * Entity links that become edges. Stale links of other kinds (attacks or abilities from an older
- * ingestion) are ignored: card statistics are data, never connections.
+ * Entity links that become edges: only the Pokémon a card shows. Energy types, weaknesses,
+ * resistances, attacks and abilities stay card data (and filters): two cards are not related
+ * because both are Fire, nor because both sit in the same set.
  */
-const ENTITY_RELATIONS = new Set(['SAME_POKEMON', 'HAS_TYPE', 'WEAK_TO', 'RESISTS', 'HAS_ATTRIBUTE'])
+const ENTITY_RELATIONS = new Set(['SAME_POKEMON'])
 
 /**
- * Relationships for one printing. Universal catalog edges (set → series → game) are emitted by
- * the core graph builder; this builder adds everything the adapter knows:
+ * Relationships for one printing. Universal catalog edges (set → series → game, reprints, set
+ * similarity, counterparts in earlier sets) are emitted by the core graph builder; this builder
+ * adds everything the adapter knows:
  *
  *   printing → set            BELONGS_TO
  *   printing → identity       PRINTING_OF
  *   printing → artist         ILLUSTRATED_BY
  *   printing → pokemon        SAME_POKEMON
- *   printing → attribute      HAS_TYPE / WEAK_TO / RESISTS / HAS_ATTRIBUTE
- *   printing → identity       EVOLVES_FROM   (the pre-evolution's identity)
+ *   printing → printing       EVOLVES_FROM   (the pre-evolution printed in the same set)
+ *   printing → identity       EVOLVES_FROM   (when the set does not print the pre-evolution)
  *   identity → identity       EVOLUTION_OF   (identity-level evolution line)
  */
 export function buildRelationships(ctx: RelationshipContext): GraphRelationship[] {
@@ -62,9 +60,14 @@ export function buildRelationships(ctx: RelationshipContext): GraphRelationship[
 
   const evolveFrom = printing.attributes.evolveFrom
   if (typeof evolveFrom === 'string' && evolveFrom.trim()) {
-    const preIdentity = ctx.identityNodeIdByName(normalizeName(evolveFrom))
+    const name = normalizeName(evolveFrom)
+    const preIdentity = ctx.identityNodeIdByName(name)
     if (preIdentity && preIdentity !== printing.identityNodeId) {
-      add(printing.nodeId, 'EVOLVES_FROM', preIdentity, { evolveFrom })
+      // The evolution line inside the expansion in hand comes first: Base Set's Charizard evolves
+      // from Base Set's Charmeleon. Elsewhere, from the card in general.
+      const inSet = (ctx.setPrintingNodeIdsByName?.(name) ?? []).filter((id) => id !== printing.nodeId)
+      if (inSet.length > 0) for (const target of inSet) add(printing.nodeId, 'EVOLVES_FROM', target, { evolveFrom })
+      else add(printing.nodeId, 'EVOLVES_FROM', preIdentity, { evolveFrom })
       add(printing.identityNodeId, 'EVOLUTION_OF', preIdentity, { evolveFrom })
     }
   }

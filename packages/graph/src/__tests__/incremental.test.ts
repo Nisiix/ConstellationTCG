@@ -53,7 +53,7 @@ describe('resumable graph build', () => {
     const expectedNodes = nodeSnapshot(await database.db.select().from(graphNodes))
     const expectedEdges = edgeSnapshot(await database.db.select().from(graphEdges))
     expect(expectedNodes.length).toBeGreaterThan(250)
-    expect(expectedEdges.length).toBeGreaterThan(500)
+    expect(expectedEdges.length).toBeGreaterThan(400)
 
     await database.db.delete(graphNodes)
     expect(await database.db.select().from(graphEdges)).toHaveLength(0)
@@ -62,6 +62,7 @@ describe('resumable graph build', () => {
     expect(steps.filter((s) => s.kind === 'identities').length).toBeGreaterThan(1)
     expect(steps.filter((s) => s.kind === 'printings')).toHaveLength(1)
     expect(steps.filter((s) => s.kind === 'reprints').length).toBeGreaterThan(1)
+    expect(steps.at(-2)?.kind).toBe('similarity')
     expect(steps.at(-1)?.kind).toBe('finish')
 
     const nodes = await database.db.select().from(graphNodes)

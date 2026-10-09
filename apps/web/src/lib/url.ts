@@ -2,6 +2,14 @@ import { MAX_GRAPH_DEPTH, parseNodeId } from '@constellation/domain'
 
 export type ViewMode = '3d' | 'list'
 
+/**
+ * A page opened over the explorer, with its own address so Back returns to where it was opened:
+ * the focus's details, or every connection of one kind (of the focus, or of `of`).
+ */
+export type ExplorePanel =
+  | { kind: 'details' }
+  | { kind: 'list'; relationshipType: string; direction: 'out' | 'in'; of: string | null }
+
 export interface ExploreParams {
   node: string | null
   depth: number
@@ -13,6 +21,19 @@ export interface ExploreParams {
   path: [string, string] | null
   /** How far the path search goes when asked to search further (`max=8`); null = default (6). */
   pathMax: number | null
+  /** A page over the explorer (`panel=details`, `panel=list&rel=…&dir=…[&of=…]`); null = none. */
+  panel: ExplorePanel | null
+}
+
+function parsePanel(params: URLSearchParams): ExplorePanel | null {
+  const panel = params.get('panel')
+  if (panel === 'details') return { kind: 'details' }
+  if (panel !== 'list') return null
+  const relationshipType = params.get('rel') ?? ''
+  const direction = params.get('dir')
+  if (!/^[A-Z][A-Z_]{0,63}$/.test(relationshipType) || (direction !== 'out' && direction !== 'in')) return null
+  const of = params.get('of')
+  return { kind: 'list', relationshipType, direction, of: of && parseNodeId(of) ? of : null }
 }
 
 export const DEFAULT_GAME = 'pokemon'
@@ -42,6 +63,7 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
     filters,
     path,
     pathMax,
+    panel: parsePanel(params),
   }
 }
 
@@ -60,6 +82,13 @@ export function buildExploreUrl(params: Partial<ExploreParams>): string {
   if (params.path) {
     search.set('path', params.path.join(','))
     if (params.pathMax) search.set('max', String(params.pathMax))
+  }
+  if (params.panel?.kind === 'details') search.set('panel', 'details')
+  if (params.panel?.kind === 'list') {
+    search.set('panel', 'list')
+    search.set('rel', params.panel.relationshipType)
+    search.set('dir', params.panel.direction)
+    if (params.panel.of) search.set('of', params.panel.of)
   }
   const query = search.toString()
   return query ? `/explore?${query}` : '/explore'
