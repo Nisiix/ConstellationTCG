@@ -21,6 +21,9 @@ import { NodeImage } from '../ui/NodeImage'
 import { OwnButton } from '../ui/OwnButton'
 import { ConnectTo } from '../ui/ConnectTo'
 import { ConnectionList } from '../ui/ConnectionList'
+import { LandmarksButton } from '../ui/LandmarksView'
+import { LineageButton } from '../ui/LineageView'
+import { useTimeStore } from '@/state/time-store'
 
 type Go = (id: string, follow?: boolean) => (e: React.MouseEvent) => void
 
@@ -61,6 +64,9 @@ export function RelationshipList() {
   const filtered = useGraphStore((s) => s.filtered)
   const other = useOtherPrintings(focus)
   const [copied, setCopied] = useState(false)
+  const hiddenInTime = useTimeStore((s) => s.hidden)
+  const freshInTime = useTimeStore((s) => s.fresh)
+  const year = useTimeStore((s) => s.year)
 
   const current = navigation.current
   const hrefFor = (nodeId: string) => buildExploreUrl({ ...current, path: null, pathMax: null, panel: null, node: nodeId, depth: 1 })
@@ -78,8 +84,10 @@ export function RelationshipList() {
     const byRelease = (a: GraphNode, b: GraphNode) =>
       String(b.metadata.releaseDate ?? '').localeCompare(String(a.metadata.releaseDate ?? '')) || a.label.localeCompare(b.label)
     // Expansions from the most recent to the oldest.
-    const series = nodes.filter((n) => n.nodeType === 'series').sort(byRelease)
-    const sets = nodes.filter((n) => n.nodeType === 'set').sort(byRelease)
+    // Under the time cursor: only what was out by then.
+    const inTime = (n: GraphNode) => !hiddenInTime.has(n.id)
+    const series = nodes.filter((n) => n.nodeType === 'series' && inTime(n)).sort(byRelease)
+    const sets = nodes.filter((n) => n.nodeType === 'set' && inTime(n)).sort(byRelease)
     const seriesOfSet = new Map<string, string>()
     for (const e of edges) if (e.relationshipType === 'PART_OF') seriesOfSet.set(e.sourceNodeId, e.targetNodeId)
     const bySeries = new Map<string, GraphNode[]>()
@@ -89,11 +97,15 @@ export function RelationshipList() {
       list.push(set)
       bySeries.set(key, list)
     }
-    return { series, bySeries, orphanSets: bySeries.get('other') ?? [] }
-  }, [isUniverse, nodes, edges])
+    return { series, bySeries, orphanSets: bySeries.get('other') ?? [], fresh: sets.filter((s) => freshInTime.has(s.id)) }
+  }, [isUniverse, nodes, edges, hiddenInTime, freshInTime])
 
   // Two or three steps away, sectioned by the direct connection that leads there.
-  const farSections = useMemo(() => (focus ? groupFarNodes(nodes, edges, distances, focus.id) : []), [focus, nodes, edges, distances])
+  const farSections = useMemo(() => {
+    if (!focus) return []
+    const shown = hiddenInTime.size ? nodes.filter((n) => !hiddenInTime.has(n.id)) : nodes
+    return groupFarNodes(shown, edges, distances, focus.id)
+  }, [focus, nodes, edges, distances, hiddenInTime])
 
   if (!focus) return null
 
@@ -132,7 +144,7 @@ export function RelationshipList() {
   const meta = [hasHeadline ? null : focus.subtitle, truncated ? 'partial' : null, filtered ? 'filtered' : null].filter(Boolean).join(' · ')
 
   return (
-    <main id="relationship-list" aria-label="List view" className="scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pb-24 pt-3">
+    <main id="relationship-list" aria-label="List view" className={`scroll-thin absolute inset-x-0 bottom-0 top-16 z-10 overflow-y-auto px-4 pt-3 ${year !== null ? 'pb-40' : 'pb-24'}`}>
       <div className="mx-auto w-full max-w-6xl">
         {isUniverse && universe ? (
           <>
@@ -150,10 +162,22 @@ export function RelationshipList() {
                   </p>
                 </div>
               </div>
-              <button type="button" onClick={share} className="btn btn-ghost flex-none">
-                {copied ? 'Link copied' : 'Share'}
-              </button>
+              <div className="flex flex-none items-center gap-1">
+                <LandmarksButton />
+                <button type="button" onClick={share} className="btn btn-ghost">
+                  {copied ? 'Link copied' : 'Share'}
+                </button>
+              </div>
             </header>
+            {year !== null ? (
+              <section className="panel fade-up mt-3 p-4" aria-label={`New in ${year}`}>
+                <h2 className="serif mb-2 text-[18px]">
+                  New in {year} <span className="count align-middle">{universe.fresh.length}</span>
+                </h2>
+                {universe.fresh.length === 0 ? <p className="text-[13px] text-ink-dim">No new expansion that year.</p> : null}
+                <ChipList nodes={universe.fresh} hrefFor={hrefFor} go={go} limit={40} label={(set) => withDate(set.label, set.metadata.releaseDate)} />
+              </section>
+            ) : null}
             <UniverseCatalog
               series={universe.series}
               bySeries={universe.bySeries}
@@ -189,6 +213,7 @@ export function RelationshipList() {
               )}
               <div className="mb-3 flex flex-wrap items-start gap-2">
                 <OwnButton node={focus} />
+                <LineageButton node={focus} />
                 <ConnectTo node={focus} className="min-w-0 flex-1" />
               </div>
               {focus.imageUrl ? (
@@ -306,13 +331,14 @@ function Collapsible({ label, children }: { label: string; children: React.React
 function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; onClick: (e: React.MouseEvent) => void; label?: string }) {
   const colorOf = useNodeColor()
   const owned = useOwnershipStore((s) => s.ownedNodeIds.has(node.id))
+  const fresh = useTimeStore((s) => s.fresh.has(node.id))
   const element = elementOfNode(node)
   const logo = node.nodeType === 'set' || node.nodeType === 'series' || node.nodeType === 'game'
   return (
     <a
       href={href}
       onClick={onClick}
-      className={`chip max-w-full text-[13px] ${owned ? 'chip-owned' : ''}`}
+      className={`chip max-w-full text-[13px] ${owned ? 'chip-owned' : fresh ? 'chip-fresh' : ''}`}
       title={chipTitle(node, owned)}
     >
       <NodeImage
@@ -324,6 +350,7 @@ function Chip({ node, href, onClick, label }: { node: GraphNode; href: string; o
         placeholder={element ? <ElementIcon element={element} size={15} /> : <span className="dot" style={{ color: colorOf(node.nodeType) }} aria-hidden />}
       />
       <span className="truncate">{label ?? node.label}</span>
+      {fresh ? <span className="fresh-mark">new</span> : null}
     </a>
   )
 }

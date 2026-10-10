@@ -79,6 +79,10 @@ dal ticket 09. Restano solo lavori del proprietario e una misura:
 - ~~**Tastiera lungo il filo**~~ (10 ottobre, valore di partenza rivedibile): `[` indietro e `]`
   avanti lungo il filo, senza aggiungere passi; un nuovo focus dopo la camminata torna ad
   allungarlo. Il pannello "Your thread" segna il passo in vista.
+- ~~**Il cielo nel tempo, genealogia, punti cardine**~~ (10 ottobre, chiesti dal proprietario):
+  `year=` per il cielo alla fine di un anno (Play scorre gli anni), `lens=lineage` per la
+  genealogia di un Pokémon (linea evolutiva, stampe lungo il tempo, artisti), `lens=landmarks` per
+  i punti cardine con la loro ragione; in 3D e in List. Vedi lo stato di implementazione.
 - **Cammini sul catalogo completo**: l'algoritmo è scelto (ticket 03); le misure reali (frontiera
   per salto, freddo su Vercel, indice stantio dopo `graph:build`) aspettano l'import (ticket 01) e
   si fanno nel prototipo 08.
@@ -89,6 +93,5 @@ dal ticket 09. Restano solo lavori del proprietario e una misura:
 
 - **Carte ponte** e **cieli condivisi**: definizioni accettate e nel glossario, ma non sono la
   destinazione di questa fase (risposta Q12: un grafo navigabile, non funzionalità a sé).
-- **Il cielo nel tempo** (cursore sulla data di uscita).
 - **Secondo TCG** (TCGdex copre solo Pokémon: servirà un'altra fonte), **OpenSea** e **Phygitals**
   (chiavi API), **Firecrawl**.

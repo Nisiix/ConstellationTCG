@@ -15,6 +15,12 @@ export const animatedPositions = new Map<string, Vec3>()
 export const displayPositions = new Map<string, Vec3>()
 export const displayScales = new Map<string, number>()
 
+/**
+ * How present each point is in time (0 = not yet in the sky at the cursor, 1 = there), eased so
+ * points grow in and fade out as the years pass. Written by NodeRenderer; edges read it.
+ */
+export const timePresence = new Map<string, number>()
+
 /** Timestamp (ms, performance.now) of the last neighborhood change — drives reveal animations. */
 export const revealClock = { startedAt: 0, revision: -1 }
 

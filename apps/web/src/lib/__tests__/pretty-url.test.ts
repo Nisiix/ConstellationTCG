@@ -56,6 +56,8 @@ describe('pretty paths', () => {
     path: null,
     pathMax: null,
     panel: null,
+  year: null,
+  lens: null,
   }
 
   it('addresses printings and sets, nothing else', () => {

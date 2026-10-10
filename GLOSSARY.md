@@ -84,3 +84,16 @@ built.
 **Shared sky** (`cielo condiviso`) — A person's My Constellation made visible to others through a
 read-only, revocable link, under a chosen name: gold points and lines on the public sky, no list,
 no quantities, no email, no wallet address. Opt-in per sky. Defined, not yet built.
+
+**Sky in time** (`cielo nel tempo`; `year=`) — The sky as it stood at the end of a year: what came
+out later steps away, what came out that year is marked new. A point without a date of its own
+arrives with its earliest dated connection on screen.
+
+**Genealogy** (`genealogia`; `lens=lineage`) — The life of a subject (a Pokémon) through the
+catalog: its evolution line, every expansion it was printed in along time, the artists who drew it.
+Opened from the subject or from any card that shows it.
+
+**Landmark** (`punto cardine`; `lens=landmarks`) — A point worth knowing first, named with the
+reason it stands out (where an era began, a crossroads of expansions, a card printed again and
+again, a Pokémon that always returns, an artist across eras). Read from the relationships, never
+from statistics or prices.

@@ -76,6 +76,28 @@ by default and 8 at most; no path within it is a 200 with `found: false` and `re
 (`'different-games'` when the ends belong to different games). 400 for malformed ids, 404 for
 unknown ones.
 
+## `GET /api/graph/lineage/:nodeId`
+
+The genealogy of a subject (Pokémon: a species), opened from the species, from a card that shows it
+or from one of its printings; a card that shows no subject (a Trainer) gets the lineage of the card
+itself. `{ from, subject, family: [{ node, stage, evolvesFrom }], printings, eras: [{ series, sets:
+[{ set, printings, year }] }], artists: [{ node, count, firstYear, lastYear }], first, latest,
+printingCount, setCount, truncated, edges }`. The family comes from the identity-level
+`EVOLUTION_OF` edges mapped to subjects (base first, `stage` 0); printings oldest first (at most
+400, `truncated` says when there are more); eras and their sets newest first; edges are the real
+ones among the points (`BELONGS_TO`, `PART_OF`, `ILLUSTRATED_BY`, `REPRINT_OF`) plus the family's
+evolution edges and the debut (first printing → subject). 400 for a set, series, artist or game.
+
+## `GET /api/graph/landmarks?game=pokemon`
+
+The landmarks of a game's sky, read from the relationships only: `{ game, categories: [{ id,
+title, description, relationshipType, items: [{ node, value, reason }] }] }` with up to six items
+per category: `eras` (the first set of each series, newest first), `crossroads` (sets with the most
+bridges to other sets), `most-printed` (cards printed in the most expansions, energies aside),
+`subjects` (what the cards show, in the most expansions), `artists` (artists across the most
+series). `reason` is one readable sentence ("Printed in 23 expansions, 1999–2024"). 404 for a game
+that is not in the graph.
+
 ## `GET /api/filters?game=pokemon`
 
 `{ game, filters: FilterDefinition[] }` — universal filters (series, set, rarity, language, artist,
@@ -171,6 +193,14 @@ view and filters along:
   longest known set slug ending the middle part, so multi-word names and sets both work;
 - `/card/pokemon/base1-4` — the source's own id of the printing;
 - `/set/pokemon/base-set` (or `/set/pokemon/base1`).
+
+Two more parameters change what the explorer shows, and travel with Share:
+
+- `year=1999`: the sky as it stood at the end of a year (the time cursor). Points dated after it are
+  hidden, those of that year are marked new; a point without a date of its own (an artist, a
+  Pokémon) arrives with its earliest dated connection on screen. Works on every view.
+- `lens=lineage` (with `node`): the genealogy of that point; `lens=landmarks`: the landmarks. A path
+  (`path=`) wins over a lens.
 
 Unknown slugs land on the explorer's universe with `?missing=<slug>`. The Share button copies the
 readable form for printings and sets.

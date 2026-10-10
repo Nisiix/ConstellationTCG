@@ -20,12 +20,21 @@ export interface GraphStoreState {
   /** Increments on every neighborhood change; renderers use it to restart reveal animations. */
   revision: number
   isUniverse: boolean
+  /** The dedicated view on screen (its points are laid out by the view, not by the force layout). */
+  lens: 'lineage' | 'landmarks' | null
 
   setLoading(): void
   setError(message: string): void
   setNeighborhood(
     neighborhood: GraphNeighborhood,
-    extra?: { summary?: RelationshipSummary[]; filtered?: boolean; isUniverse?: boolean },
+    extra?: {
+      summary?: RelationshipSummary[]
+      filtered?: boolean
+      isUniverse?: boolean
+      /** Positions decided by a dedicated view (a lineage along time, the landmarks around the game). */
+      positions?: Map<string, Vec3>
+      lens?: 'lineage' | 'landmarks' | null
+    },
   ): void
   select(nodeId: string | null): void
   nodeById(id: string): GraphNode | undefined
@@ -46,18 +55,15 @@ export const useGraphStore = create<GraphStoreState>((set, get) => ({
   error: null,
   revision: 0,
   isUniverse: false,
+  lens: null,
 
   setLoading: () => set({ status: 'loading', error: null }),
   setError: (message) => set({ status: 'error', error: message }),
   setNeighborhood: (neighborhood, extra = {}) => {
     const previous = get().positions
-    const positions = computeLayout(
-      neighborhood.nodes,
-      neighborhood.edges,
-      neighborhood.meta.distances,
-      neighborhood.focus.id,
-      previous,
-    )
+    const positions =
+      extra.positions ??
+      computeLayout(neighborhood.nodes, neighborhood.edges, neighborhood.meta.distances, neighborhood.focus.id, previous)
     set((state) => ({
       focusNodeId: neighborhood.focus.id,
       nodes: neighborhood.nodes,
@@ -72,6 +78,7 @@ export const useGraphStore = create<GraphStoreState>((set, get) => ({
       error: null,
       revision: state.revision + 1,
       isUniverse: extra.isUniverse ?? false,
+      lens: extra.lens ?? null,
       selectedNodeId: null,
     }))
   },

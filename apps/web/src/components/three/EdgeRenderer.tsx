@@ -7,7 +7,7 @@ import { edgeColor, useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
 import { useUiStore } from '@/state/ui-store'
-import { drawnPosition, easeOutCubic, revealClock } from './animated'
+import { drawnPosition, easeOutCubic, revealClock, timePresence } from './animated'
 
 const tmpColor = new THREE.Color()
 
@@ -86,7 +86,9 @@ export function EdgeRenderer() {
         (touchesHover ? 1.15 : highlighted ? 1.05 : touchesFocus ? 0.85 * breathe : ends === 2 ? 0.7 : d >= 2 ? 0.18 : 0.42) *
         ownedBoost *
         progress *
-        (dimmed ? 0.22 : 1)
+        (dimmed ? 0.22 : 1) *
+        // A line exists in time once both of its points do.
+        Math.min(timePresence.get(edge.sourceNodeId) ?? 1, timePresence.get(edge.targetNodeId) ?? 1)
       const r = base[i * 3] ?? 0
       const g = base[i * 3 + 1] ?? 0
       const b = base[i * 3 + 2] ?? 0

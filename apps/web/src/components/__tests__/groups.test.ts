@@ -78,4 +78,16 @@ describe('relationship groups', () => {
     const { groups } = buildRelationshipGroups('series:base', [series], [], [{ relationshipType: 'PART_OF', direction: 'out', count: 1 }])
     expect(groups).toEqual([])
   })
+
+  it('leaves out what is not in the sky yet at the time cursor, and counts only what it lists', () => {
+    const later = node('p:2', 'card_printing')
+    const { groups } = buildRelationshipGroups(
+      'set:base1',
+      [set, series, card, later],
+      [...edges, edge('p:2', 'BELONGS_TO', 'set:base1')],
+      [{ relationshipType: 'BELONGS_TO', direction: 'in', count: 102 }],
+      new Set(['p:2']),
+    )
+    expect(groups.map((g) => [g.label, g.total, g.items.map((i) => i.node.id)])).toEqual([['Cards', 1, ['p:1']]])
+  })
 })

@@ -10,6 +10,16 @@ export type ExplorePanel =
   | { kind: 'details' }
   | { kind: 'list'; relationshipType: string; direction: 'out' | 'in'; of: string | null }
 
+/**
+ * A dedicated view over the sky: the lineage of the point in hand (`lens=lineage`) or the
+ * landmarks of the game (`lens=landmarks`).
+ */
+export type ExploreLens = 'lineage' | 'landmarks'
+
+/** The years the time cursor accepts. */
+export const TIME_MIN_YEAR = 1990
+export const TIME_MAX_YEAR = 2100
+
 export interface ExploreParams {
   node: string | null
   depth: number
@@ -23,6 +33,10 @@ export interface ExploreParams {
   pathMax: number | null
   /** A page over the explorer (`panel=details`, `panel=list&rel=…&dir=…[&of=…]`); null = none. */
   panel: ExplorePanel | null
+  /** The sky as it stood at the end of a year (`year=1999`); null = all of time. */
+  year: number | null
+  /** A dedicated view (`lens=lineage` on a point, `lens=landmarks`); null = the sky itself. */
+  lens: ExploreLens | null
 }
 
 function parsePanel(params: URLSearchParams): ExplorePanel | null {
@@ -53,6 +67,12 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
   const ends = (params.get('path') ?? '').split(',')
   const path: [string, string] | null =
     ends.length === 2 && parseNodeId(ends[0] ?? '') && parseNodeId(ends[1] ?? '') ? [ends[0]!, ends[1]!] : null
+  const yearRaw = Number(params.get('year'))
+  const year = Number.isInteger(yearRaw) && yearRaw >= TIME_MIN_YEAR && yearRaw <= TIME_MAX_YEAR ? yearRaw : null
+  const lensRaw = params.get('lens')
+  const nodeOk = Boolean(node && parseNodeId(node))
+  // A lineage needs a point; a path is a view of its own.
+  const lens: ExploreLens | null = path ? null : lensRaw === 'landmarks' ? 'landmarks' : lensRaw === 'lineage' && nodeOk ? 'lineage' : null
   const maxRaw = Number(params.get('max'))
   const pathMax = path && Number.isFinite(maxRaw) && maxRaw >= 1 ? Math.min(PATH_DEPTH_LIMIT, Math.floor(maxRaw)) : null
   return {
@@ -64,6 +84,8 @@ export function parseExploreParams(params: URLSearchParams): ExploreParams {
     path,
     pathMax,
     panel: parsePanel(params),
+    year,
+    lens,
   }
 }
 
@@ -83,6 +105,8 @@ export function buildExploreUrl(params: Partial<ExploreParams>): string {
     search.set('path', params.path.join(','))
     if (params.pathMax) search.set('max', String(params.pathMax))
   }
+  if (params.lens && !params.path && (params.lens === 'landmarks' || params.node)) search.set('lens', params.lens)
+  if (params.year) search.set('year', String(params.year))
   if (params.panel?.kind === 'details') search.set('panel', 'details')
   if (params.panel?.kind === 'list') {
     search.set('panel', 'list')

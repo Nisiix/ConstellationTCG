@@ -7,6 +7,7 @@ import { nodeColor, useSceneTheme } from '@/lib/theme'
 import type { ViewMode } from '@/lib/url'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
+import { useTimeStore } from '@/state/time-store'
 import { useUiStore } from '@/state/ui-store'
 import { useExploreNavigation } from '../navigation'
 
@@ -63,6 +64,10 @@ export function GraphHUD({ view }: { view: ViewMode }) {
   const navigation = useExploreNavigation()
   const depth = useGraphStore((s) => s.depth)
   const isUniverse = useGraphStore((s) => s.isUniverse)
+  const year = useTimeStore((s) => s.year)
+  const steps = useTimeStore((s) => s.steps)
+  const setPlaying = useTimeStore((s) => s.setPlaying)
+  const lens = navigation.current.lens
   const webgl = useUiStore((s) => s.webgl)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
 
@@ -80,8 +85,44 @@ export function GraphHUD({ view }: { view: ViewMode }) {
       </div>
 
       <div className="panel pill pointer-events-auto flex items-center gap-1 p-1 text-[13px]">
-        {!isUniverse ? (
-          <div className="flex items-center gap-1 pl-2 pr-1" role="group" aria-label="How far to explore">
+        <div className="flex items-center gap-1 pl-1 pr-1" role="group" aria-label="Ways to look">
+          <button
+            type="button"
+            aria-pressed={year !== null}
+            disabled={steps.length === 0 && year === null}
+            onClick={() => {
+              if (year !== null) {
+                setPlaying(false)
+                navigation.setYear(null)
+              } else if (steps[0] !== undefined) {
+                navigation.setYear(steps[0])
+                setPlaying(true)
+              }
+            }}
+            className={`btn pill ${year !== null ? 'btn-on' : 'btn-quiet'}`}
+            title={steps.length === 0 ? 'Nothing on screen has a date' : year !== null ? 'Back to all of time (T)' : 'The sky through the years (T)'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 7.5V12l3 2" />
+            </svg>
+            <span className="hidden sm:inline">Time</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={lens === 'landmarks'}
+            onClick={() => (lens === 'landmarks' ? navigation.closeLens(null) : navigation.openLandmarks())}
+            className={`btn pill ${lens === 'landmarks' ? 'btn-on' : 'btn-quiet'}`}
+            title={lens === 'landmarks' ? 'Back to the whole sky' : 'The points worth knowing first, and why'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" />
+            </svg>
+            <span className="hidden sm:inline">Landmarks</span>
+          </button>
+        </div>
+        {!isUniverse && !lens ? (
+          <div className="flex items-center gap-1 border-l border-ink/10 pl-2 pr-1" role="group" aria-label="How far to explore">
             <span className="eyebrow mr-1 hidden sm:inline">Connections</span>
             {DEPTHS.map((d) => (
               <button key={d.value} type="button" aria-pressed={depth === d.value} onClick={() => navigation.setDepth(d.value)} className={`btn pill ${depth === d.value ? 'btn-on' : 'btn-quiet'}`} title={d.title}>

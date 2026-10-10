@@ -11,6 +11,7 @@ import { useSceneTheme } from '@/lib/theme'
 import { skyLabel } from '@/lib/sky-label'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
+import { useTimeStore } from '@/state/time-store'
 import { useUiStore } from '@/state/ui-store'
 import { displayScales, drawnPosition } from './animated'
 
@@ -44,16 +45,17 @@ export function Labels() {
   const distances = useGraphStore((s) => s.distances)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const hoveredNodeId = useUiStore((s) => s.hoveredNodeId)
+  const hiddenInTime = useTimeStore((s) => s.hidden)
 
   const labeled = useMemo(() => {
-    const near = nodes.filter((n) => n.id === focusNodeId || (distances[n.id] ?? 9) <= 1)
+    const near = nodes.filter((n) => !hiddenInTime.has(n.id) && (n.id === focusNodeId || (distances[n.id] ?? 9) <= 1))
     near.sort((a, b) => {
       if (a.id === focusNodeId) return -1
       if (b.id === focusNodeId) return 1
       return PRIORITY[a.nodeType] - PRIORITY[b.nodeType] || a.label.localeCompare(b.label)
     })
     return near.slice(0, MAX_LABELS)
-  }, [nodes, distances, focusNodeId])
+  }, [nodes, distances, focusNodeId, hiddenInTime])
 
   const hovered =
     hoveredNodeId && !labeled.some((n) => n.id === hoveredNodeId) ? nodes.find((n) => n.id === hoveredNodeId) : undefined

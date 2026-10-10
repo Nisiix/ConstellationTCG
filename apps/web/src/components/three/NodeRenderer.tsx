@@ -7,6 +7,7 @@ import { nodeRadius } from '@/lib/colors'
 import { nodeColor, useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useOwnershipStore } from '@/state/ownership-store'
+import { useTimeStore } from '@/state/time-store'
 import { useUiStore } from '@/state/ui-store'
 import { navigateTo } from '../navigation'
 import {
@@ -17,6 +18,7 @@ import {
   easeOutBack,
   revealClock,
   smoothing,
+  timePresence,
 } from './animated'
 
 const tmpObject = new THREE.Object3D()
@@ -44,6 +46,8 @@ export function NodeRenderer() {
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const owned = useOwnershipStore((s) => s.ownedNodeIds)
   const focusOnOwned = useOwnershipStore((s) => s.focusOnOwned && s.ownedNodeIds.size > 0)
+  const hiddenInTime = useTimeStore((s) => s.hidden)
+  const freshInTime = useTimeStore((s) => s.fresh)
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const contourRef = useRef<THREE.InstancedMesh>(null)
   const count = nodes.length
@@ -64,6 +68,8 @@ export function NodeRenderer() {
       const dimmed = highlight !== null ? !isFocus && !highlight.has(node.id) : focusOnOwned && !isFocus && !owned.has(node.id)
       tmpColor.set(owned.has(node.id) ? theme.ownership : nodeColor(theme, node.nodeType))
       if (isFocus) tmpColor.lerp(contrastColor, 0.25)
+      // What appeared in the year of the time cursor shines brighter.
+      else if (freshInTime.has(node.id)) tmpColor.lerp(contrastColor, 0.45)
       if (dimmed) tmpColor.lerp(backgroundColor, 0.72)
       contour.setColorAt(i, tmpColor)
       tmpColor.copy(fillColor)
@@ -72,7 +78,7 @@ export function NodeRenderer() {
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     if (contour.instanceColor) contour.instanceColor.needsUpdate = true
-  }, [nodes, focusNodeId, owned, focusOnOwned, count, theme, highlight])
+  }, [nodes, focusNodeId, owned, focusOnOwned, count, theme, highlight, freshInTime])
 
   // A new neighborhood: restart the reveal and let new points emerge from the focus.
   useEffect(() => {
@@ -93,6 +99,7 @@ export function NodeRenderer() {
         animatedPositions.delete(id)
         displayPositions.delete(id)
         displayScales.delete(id)
+        timePresence.delete(id)
       }
     }
   }, [nodes, revision, focusNodeId, positions])
@@ -125,7 +132,13 @@ export function NodeRenderer() {
       const hovered = node.id === hoveredNodeId
       const hover = hovered ? 1.3 : 1
       const ownership = owned.has(node.id) ? 1.25 : 1
-      const scale = Math.max(0.0001, base * reveal * hover * ownership * (isFocus ? pulse : 1))
+      // In time: points not yet in the sky shrink away, those of the cursor's year stand out.
+      const wanted = hiddenInTime.has(node.id) ? 0 : 1
+      const presence = timePresence.get(node.id) ?? wanted
+      const present = reducedMotion ? wanted : presence + (wanted - presence) * smoothing(Math.min(delta, 0.1), 7)
+      timePresence.set(node.id, present)
+      const fresh = freshInTime.has(node.id) ? 1.18 : 1
+      const scale = Math.max(0.0001, base * reveal * hover * ownership * fresh * present * (isFocus ? pulse : 1))
       // Gentle idle drift keeps the constellation alive without moving it anywhere.
       const drift = reducedMotion || isFocus ? 0 : 0.08 * Math.min(1, reveal)
       const x = cur[0] + drift * Math.sin(t * 0.9 + i * 1.7)

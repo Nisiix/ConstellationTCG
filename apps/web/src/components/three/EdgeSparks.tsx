@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { useSceneTheme } from '@/lib/theme'
 import { useGraphStore } from '@/state/graph-store'
 import { useUiStore } from '@/state/ui-store'
-import { drawnPosition, revealClock } from './animated'
+import { drawnPosition, revealClock, timePresence } from './animated'
 
 const MAX_SPARKS = 96
 
@@ -52,7 +52,8 @@ export function EdgeSparks() {
       // Sparks always flow outwards from the focus.
       const toId = edge.sourceNodeId === focusNodeId ? edge.targetNodeId : edge.sourceNodeId
       const to = drawnPosition(toId)
-      if (!to) {
+      // No spark towards a point that is not in the sky yet (the time cursor).
+      if (!to || (timePresence.get(toId) ?? 1) < 0.5) {
         positions[o] = positions[o + 1] = positions[o + 2] = 1e4
         continue
       }

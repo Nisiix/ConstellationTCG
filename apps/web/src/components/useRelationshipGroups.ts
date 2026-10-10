@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { compareCollectorNumbers, type GraphEdge, type GraphNode, type RelationshipSummary } from '@constellation/domain'
 import { RELATIONSHIP_ORDER, relationshipLabel } from '@/lib/colors'
 import { useGraphStore } from '@/state/graph-store'
+import { useTimeStore } from '@/state/time-store'
 
 export interface RelationshipGroup {
   key: string
@@ -63,6 +64,8 @@ export function buildRelationshipGroups(
   nodes: readonly GraphNode[],
   edges: readonly GraphEdge[],
   summary: readonly RelationshipSummary[],
+  /** Points not yet in the sky at the time cursor: left out, and the totals become what is listed. */
+  hiddenInTime: ReadonlySet<string> | null = null,
 ): { focus: GraphNode | null; groups: RelationshipGroup[] } {
   if (!focusNodeId) return { focus: null, groups: [] }
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -81,7 +84,7 @@ export function buildRelationshipGroups(
     } else continue
     if (hidden(edge.relationshipType, direction)) continue
     const other = byId.get(otherId)
-    if (!other) continue
+    if (!other || hiddenInTime?.has(otherId)) continue
     const key = `${edge.relationshipType}:${direction}`
     const group =
       groups.get(key) ??
@@ -96,7 +99,7 @@ export function buildRelationshipGroups(
     group.items.push({ node: other, weight: edge.weight, metadata: edge.metadata })
     groups.set(key, group)
   }
-  for (const s of summary) {
+  for (const s of hiddenInTime?.size ? [] : summary) {
     if (hidden(s.relationshipType, s.direction)) continue
     const key = `${s.relationshipType}:${s.direction}`
     const group = groups.get(key)
@@ -132,5 +135,9 @@ export function useRelationshipGroups(): { focus: GraphNode | null; groups: Rela
   const nodes = useGraphStore((s) => s.nodes)
   const edges = useGraphStore((s) => s.edges)
   const summary = useGraphStore((s) => s.summary)
-  return useMemo(() => buildRelationshipGroups(focusNodeId, nodes, edges, summary), [focusNodeId, nodes, edges, summary])
+  const hiddenInTime = useTimeStore((s) => s.hidden)
+  return useMemo(
+    () => buildRelationshipGroups(focusNodeId, nodes, edges, summary, hiddenInTime),
+    [focusNodeId, nodes, edges, summary, hiddenInTime],
+  )
 }

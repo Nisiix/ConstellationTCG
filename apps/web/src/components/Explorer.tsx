@@ -1,18 +1,23 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchPath, fetchUniverse, prefetchFocus } from '@/lib/api'
+import { ApiError, fetchFilters, fetchFocus, fetchGames, fetchLandmarks, fetchLineage, fetchPath, fetchUniverse, prefetchFocus } from '@/lib/api'
 import { connectionNodeTypes } from '@/lib/connections'
 import { detectWebGL, prefersReducedMotion } from '@/lib/env'
 import { applyThemeToDocument, clearThemeFromDocument } from '@/lib/theme'
+import { landmarksLayout, landmarksNeighborhood } from '@/lib/landmarks-view'
+import { lineageLayout, lineageNeighborhood } from '@/lib/lineage-view'
 import { neighbours, pathNeighborhood } from '@/lib/path-steps'
+import { nextStep, timeSteps, visibilityAt, yearsOf } from '@/lib/time'
 import { filtersKey } from '@/lib/url'
 import { useAccountStore } from '@/state/account-store'
 import { useCameraStore } from '@/state/camera-store'
 import { useCatalogStore } from '@/state/catalog-store'
 import { useGraphStore } from '@/state/graph-store'
+import { useLensStore } from '@/state/lens-store'
 import { usePathStore } from '@/state/path-store'
 import { useThreadStore } from '@/state/thread-store'
+import { useTimeStore } from '@/state/time-store'
 import { useUiStore } from '@/state/ui-store'
 import { RelationshipList } from './fallback/RelationshipList'
 import { setNavigator, useExploreNavigation } from './navigation'
@@ -23,16 +28,19 @@ import { FilterPanel } from './ui/FilterPanel'
 import { FocusPanel } from './ui/FocusPanel'
 import { GraphHUD } from './ui/GraphHUD'
 import { HelpOverlay } from './ui/HelpOverlay'
+import { LandmarksPage, LandmarksPanel } from './ui/LandmarksView'
+import { hasLineage, LineagePage, LineagePanel } from './ui/LineageView'
 import { LoadingState } from './ui/LoadingState'
 import { NodeTooltip } from './ui/NodeTooltip'
 import { PathPanel } from './ui/PathPanel'
 import { ThreadPanel } from './ui/ThreadPanel'
+import { TimeBar } from './ui/TimeBar'
 import { TopBar } from './ui/TopBar'
 import { WelcomeCard } from './ui/WelcomeCard'
 
 export function Explorer() {
   const navigation = useExploreNavigation()
-  const { node, depth, view, game, filters, path, pathMax } = navigation.current
+  const { node, depth, view, game, filters, path, pathMax, year, lens } = navigation.current
   const filterKey = filtersKey(filters)
   const pathKey = path ? `${path[0]},${path[1]},${pathMax ?? ''}` : null
 
@@ -79,16 +87,27 @@ export function Explorer() {
   const hydrateThread = useThreadStore((s) => s.hydrate)
   const recordThread = useThreadStore((s) => s.record)
   const pathFound = pathData?.found && pathKey ? pathData : null
+  const setLineage = useLensStore((s) => s.setLineage)
+  const setLandmarks = useLensStore((s) => s.setLandmarks)
+  const lineage = useLensStore((s) => s.lineage)
+  const graphLens = useGraphStore((s) => s.lens)
+  const playing = useTimeStore((s) => s.playing)
+  const steps = useTimeStore((s) => s.steps)
+  const setTime = useTimeStore((s) => s.setTime)
+  const setPlaying = useTimeStore((s) => s.setPlaying)
 
   // Wire the router into the module-level navigator used by canvas components. On a path, clicking
   // one of its points walks to that step instead of leaving the path.
   useEffect(() => {
     setNavigator((nodeId, options) => {
       if (pathFound?.nodes.some((n) => n.id === nodeId)) navigation.goTo(nodeId, { ...options, keepPath: true, replace: true })
+      // In a genealogy, the other members of the line open their own; anything else is explored.
+      else if (lens === 'lineage' && lineage?.family.some((m) => m.node.id === nodeId)) navigation.openLineage(nodeId)
       else navigation.goTo(nodeId, options)
     })
     return () => setNavigator(null)
-  }, [navigation.goTo, pathFound])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation.goTo, pathFound, lens, lineage])
 
   // The thread kept for this tab.
   useEffect(() => {
@@ -168,7 +187,21 @@ export function Explorer() {
         setNeighborhood(res, { summary: res.summary, filtered: res.filtered }),
       )
     let request: Promise<unknown>
-    if (path && pathKey) {
+    if (lens === 'lineage' && node) {
+      resetPath()
+      setLineage(null)
+      request = fetchLineage(node, controller.signal).then((res) => {
+        setLineage(res)
+        const hood = lineageNeighborhood(res)
+        setNeighborhood(hood, { positions: lineageLayout(res, hood), lens: 'lineage' })
+      })
+    } else if (lens === 'landmarks') {
+      resetPath()
+      request = fetchLandmarks(game, controller.signal).then((res) => {
+        setLandmarks(res)
+        setNeighborhood(landmarksNeighborhood(res), { positions: landmarksLayout(res), lens: 'landmarks' })
+      })
+    } else if (path && pathKey) {
       // The sky shows the whole path around the step in hand; no path: the first end, and the
       // panel says so and offers to search further.
       setPathLoading(pathKey)
@@ -191,14 +224,14 @@ export function Explorer() {
     })
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, depth, game, filterKey, pathKey, setLoading, setError, setNeighborhood])
+  }, [node, depth, game, filterKey, pathKey, lens, setLoading, setError, setNeighborhood])
 
   // Every new focus is a step of the thread (the universe is not a place, it is the overview).
   useEffect(() => {
     if (revision === 0 || !focusNodeId) return
-    const { isUniverse, positions, nodeById } = useGraphStore.getState()
+    const { isUniverse, lens: shown, positions, nodeById } = useGraphStore.getState()
     const focus = nodeById(focusNodeId)
-    if (!isUniverse && focus) recordThread(focus, positions)
+    if (!isUniverse && shown !== 'landmarks' && focus) recordThread(focus, positions)
   }, [revision, focusNodeId, recordThread])
 
   // Every new neighborhood triggers a camera flight to its focus.
@@ -208,6 +241,27 @@ export function Explorer() {
     setHighlight(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revision])
+
+  // The sky in time: the year in the URL, what it hides and what it marks as new, for every view.
+  const timeYears = useMemo(() => yearsOf(graphNodes, graphEdges), [graphNodes, graphEdges])
+  useEffect(() => {
+    setTime({ year, steps: timeSteps(timeYears), ...visibilityAt(timeYears, year, focusNodeId) })
+  }, [timeYears, year, focusNodeId, setTime])
+  // Playing walks the years that hold something, one at a time, and stops at the last.
+  useEffect(() => {
+    if (!playing) return
+    if (year === null) {
+      setPlaying(false)
+      return
+    }
+    const timer = setTimeout(() => {
+      const next = nextStep(steps, year)
+      if (next === null) setPlaying(false)
+      else navigation.setYear(next)
+    }, 1300)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, year, steps])
 
   // Preloading: once a neighborhood is on screen, warm the neighborhoods of its strongest direct
   // connections, so following one of them is instant. The focus flight hides the delay.
@@ -308,6 +362,31 @@ export function Explorer() {
         }
         return
       }
+      // T: the sky in time (from the first year, playing), or back to all of time.
+      if (event.key.toLowerCase() === 't') {
+        event.preventDefault()
+        if (year === null) {
+          const first = steps[0]
+          if (first !== undefined) {
+            navigation.setYear(first)
+            setPlaying(true)
+          }
+        } else {
+          setPlaying(false)
+          navigation.setYear(null)
+        }
+        return
+      }
+      // G: the genealogy of the point in hand (or back from it).
+      if (event.key.toLowerCase() === 'g' && focusNodeId) {
+        event.preventDefault()
+        if (lens === 'lineage') navigation.closeLens()
+        else {
+          const focus = useGraphStore.getState().nodeById(focusNodeId)
+          if (focus && hasLineage(focus)) navigation.openLineage(focus.id)
+        }
+        return
+      }
       if (event.key === '?') {
         event.preventDefault()
         toggleHelp()
@@ -341,6 +420,8 @@ export function Explorer() {
   })
 
   const listMode = effectiveView === 'list'
+  // A dedicated view replaces the focus panel (3D) and the list (List) once its data is on screen.
+  const lensShown = lens && graphLens === lens ? lens : null
 
   return (
     <div id="main" className="explorer-shell relative w-full bg-void" data-theme={theme.id} data-mode={theme.mode}>
@@ -348,12 +429,17 @@ export function Explorer() {
       <TopBar />
       {!listMode && webgl ? <ConstellationCanvas /> : null}
       {listMode && path ? <PathPanel variant="page" /> : null}
-      {listMode && !path ? <RelationshipList /> : null}
+      {listMode && lensShown === 'lineage' ? <LineagePage /> : null}
+      {listMode && lensShown === 'landmarks' ? <LandmarksPage /> : null}
+      {listMode && !path && !lens ? <RelationshipList /> : null}
       <FilterPanel />
       {!listMode && path ? <PathPanel variant="panel" /> : null}
-      {!listMode && !path ? <FocusPanel /> : null}
+      {!listMode && lensShown === 'lineage' ? <LineagePanel /> : null}
+      {!listMode && lensShown === 'landmarks' ? <LandmarksPanel /> : null}
+      {!listMode && !path && !lens ? <FocusPanel /> : null}
       <ThreadPanel />
-      {!listMode ? <WelcomeCard /> : null}
+      {!listMode && !lens ? <WelcomeCard /> : null}
+      <TimeBar />
       <GraphHUD view={effectiveView} />
       {!listMode ? <NodeTooltip /> : null}
       <HelpOverlay />

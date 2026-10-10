@@ -44,6 +44,14 @@ export interface ExploreNavigation {
   openPanel(panel: ExplorePanel): void
   /** Back from that page to the explorer it was opened on. */
   closePanel(): void
+  /** The sky at the end of a year, or all of time (null). Replaces the entry: playing does not fill history. */
+  setYear(year: number | null): void
+  /** The lineage of a point (a Pokémon, or the Pokémon a card shows). */
+  openLineage(nodeId?: string, options?: { replace?: boolean }): void
+  /** The landmarks of the game. */
+  openLandmarks(): void
+  /** Back to the sky from a dedicated view, on a point (the one in hand by default). */
+  closeLens(nodeId?: string | null): void
 }
 
 /**
@@ -83,6 +91,7 @@ export function useExploreNavigation(): ExploreNavigation {
         node: nodeId,
         depth: options.depth ?? 1,
         panel: null,
+        lens: null,
         ...(options.keepPath ? {} : { path: null, pathMax: null }),
       })
       if (options.replace) router.replace(url)
@@ -93,7 +102,7 @@ export function useExploreNavigation(): ExploreNavigation {
 
   const goUniverse = useCallback(() => {
     resetCamera()
-    router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null, panel: null }))
+    router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null, panel: null, lens: null }))
   }, [current, resetCamera, router])
 
   const setDepth = useCallback(
@@ -130,13 +139,13 @@ export function useExploreNavigation(): ExploreNavigation {
     },
     startPath: (from: string, to: string) => {
       flyTo(from, 'focus')
-      router.push(buildExploreUrl({ ...current, node: from, depth: 1, path: [from, to], pathMax: null, panel: null }))
+      router.push(buildExploreUrl({ ...current, node: from, depth: 1, path: [from, to], pathMax: null, panel: null, lens: null }))
     },
     searchFurther: () => {
       if (current.path) router.replace(buildExploreUrl({ ...current, pathMax: PATH_DEPTH_LIMIT }))
     },
     leavePath: (nodeId?: string) => {
-      router.push(buildExploreUrl({ ...current, node: nodeId ?? current.node, depth: 1, path: null, pathMax: null, panel: null }))
+      router.push(buildExploreUrl({ ...current, node: nodeId ?? current.node, depth: 1, path: null, pathMax: null, panel: null, lens: null }))
     },
     openPanel: (panel: ExplorePanel) => {
       panelOpenedHere = true
@@ -147,6 +156,25 @@ export function useExploreNavigation(): ExploreNavigation {
         panelOpenedHere = false
         router.back()
       } else router.replace(buildExploreUrl({ ...current, panel: null }))
+    },
+    setYear: (year: number | null) => router.replace(buildExploreUrl({ ...current, year })),
+    openLineage: (nodeId?: string, options: { replace?: boolean } = {}) => {
+      const node = nodeId ?? current.node
+      if (!node) return
+      resetCamera()
+      const url = buildExploreUrl({ ...current, node, depth: 1, path: null, pathMax: null, panel: null, lens: 'lineage' })
+      if (options.replace) router.replace(url)
+      else router.push(url)
+    },
+    openLandmarks: () => {
+      resetCamera()
+      router.push(buildExploreUrl({ ...current, node: null, depth: 1, path: null, pathMax: null, panel: null, lens: 'landmarks' }))
+    },
+    closeLens: (nodeId?: string | null) => {
+      const node = nodeId === undefined ? current.node : nodeId
+      if (node) flyTo(node, 'focus')
+      else resetCamera()
+      router.push(buildExploreUrl({ ...current, node, depth: 1, panel: null, lens: null }))
     },
   }
 }

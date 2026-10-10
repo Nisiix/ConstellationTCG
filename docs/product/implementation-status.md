@@ -442,3 +442,40 @@ trovava Pikachu (con Jungle, Mitsuhiro Arita ha 38 illustrazioni e la lista ne m
 3D ascoltava il font dopo che era già arrivato; il fixture "Base Set 2" è `base4` in TCGdex, non
 `base2` (che è Jungle).
 
+## Il cielo nel tempo, la genealogia, i punti cardine (10 ottobre 2026)
+
+Tre funzionalità della lista "proponibili" (2, 4 riformulata come genealogia di un Pokémon, e i
+punti cardine), tutte in 3D e in List, tutte con un indirizzo condivisibile.
+
+- **Il cielo nel tempo** (`year=` nell'URL, pulsante *Time* in basso a destra o `T`): il cielo
+  com'era alla fine di un anno. Ogni punto ha un anno (uscita, prima stampa); chi non ha una data
+  propria (artista, Pokémon) arriva con la prima connessione datata sullo schermo; il fuoco resta
+  sempre. *Play* scorre gli anni che contengono qualcosa, uno alla volta, senza far volare la
+  camera: nel cielo i punti crescono e svaniscono, quelli dell'anno brillano di più e le linee
+  esistono quando esistono entrambi gli estremi; in List spariscono dagli elenchi, quelli nuovi
+  hanno il segno *new* e l'universo mostra "New in <anno>". Funziona su ogni vista: universo,
+  carta, genealogia, cammino. Logica pura in `lib/time.ts`.
+- **Genealogia** (`lens=lineage`, pulsante *Genealogy* nel pannello di un Pokémon o di una carta, o
+  `G`; `GET /api/graph/lineage/:nodeId`, `packages/graph/src/lineage.ts`): la linea evolutiva in
+  alto (dalle `EVOLUTION_OF` fra identità, ricondotte ai Pokémon: Dark Charmeleon mostra
+  Charmeleon), tutte le espansioni in cui è stato stampato dalla più vecchia (a sinistra) alla più
+  recente, avvolte in un'elica quando sono molte, fino a 6 stampe per set, le serie sulla spina, gli
+  artisti in basso sotto gli anni in cui l'hanno disegnato. In List è una linea del tempo, più
+  recente prima, con tutte le stampe. Un altro membro della linea apre la sua genealogia; tutto il
+  resto riporta al cielo. Agnostica: la relazione del soggetto è quella dell'adapter
+  (`subjectRelation`); una carta senza soggetto (un Allenatore) ha la genealogia della carta.
+- **Punti cardine** (`lens=landmarks`, pulsante *Landmarks*; `GET /api/graph/landmarks`,
+  `landmarks.ts`): dove è cominciata ogni era (il primo set di ogni serie), gli incroci (i set con
+  più ponti), le carte stampate più volte (energie escluse), i Pokémon che tornano sempre, gli
+  artisti attraverso le ere; ognuno con una frase che dice perché. Nel cielo il gioco al centro e
+  ogni categoria una piccola costellazione attorno, legata al centro col colore della sua
+  relazione; in List una scheda per categoria.
+
+Le viste dedicate hanno posizioni proprie (non il layout a forze) e la camera inquadra tutto il
+disegno. Test: unitari nel pacchetto del grafo su Base Set + Jungle (famiglia e stadi, ere più
+recenti prima, carta senza soggetto, punti cardine e ragioni), unitari lato client (tempo, URL,
+layout delle viste, gruppi filtrati nel tempo) ed e2e (`e2e/lenses.spec.ts`: le API, la genealogia
+da una carta in List, i punti cardine, il tempo in List, le viste dedicate e `T` in 3D). Con le
+sole fixture del repo tutti i set sono del 1999: il cursore ha un anno solo finché non arriva
+l'import completo (o `base4`, Base Set 2, del 2000).
+

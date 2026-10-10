@@ -19,6 +19,8 @@ import { NodeBadge } from './NodeBadge'
 import { NodeImage } from './NodeImage'
 import { OwnButton } from './OwnButton'
 import { ConnectTo } from './ConnectTo'
+import { LandmarksButton } from './LandmarksView'
+import { hasLineage, LineageButton } from './LineageView'
 
 /** ` · 09-01-1999` when there is a date to show, nothing otherwise. */
 function dateSuffix(value: unknown): string {
@@ -106,7 +108,7 @@ export function FocusPanel() {
         </div>
         <h1 className="title-reveal text-[24px] leading-tight text-ink">{focus.label}</h1>
         {focus.subtitle && !(view === 'details' && hasHeadline) ? <p className="mt-0.5 text-[14px] text-ink-dim">{focus.subtitle}</p> : null}
-        {view === 'connections' && (details.length > 0 || isCard) ? (
+        {view === 'connections' && (details.length > 0 || isCard || hasLineage(focus)) ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button type="button" onClick={openDetails} className="btn btn-ghost pill text-[12.5px]" title="Open the details of this point">
               Details
@@ -115,6 +117,7 @@ export function FocusPanel() {
               </svg>
             </button>
             <OwnButton node={focus} />
+            <LineageButton node={focus} />
           </div>
         ) : null}
         {view === 'connections' && !isUniverse ? <ConnectTo node={focus} className="mt-3" /> : null}
@@ -166,6 +169,7 @@ export function FocusPanel() {
             ) : null}
           </p>
         ) : null}
+        {isUniverse ? <LandmarksButton className="mb-4" /> : null}
         {groups.length === 0 ? <p className="text-sm text-ink-dim">No connections yet.</p> : null}
         <div className="space-y-4">
           {groups.map((group, i) => (

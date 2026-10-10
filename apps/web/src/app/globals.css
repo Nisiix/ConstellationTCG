@@ -971,3 +971,73 @@ button:hover > .brand-orb {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ── the sky in time ── */
+.chip-fresh {
+  border-color: color-mix(in oklab, var(--c-brand-ink) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--c-primary) 35%, transparent);
+}
+
+.fresh-mark {
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--c-brand-ink) 60%, transparent);
+  padding: 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--c-brand-ink);
+}
+
+.time-range {
+  width: 100%;
+  accent-color: var(--c-primary);
+  cursor: pointer;
+}
+
+/* The years under the slider: a tick per year that holds something. */
+.time-ticks {
+  position: relative;
+  height: 6px;
+}
+
+.time-ticks span {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: color-mix(in oklab, var(--c-text) 22%, transparent);
+  transform: translateX(-1px);
+}
+
+.time-ticks span[data-on='true'] {
+  background: var(--c-primary);
+}
+
+/* A lineage read along time: a vertical rule with a dot per year. */
+.timeline {
+  position: relative;
+  padding-left: 22px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: color-mix(in oklab, var(--c-text) 14%, transparent);
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid var(--c-primary);
+  background: var(--c-bg);
+}

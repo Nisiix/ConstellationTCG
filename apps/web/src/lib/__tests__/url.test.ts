@@ -20,7 +20,25 @@ describe('explore url', () => {
       path: null,
       pathMax: null,
       panel: null,
+      year: null,
+      lens: null,
     })
+  })
+
+  it('round-trips the time cursor and the dedicated views, and drops what does not fit', () => {
+    const url = buildExploreUrl({ node: 'pokemon:charizard', lens: 'lineage', year: 1999 })
+    expect(url).toBe('/explore?node=pokemon%3Acharizard&lens=lineage&year=1999')
+    const parsed = parseExploreParams(new URLSearchParams(url.split('?')[1]))
+    expect(parsed.lens).toBe('lineage')
+    expect(parsed.year).toBe(1999)
+    expect(buildExploreUrl({ lens: 'landmarks' })).toBe('/explore?lens=landmarks')
+    // A lineage needs a point; a path is a view of its own; a year must be a plausible year.
+    expect(parseExploreParams(new URLSearchParams('lens=lineage')).lens).toBeNull()
+    expect(buildExploreUrl({ lens: 'lineage' })).toBe('/explore')
+    expect(parseExploreParams(new URLSearchParams('lens=landmarks&path=set:a,set:b')).lens).toBeNull()
+    expect(parseExploreParams(new URLSearchParams('lens=sideways')).lens).toBeNull()
+    expect(parseExploreParams(new URLSearchParams('year=12')).year).toBeNull()
+    expect(parseExploreParams(new URLSearchParams('year=1999.5')).year).toBeNull()
   })
 
   it('round-trips the page opened over the explorer, and drops a malformed one', () => {

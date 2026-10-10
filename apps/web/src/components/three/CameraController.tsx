@@ -41,6 +41,7 @@ export function CameraController() {
   const positions = useGraphStore((s) => s.positions)
   const revision = useGraphStore((s) => s.revision)
   const isUniverse = useGraphStore((s) => s.isUniverse)
+  const lens = useGraphStore((s) => s.lens)
   const reducedMotion = useUiStore((s) => s.reducedMotion)
   const flight = useRef<Flight | null>(null)
 
@@ -53,7 +54,10 @@ export function CameraController() {
     const radius = layoutRadius(positions, center)
     const frameDistance = clamp(radius * 1.3 + 8, 18, 95)
     // Following an edge keeps the current framing, but never so close that a hub overflows the view.
-    const distance = isUniverse
+    // A dedicated view (a lineage, the landmarks) is a picture to take in whole: frame all of it.
+    const distance = lens
+      ? clamp(radius * 2 + 8, 30, 160)
+      : isUniverse
       ? clamp(radius * 1.15 + 12, 36, 140)
       : mode === 'follow'
         ? clamp(Math.max(currentDistance, frameDistance * 0.8), 14, 80)

@@ -8,6 +8,8 @@ import type {
   TCGTheme,
 } from '@constellation/domain'
 import type { SearchHit } from '@constellation/search'
+import type { Landmarks } from './landmarks-view'
+import type { Lineage } from './lineage-view'
 import type { PathResponse } from './path-steps'
 
 export interface FocusResponse extends GraphNeighborhood {
@@ -259,4 +261,22 @@ export function connectionsUrl(
 /** One page of every connection of a kind (what a "Show all" page reads), cached like the graph. */
 export function fetchConnections(nodeId: string, options: Parameters<typeof connectionsUrl>[1], signal?: AbortSignal) {
   return cached<ConnectionsPage>(connectionsUrl(nodeId, options), signal)
+}
+
+export function lineageUrl(nodeId: string): string {
+  return `/api/graph/lineage/${encodeURIComponent(nodeId)}`
+}
+
+/** The lineage of a Pokémon, or of the Pokémon a card shows (cached like the other graph responses). */
+export function fetchLineage(nodeId: string, signal?: AbortSignal) {
+  return cached<Lineage>(lineageUrl(nodeId), signal)
+}
+
+export function landmarksUrl(game: string): string {
+  return `/api/graph/landmarks?game=${encodeURIComponent(game)}`
+}
+
+/** The landmarks of a game's sky. */
+export function fetchLandmarks(game: string, signal?: AbortSignal) {
+  return cached<Landmarks>(landmarksUrl(game), signal)
 }
