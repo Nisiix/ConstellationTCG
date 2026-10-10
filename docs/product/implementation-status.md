@@ -401,7 +401,7 @@ Grilling 05 e 06 chiusi con il proprietario (risposte nei ticket), prototipi 07 
 
 **Accettazione (ticket 09, stessa sera).** Filo e cammino sono "fatti" con: e2e del viaggio (anche
 fra due set diversi, su una fixture Base Set + Base Set 2 da generare con rete:
-`pnpm --filter @constellation/adapter-pokemon fixture:refresh base2`), questa sezione, l'help, e le
+`pnpm --filter @constellation/adapter-pokemon fixture:refresh base4`; in TCGdex Base Set 2 è `base4`, `base2` è Jungle), questa sezione, l'help, e le
 misure sul catalogo completo dentro i limiti accettati, **p95 ≤ 300 ms a caldo e ≤ 3 s a freddo,
 6 tappe (8 su richiesta)**, prese con `pnpm path:measure` dopo l'import. Un test di budget su un grafo
 sintetico della taglia del catalogo tiene d'occhio l'algoritmo in CI.

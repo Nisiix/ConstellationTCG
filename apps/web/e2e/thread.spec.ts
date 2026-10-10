@@ -97,12 +97,15 @@ async function printingIn(request: APIRequestContext, q: string, title: string, 
   return hit?.nodeId ?? null
 }
 
-/** Ticket 09: paths across sets need the second fixture (Base Set 2), committed from a machine with network. */
+/**
+ * Ticket 09: paths across sets need the Base Set 2 fixture, committed from a machine with network.
+ * TCGdex numbers it `base4` (`base2` is Jungle, which has no reprint of Base Set).
+ */
 test.describe('paths across sets (Base Set + Base Set 2)', () => {
   test.beforeEach(async ({ request }) => {
     const universe = (await (await request.get('/api/graph/universe?game=pokemon')).json()) as { nodes: Array<{ nodeType: string; label: string }> }
     const sets = universe.nodes.filter((n) => n.nodeType === 'set').map((n) => n.label)
-    test.skip(!sets.includes('Base Set 2'), 'Base Set 2 fixture not committed: pnpm --filter @constellation/adapter-pokemon fixture:refresh base2')
+    test.skip(!sets.includes('Base Set 2'), 'Base Set 2 fixture not committed: pnpm --filter @constellation/adapter-pokemon fixture:refresh base4')
   })
 
   test('a reprint is one step: Charizard (Base Set) → Charizard (Base Set 2)', async ({ request }) => {
@@ -153,17 +156,19 @@ test.describe('the thread', () => {
     await page.goto(`/explore?view=list&node=${encodeURIComponent(charizard)}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charizard')
 
-    // Charizard → its artist → one of the artist's cards → that card's set.
+    // Charizard → its artist → one of the artist's cards → that card's set. Charmander is printed in
+    // Base Set only and stays among the artist's first chips whether or not Base Set 2 is loaded
+    // (with it, the artist has 38 illustrations and the list shows the first 24).
     await page.getByRole('link', { name: /Mitsuhiro Arita/ }).first().click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mitsuhiro Arita')
-    await page.getByRole('link', { name: /^Pikachu/ }).first().click()
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pikachu')
-    await page.getByRole('link', { name: /^Base Set/ }).first().click()
+    await page.getByRole('link', { name: /^Charmander/ }).first().click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charmander')
+    await page.getByRole('link', { name: 'Base Set', exact: true }).first().click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Base Set')
 
     await page.getByRole('button', { name: 'Your thread · 4' }).click()
     const thread = page.getByRole('region', { name: 'Your thread' }).getByRole('listitem')
-    await expect(thread).toHaveText([/Charizard/, /Mitsuhiro Arita/, /Pikachu/, /Base Set/])
+    await expect(thread).toHaveText([/Charizard/, /Mitsuhiro Arita/, /Charmander/, /Base Set/])
 
     // Back to the first step: the focus returns there and the thread grows (it never resets).
     await thread.first().getByRole('button').click()

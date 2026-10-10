@@ -24,9 +24,11 @@ quando passano tutti questi criteri:**
      profondità → "Search further" (già verdi);
    - **due carte di set diversi** e **una ristampa in un passo**: girano su una **fixture a due set
      nel repository** (Base Set + Base Set 2, dati TCGdex veri), così la CI resta offline. Il server
-     e2e carica `base2` se è presente; finché non c'è, i due test vengono saltati con il comando da
+     e2e carica `base4` se è presente; finché non c'è, i due test vengono saltati con il comando da
      eseguire. La fixture va generata da una macchina con rete (gli agenti non raggiungono TCGdex):
-     `pnpm --filter @constellation/adapter-pokemon fixture:refresh base2`, poi commit.
+     `pnpm --filter @constellation/adapter-pokemon fixture:refresh base4`, poi commit.
+     Attenzione: in TCGdex Base Set 2 è **`base4`**; `base2` è Jungle (la fixture `base2` già nel
+     repository è Jungle: utile per gli artisti fra set, ma non ha ristampe del Base Set).
 2. **Frase nel documento di stato** e **voce nell'help**: presenti (`docs/product/implementation-status.md`,
    `apps/web/src/lib/help-content.ts`).
 3. **Limiti di prestazione** (lato server):

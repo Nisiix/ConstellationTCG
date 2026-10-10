@@ -175,13 +175,16 @@ test.describe('the sky (3D)', () => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     const nodeId = await charizardPrintingId(request)
+    // Listen before navigating: the font can arrive before the canvas is even checked.
+    const fontLoaded = page.waitForResponse((r) => r.url().endsWith('/fonts/Figtree-Medium.ttf') && r.ok(), { timeout: 30_000 })
+    fontLoaded.catch(() => {}) // skipped without WebGL: never an unhandled rejection
     await page.goto(`/explore?node=${encodeURIComponent(nodeId)}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charizard')
     const webgl = await page.evaluate(() => Boolean(document.createElement('canvas').getContext('webgl2')))
     test.skip(!webgl, 'no WebGL in this browser: the explorer falls back to the list view')
     await expect(page.locator('canvas')).toHaveCount(1)
     // Labels are laid out on the main thread with the app's own font.
-    await page.waitForResponse((r) => r.url().endsWith('/fonts/Figtree-Medium.ttf') && r.ok())
+    await fontLoaded
     await page.waitForTimeout(1500)
     expect(errors).toEqual([])
   })

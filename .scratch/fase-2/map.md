@@ -62,8 +62,9 @@ di stato e la voce nell'help.
 La mappa è finita: tutti i ticket di decisione sono chiusi e la via alla destinazione è fissata
 dal ticket 09. Restano solo lavori del proprietario e una misura:
 
-- **Fixture Base Set 2** (09): `pnpm --filter @constellation/adapter-pokemon fixture:refresh base2`
-  da una macchina con rete, poi commit; i due test e2e fra set diversi smettono di essere saltati.
+- **Fixture Base Set 2** (09): `pnpm --filter @constellation/adapter-pokemon fixture:refresh base4`
+  da una macchina con rete, poi commit (in TCGdex Base Set 2 è `base4`; la fixture `base2` già
+  committata è Jungle); i due test e2e fra set diversi smettono di essere saltati.
 - **01** import completo: riparte da solo quando cade la restrizione dell'organizzazione Supabase.
 - **08** (resta `claimed`): `pnpm path:measure` sul catalogo completo, dentro i limiti del 09;
   con quello filo e cammino sono "fatti".

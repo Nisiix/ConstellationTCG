@@ -35,9 +35,9 @@ function run(args) {
 
 rmSync(dataDir, { recursive: true, force: true })
 mkdirSync(dataDir, { recursive: true })
-// Base Set always; Base Set 2 too when its fixture is committed (two sets: paths across sets and
-// reprints). E2E_FIXTURES overrides the list.
-const fixtures = (process.env.E2E_FIXTURES ?? 'base1,base2').split(',').map((f) => f.trim()).filter(Boolean)
+// Base Set always; Jungle (TCGdex `base2`) and Base Set 2 (TCGdex `base4`) too when their fixtures
+// are committed (two or three sets: paths across sets and reprints). E2E_FIXTURES overrides the list.
+const fixtures = (process.env.E2E_FIXTURES ?? 'base1,base2,base4').split(',').map((f) => f.trim()).filter(Boolean)
 for (const fixture of fixtures) {
   if (!existsSync(path.join(repoRoot, 'adapters', 'pokemon', 'fixtures', fixture, 'cards.json'))) {
     if (fixture === 'base1') {
