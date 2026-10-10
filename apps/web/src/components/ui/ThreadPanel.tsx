@@ -18,6 +18,7 @@ export function ThreadPanel() {
   const open = useThreadStore((s) => s.open)
   const toggle = useThreadStore((s) => s.toggle)
   const clear = useThreadStore((s) => s.clear)
+  const cursor = useThreadStore((s) => s.cursor)
   const focusNodeId = useGraphStore((s) => s.focusNodeId)
   const listRef = useRef<HTMLOListElement>(null)
 
@@ -38,10 +39,13 @@ export function ThreadPanel() {
               Clear
             </button>
           </div>
-          <p className="px-4 pb-2 text-[12px] text-ink-dim">Where you have been in this session. Pick a step to go back there.</p>
+          <p className="px-4 pb-2 text-[12px] text-ink-dim">
+            Where you have been in this session. Pick a step to go back there, or walk it with <kbd>[</kbd> <kbd>]</kbd>.
+          </p>
           <ol ref={listRef} className="scroll-thin overflow-y-auto px-2 pb-3">
             {steps.map((step, i) => {
-              const here = step.id === focusNodeId && i === steps.length - 1
+              // The step in view: the one walked to with [ ], else the last one.
+              const here = step.id === focusNodeId && i === (cursor ?? steps.length - 1)
               return (
                 <li key={`${step.id}-${i}`} style={{ opacity: Math.max(0.45, stepBrightness(i, steps.length)) }}>
                   <button

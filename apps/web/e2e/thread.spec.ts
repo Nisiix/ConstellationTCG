@@ -185,3 +185,42 @@ test.describe('the thread', () => {
     await expect(page.getByRole('button', { name: 'Your thread · 5' })).toBeVisible()
   })
 })
+
+test.describe('walking the thread with the keyboard', () => {
+  test('[ and ] move back and forth along the thread without adding steps', async ({ page, request }) => {
+    const charizard = await nodeId(request, 'charizard', 'card_printing', 'Charizard')
+    await page.goto(`/explore?view=list&node=${encodeURIComponent(charizard)}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charizard')
+    await page.getByRole('link', { name: /Mitsuhiro Arita/ }).first().click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mitsuhiro Arita')
+    await page.getByRole('link', { name: /^Charmander/ }).first().click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charmander')
+    await expect(page.getByRole('button', { name: 'Your thread · 3' })).toBeVisible()
+
+    await page.locator('body').click({ position: { x: 5, y: 300 } })
+    await page.keyboard.press('[')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mitsuhiro Arita')
+    await page.keyboard.press('[')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charizard')
+    // nowhere further back: the focus stays
+    await page.keyboard.press('[')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charizard')
+    await expect(page.getByRole('button', { name: 'Your thread · 3' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Your thread · 3' }).click()
+    const steps = page.getByRole('region', { name: 'Your thread' })
+    await expect(steps.locator('[aria-current="step"]')).toContainText('Charizard')
+
+    await page.keyboard.press(']')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mitsuhiro Arita')
+    await expect(steps.locator('[aria-current="step"]')).toContainText('Mitsuhiro Arita')
+    await page.keyboard.press(']')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Charmander')
+    await expect(page.getByRole('button', { name: 'Your thread · 3' })).toBeVisible()
+
+    // A new focus after walking adds a step again.
+    await page.getByRole('link', { name: 'Base Set', exact: true }).first().click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Base Set')
+    await expect(page.getByRole('button', { name: 'Your thread · 4' })).toBeVisible()
+  })
+})

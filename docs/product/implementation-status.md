@@ -425,3 +425,20 @@ sintetico della taglia del catalogo tiene d'occhio l'algoritmo in CI.
   set di una serie nella vista elenco; anche *Details* è una pagina con indirizzo (`panel=details`).
 - **Da sapere** — la fixture `base2` è **Jungle** (su TCGdex Base Set 2 è `base4`): i test e2e che
   cercano "Base Set 2" restano saltati finché non c'è quella fixture.
+
+## Universo continuo e tastiera lungo il filo (10 ottobre 2026)
+
+Due punti "non ancora specificati" della mappa, fatti con valori di partenza rivedibili.
+**Universo continuo**: `getUniverse` aggiunge ai legami set → serie → gioco i ponti più forti fra
+set (stessi Pokémon, stessi artisti, struttura simile, calcolati da `similarity.ts`), al massimo 3
+per set: nel cielo i set affini si raggruppano anche fra serie ed epoche diverse; mai carte.
+**Tastiera lungo il filo**: `[` e `]` percorrono il filo indietro e avanti senza aggiungere passi
+(un cursore nel `thread-store`); il primo focus nuovo dopo la camminata torna ad allungarlo; il
+pannello "Your thread" segna il passo in vista; scorciatoia nell'help. Test unitari (cammino del
+cursore, ponti dell'universo su Base Set + Jungle) e un e2e.
+
+Correzioni ai test emerse integrando il lavoro della sessione parallela: il viaggio del filo non
+trovava Pikachu (con Jungle, Mitsuhiro Arita ha 38 illustrazioni e la lista ne mostra 24); il test
+3D ascoltava il font dopo che era già arrivato; il fixture "Base Set 2" è `base4` in TCGdex, non
+`base2` (che è Jungle).
+

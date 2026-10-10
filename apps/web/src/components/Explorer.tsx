@@ -299,6 +299,15 @@ export function Explorer() {
         setHovered(null)
         return
       }
+      // Along the thread: [ back, ] forward, without adding steps.
+      if (event.key === '[' || event.key === ']') {
+        const step = useThreadStore.getState().walk(event.key === '[' ? -1 : 1)
+        if (step) {
+          event.preventDefault()
+          navigation.goTo(step.id, { follow: true })
+        }
+        return
+      }
       if (event.key === '?') {
         event.preventDefault()
         toggleHelp()

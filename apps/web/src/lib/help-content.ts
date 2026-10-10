@@ -22,7 +22,7 @@ export const HOW_IT_WORKS: HelpStep[] = [
   { title: 'Go wider', text: 'with Extended connections (bottom right): the cards reached through the same card, the same Pokémon or the same artist. Or narrow down with filters.' },
   {
     title: 'Keep your thread.',
-    text: 'The sky never resets: every point you visit leaves a trail of light behind you, the last twelve steps bright and older ones fading. Your thread (bottom left) lists them in order; pick one to go back there. It lives in this browser tab only and is never sent anywhere.',
+    text: 'The sky never resets: every point you visit leaves a trail of light behind you, the last twelve steps bright and older ones fading. Your thread (bottom left) lists them in order; pick one to go back there, or walk it with [ and ] without adding steps. It lives in this browser tab only and is never sent anywhere.',
   },
   {
     title: 'Connect two points.',
@@ -44,6 +44,7 @@ export const SHORTCUTS: Array<[key: string, label: string]> = [
   ['F', 'Filters'],
   ['L', 'Switch 3D / list'],
   ['U', 'Back to the universe'],
+  ['[ ]', 'Back / forward along your thread'],
   ['⌫', 'Go back'],
   ['Esc', 'Close panels'],
   ['?', 'This help'],

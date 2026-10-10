@@ -56,7 +56,8 @@ Returns a `GraphNeighborhood` plus `summary` and `filtered`:
 ## `GET /api/graph/universe?game=pokemon`
 
 What a visitor sees before searching: the game node, its series and its sets (never the cards),
-with `PART_OF` edges. 404 when the game has not been ingested / projected.
+with `PART_OF` edges and, between sets, their strongest bridges (`SHARED_SUBJECTS`,
+`SHARED_ARTISTS`, `SIMILAR_STRUCTURE`; at most 3 per set, by score), so kindred sets gather. 404 when the game has not been ingested / projected.
 
 ## `GET /api/graph/node/:nodeId`
 

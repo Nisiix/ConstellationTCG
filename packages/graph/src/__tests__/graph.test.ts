@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildGraphProjection, type BuildReport } from '../builder'
 import { getNeighborhood } from '../neighborhood'
 import { getConnections, getGraphStats, getRelationshipSummary } from '../node'
-import { getUniverse } from '../universe'
+import { getUniverse, UNIVERSE_BRIDGES_PER_SET } from '../universe'
 
 let database: Database
 let registry: AdapterRegistry
@@ -374,6 +374,22 @@ describe('connections across expansions (Base Set and Jungle)', () => {
       const listed = await getConnections(two.db, set.id, { relationshipType: 'SHARED_ARTISTS', direction: 'out' })
       expect(listed.items.map((i) => i.node.id)).toEqual([set === base ? jungle.id : base.id])
     }
+  })
+
+  it('shows the universe as one sky: sets joined by their strongest bridges, never the cards', async () => {
+    const universe = await getUniverse(two.db, 'pokemon')
+    if (!universe) throw new Error('universe')
+    const base = await nodeOf('set', 'Base Set')
+    const jungle = await nodeOf('set', 'Jungle')
+    const bridges = universe.edges.filter((e) => e.sourceNodeId.startsWith('set:') && e.targetNodeId.startsWith('set:'))
+    expect(bridges.map((e) => e.relationshipType).sort()).toEqual(['SHARED_ARTISTS', 'SIMILAR_STRUCTURE'])
+    expect(bridges.every((e) => e.sourceNodeId === jungle.id && e.targetNodeId === base.id)).toBe(true)
+    // Still only the game, its series and its sets.
+    expect(new Set(universe.nodes.map((n) => n.nodeType))).toEqual(new Set(['game', 'series', 'set']))
+    expect(universe.edges.filter((e) => e.relationshipType === 'PART_OF')).toHaveLength(3)
+    // At most UNIVERSE_BRIDGES_PER_SET bridges touch a set.
+    const touching = (id: string) => bridges.filter((e) => e.sourceNodeId === id || e.targetNodeId === id).length
+    expect(touching(base.id)).toBeLessThanOrEqual(UNIVERSE_BRIDGES_PER_SET)
   })
 
   it('never pairs a card with a reprint of itself as a counterpart', async () => {

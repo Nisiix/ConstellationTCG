@@ -30,6 +30,18 @@ export function recordStep(steps: readonly ThreadStep[], node: GraphNode, positi
   return next.length > THREAD_MAX_STEPS ? next.slice(next.length - THREAD_MAX_STEPS) : next
 }
 
+/**
+ * One step along the thread with the keyboard (`[` back, `]` forward), without adding steps: the
+ * cursor is the step in view while walking (`null` = the last one). Returns the new cursor, or
+ * `null` when there is nowhere to go in that direction.
+ */
+export function walkThread(stepCount: number, cursor: number | null, direction: -1 | 1): number | null {
+  if (stepCount < 2) return null
+  const from = cursor ?? stepCount - 1
+  const to = from + direction
+  return to < 0 || to >= stepCount ? null : to
+}
+
 /** Refresh the remembered position of every step that is in the sky right now. */
 export function syncPositions(steps: readonly ThreadStep[], positions: ReadonlyMap<string, Vec3>): ThreadStep[] {
   let changed = false

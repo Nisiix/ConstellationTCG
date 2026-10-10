@@ -72,10 +72,13 @@ dal ticket 09. Restano solo lavori del proprietario e una misura:
 
 ## Not yet specified
 
-- **Universo continuo**: nella vista universo i set come gruppi uniti da ponti (ristampe, stesso
-  Pokémon, stesso artista) invece di una lista. Conseguenza della destinazione, dopo filo e cammino.
-- **Tastiera lungo il filo**: tornare indietro e avanti sul filo con i tasti; dipende da come il
-  filo verrà disegnato.
+- ~~**Universo continuo**~~ (10 ottobre, valore di partenza rivedibile): l'universo include i ponti
+  più forti fra set (stessi Pokémon, stessi artisti, struttura simile; al massimo 3 per set, i più
+  forti), così nel cielo i set affini si raggruppano anche fra serie diverse. La vista List resta
+  l'elenco per serie.
+- ~~**Tastiera lungo il filo**~~ (10 ottobre, valore di partenza rivedibile): `[` indietro e `]`
+  avanti lungo il filo, senza aggiungere passi; un nuovo focus dopo la camminata torna ad
+  allungarlo. Il pannello "Your thread" segna il passo in vista.
 - **Cammini sul catalogo completo**: l'algoritmo è scelto (ticket 03); le misure reali (frontiera
   per salto, freddo su Vercel, indice stantio dopo `graph:build`) aspettano l'import (ticket 01) e
   si fanno nel prototipo 08.

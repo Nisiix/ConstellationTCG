@@ -1,6 +1,6 @@
 import type { GraphNode } from '@constellation/domain'
 import { describe, expect, it } from 'vitest'
-import { THREAD_LIT_STEPS, THREAD_MAX_STEPS, parseStoredThread, recordStep, stepBrightness, syncPositions } from '../thread'
+import { THREAD_LIT_STEPS, THREAD_MAX_STEPS, parseStoredThread, recordStep, stepBrightness, syncPositions, walkThread } from '../thread'
 
 const node = (id: string, label = id): GraphNode => ({
   id,
@@ -46,6 +46,16 @@ describe('thread', () => {
     expect(stepBrightness(count - THREAD_LIT_STEPS - 1, count)).toBeLessThan(1)
     expect(stepBrightness(0, count)).toBeGreaterThanOrEqual(0.18)
     expect(stepBrightness(0, count)).toBeLessThan(stepBrightness(16, count))
+  })
+
+  it('walks back and forth along the thread with the keyboard, within its ends', () => {
+    expect(walkThread(3, null, -1)).toBe(1)
+    expect(walkThread(3, 1, -1)).toBe(0)
+    expect(walkThread(3, 0, -1)).toBeNull()
+    expect(walkThread(3, 0, 1)).toBe(1)
+    expect(walkThread(3, 2, 1)).toBeNull()
+    expect(walkThread(3, null, 1)).toBeNull()
+    expect(walkThread(1, null, -1)).toBeNull()
   })
 
   it('reads a stored thread defensively', () => {
